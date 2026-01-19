@@ -43,3 +43,4 @@ TODO
 *.html
 examples/visualize_trajectory.cpp
 issues
+*_notes.md

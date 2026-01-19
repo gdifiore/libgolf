@@ -58,6 +58,26 @@ namespace GroundPhysics
             velocityTangent[2] * frictionFactor
         };
 
+        // Apply Penner model: spin affects tangent velocity during contact
+        // v_tangent_new = v_tangent * friction - (2 * r * omega) / 7
+        // For backspin, this reduces forward velocity (ball "checks")
+        // Reference: Penner, A.R. "The physics of golf" (2003)
+        float tangentMagnitude = std::sqrt(
+            velocityTangentAfter[0] * velocityTangentAfter[0] +
+            velocityTangentAfter[1] * velocityTangentAfter[1] +
+            velocityTangentAfter[2] * velocityTangentAfter[2]
+        );
+
+        if (tangentMagnitude > physics_constants::MIN_VELOCITY_THRESHOLD)
+        {
+            float spinContribution = (2.0F * physics_constants::STD_BALL_RADIUS_FT * spinRate) / 7.0F;
+            // Reduce tangent velocity magnitude, but don't reverse direction
+            float reductionFactor = std::max(0.0F, 1.0F - spinContribution / tangentMagnitude);
+            velocityTangentAfter[0] *= reductionFactor;
+            velocityTangentAfter[1] *= reductionFactor;
+            velocityTangentAfter[2] *= reductionFactor;
+        }
+
         // Combine components to get final velocity
         result.newVelocity = {
             velocityNormalAfter[0] + velocityTangentAfter[0],
