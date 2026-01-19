@@ -23,12 +23,66 @@ TEST(GroundPhysicsTest, BounceOnFlatGround)
     // Vertical velocity should reverse and reduce by COR
     EXPECT_NEAR(result.newVelocity[2], 3.0F, 0.1F);  // -(-5) * 0.6 = 3.0
 
-    // Horizontal velocity should be reduced by friction
-    float expectedFriction = 1.0F - 0.3F * (1.0F - 0.8F);  // 0.94
-    EXPECT_NEAR(result.newVelocity[1], 10.0F * expectedFriction, 0.1F);
+    // Horizontal velocity should be reduced by friction AND spin (Penner model)
+    // frictionFactor = 1 - 0.3 * (1 - 0.8) = 0.94
+    // After friction: 10.0 * 0.94 = 9.4
+    // spinContribution = (2 * 0.07 * 100) / 7 = 2.0
+    // reductionFactor = 1 - 2.0/9.4 = 0.787
+    // Final: 9.4 * 0.787 = 7.4
+    EXPECT_NEAR(result.newVelocity[1], 7.4F, 0.5F);
 
     // Spin should be reduced
     EXPECT_NEAR(result.newSpinRate, 75.0F, 0.1F);  // 100 * 0.75
+}
+
+// Test Penner model: high spin reduces tangent velocity more than low spin
+TEST(GroundPhysicsTest, HighSpinReducesTangentVelocityMoreThanLowSpin)
+{
+    Vector3D velocity{0.0F, 50.0F, -20.0F};  // Fast forward motion with downward component
+    Vector3D normal{0.0F, 0.0F, 1.0F};       // Flat horizontal surface
+
+    GroundSurface surface;
+    surface.restitution = 0.4F;
+    surface.frictionStatic = 0.0F;  // No friction to isolate spin effect
+    surface.firmness = 1.0F;
+    surface.spinRetention = 1.0F;
+
+    // Low spin case (typical driver)
+    float lowSpin = 50.0F;  // rad/s (~500 rpm)
+    auto resultLow = GroundPhysics::calculateBounce(velocity, normal, lowSpin, surface);
+
+    // High spin case (typical wedge)
+    float highSpin = 300.0F;  // rad/s (~3000 rpm)
+    auto resultHigh = GroundPhysics::calculateBounce(velocity, normal, highSpin, surface);
+
+    // High spin should result in lower tangent velocity
+    EXPECT_LT(resultHigh.newVelocity[1], resultLow.newVelocity[1]);
+
+    // Quantify the difference using Penner model:
+    // spinContribution = (2 * r * omega) / 7 = (2 * 0.07 * omega) / 7 = 0.02 * omega
+    // Low: 0.02 * 50 = 1.0 ft/s reduction
+    // High: 0.02 * 300 = 6.0 ft/s reduction
+    // Difference should be approximately 5.0 ft/s
+    float velocityDifference = resultLow.newVelocity[1] - resultHigh.newVelocity[1];
+    EXPECT_NEAR(velocityDifference, 5.0F, 0.5F);
+}
+
+// Test Penner model: zero spin has no additional velocity reduction
+TEST(GroundPhysicsTest, ZeroSpinNoAdditionalVelocityReduction)
+{
+    Vector3D velocity{0.0F, 30.0F, -10.0F};
+    Vector3D normal{0.0F, 0.0F, 1.0F};
+
+    GroundSurface surface;
+    surface.restitution = 0.5F;
+    surface.frictionStatic = 0.0F;  // No friction
+    surface.firmness = 1.0F;
+    surface.spinRetention = 1.0F;
+
+    auto result = GroundPhysics::calculateBounce(velocity, normal, 0.0F, surface);
+
+    // With zero spin and no friction, tangent velocity should be unchanged
+    EXPECT_NEAR(result.newVelocity[1], 30.0F, 0.01F);
 }
 
 // Test bounce on 45-degree slope

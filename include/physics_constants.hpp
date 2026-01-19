@@ -90,6 +90,9 @@ namespace physics_constants
     /// Pi constant (for MSVC compatibility where M_PI is not standard)
     constexpr float PI = 3.14159265358979323846F;
 
+    /// Standard golf ball radius (feet)
+    constexpr float STD_BALL_RADIUS_FT = STD_BALL_CIRCUMFERENCE_IN / (2.0F * PI) / INCHES_PER_FOOT;
+
     // ========================================================================
     // ANGULAR CONVERSION FACTORS
     // ========================================================================
