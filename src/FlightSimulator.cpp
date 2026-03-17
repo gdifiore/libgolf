@@ -90,6 +90,7 @@ void FlightSimulator::run(float dt)
 std::vector<BallState> FlightSimulator::runAndGetTrajectory(float dt)
 {
 	std::vector<BallState> trajectory;
+	trajectory.reserve(static_cast<size_t>(10.0F / dt)); // ~10s at dt typical shots
 
 	while (currentPhase != Phase::Complete)
 	{
