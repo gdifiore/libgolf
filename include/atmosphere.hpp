@@ -4,7 +4,7 @@
 /**
  * @brief Atmospheric conditions for flight simulation
  */
-struct atmosphericData
+struct AtmosphericData
 {
 	/**
 	 * @brief Air temperature (in degrees Fahrenheit).

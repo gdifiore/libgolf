@@ -32,19 +32,15 @@ chmod +x build.sh
 ```cpp
 #include <libgolf.hpp>
 
-// Basic simulation with single ground type
-const golfBall ball{0.0, 0.0, 0.0, 160.0, 11.0, 0.0, 3000.0, 0.0};
-const atmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
-GroundSurface ground;  // Default fairway (or use constructor for custom values)
+const LaunchData ball{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f}; // mph, °, °, rpm, rpm
+const AtmosphericData atmos{70.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50.0f, 29.92f};
+GroundSurface ground; // Default fairway
 
-GolfBallPhysicsVariables physVars(ball, atmos);
-FlightSimulator sim(physVars, ball, atmos, ground);
+FlightSimulator sim(ball, atmos, ground);
+sim.run();
 
-// Initialize and run
-sim.initialize(initialState);
-while (!sim.isComplete()) {
-    sim.step(0.01f);
-}
+LandingResult result = sim.getLandingResult();
+printf("Distance: %.1f yards\n", result.distance);
 ```
 
 For dynamic ground surfaces (fairway/rough/green), see the [Ground Providers Guide](/docs/ground_providers.md).

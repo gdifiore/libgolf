@@ -166,8 +166,8 @@ TEST(TerrainInterfaceTest, BallBouncesOnSlopedTerrain)
     auto terrain = std::make_shared<MockSlopedTerrain>(15.0F, surface);
 
     // Set up physics
-    golfBall ball{0.0, 0.0, 0.0, 100.0, 10.0, 0.0, 2000.0, 0.0};
-    atmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+    LaunchData ball{100.0, 10.0, 0.0, 2000.0, 0.0};
+    AtmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
     GolfBallPhysicsVariables physicsVars(ball, atmos);
 
     // Create bounce phase with sloped terrain
@@ -194,8 +194,8 @@ TEST(TerrainInterfaceTest, BallRollsDownSlope)
     auto terrain = std::make_shared<MockSlopedTerrain>(10.0F, surface);
 
     // Set up physics
-    golfBall ball{0.0, 0.0, 0.0, 100.0, 10.0, 0.0, 2000.0, 0.0};
-    atmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+    LaunchData ball{100.0, 10.0, 0.0, 2000.0, 0.0};
+    AtmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
     GolfBallPhysicsVariables physicsVars(ball, atmos);
 
     // Create roll phase

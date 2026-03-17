@@ -35,7 +35,7 @@ For flat terrain (backward compatible with existing code):
 GroundSurface ground{0.0F, 0.4F, 0.5F, 0.2F, 0.8F, 0.75F};
 
 auto terrain = std::make_shared<FlatTerrain>(ground);
-FlightSimulator sim(physicsVars, ball, atmos, ground, terrain);
+FlightSimulator sim(ball, atmos, ground, terrain);
 ```
 
 When a terrain is provided, the flight simulator queries terrain properties at each position during the simulation.
@@ -147,7 +147,7 @@ Usage:
 ```c++
 GroundSurface fairway{0.0F, 0.4F, 0.5F, 0.15F, 0.8F, 0.75F};
 auto terrain = std::make_shared<SlopedTerrain>(5.0F, fairway);  // 5-degree slope
-FlightSimulator sim(physicsVars, ball, atmos, fairway, terrain);
+FlightSimulator sim(ball, atmos, fairway, terrain);
 ```
 
 ## Ground Surface Properties
@@ -337,8 +337,8 @@ private:
 The terrain system maintains full backward compatibility. Existing code using only `GroundSurface` continues to work:
 
 ```c++
-// Old code (still works)
-FlightSimulator sim(physicsVars, ball, atmos, ground);
+// Simple flat ground (no terrain)
+FlightSimulator sim(ball, atmos, ground);
 ```
 
 Internally, a `FlatTerrain` is created automatically from the `GroundSurface` parameter.
@@ -352,7 +352,7 @@ To utilize custom terrain:
 auto terrain = std::make_shared<YourTerrainImpl>(ground);
 
 // Pass to simulator
-FlightSimulator sim(physicsVars, ball, atmos, ground, terrain);
+FlightSimulator sim(ball, atmos, ground, terrain);
 ```
 
 The `GroundSurface` parameter serves as a fallback for backward compatibility but is superseded by terrain queries when custom terrain is provided.

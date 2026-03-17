@@ -58,7 +58,7 @@ public:
 
 // Usage
 SimpleHole provider;
-FlightSimulator sim(physVars, ball, atmos, provider);
+FlightSimulator sim(ball, atmos, provider);
 ```
 
 ## Ground Surface Parameters
@@ -250,30 +250,15 @@ public:
 };
 
 int main() {
-    const golfBall ball{0.0, 0.0, 0.0, 160.0, 11.0, 0.0, 3000.0, 0.0};
-    const atmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+    const LaunchData ball{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f};
+    const AtmosphericData atmos{70.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50.0f, 29.92f};
 
     GolfHoleProvider provider;
-    GolfBallPhysicsVariables physVars(ball, atmos);
-    FlightSimulator sim(physVars, ball, atmos, provider);
+    FlightSimulator sim(ball, atmos, provider);
+    sim.run();
 
-    const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-    BallState initialState = BallState::fromLaunchParameters(
-        v0_fps, ball.launchAngle, ball.direction,
-        Vector3D{0.0f, 0.0f, 0.0f},
-        physics_constants::GRAVITY_FT_PER_S2,
-        physVars.getROmega()
-    );
-
-    sim.initialize(initialState);
-
-    while (!sim.isComplete()) {
-        sim.step(0.01f);
-    }
-
-    const BallState& final = sim.getState();
-    printf("Landed at: %.1f yards\n",
-           final.position[1] / physics_constants::YARDS_TO_FEET);
+    LandingResult result = sim.getLandingResult();
+    printf("Landed at: %.1f yards\n", result.yF);
 }
 ```
 
@@ -292,18 +277,18 @@ float feet = yards * physics_constants::YARDS_TO_FEET;  // 3.0
 float yards = feet / physics_constants::YARDS_TO_FEET;
 ```
 
-## Backward Compatibility
+## Using a Uniform Ground
 
-Old code still works:
+If you don't need position-dependent surfaces, pass a `GroundSurface` directly:
 
 ```cpp
-// Single ground surface - still works (uses default fairway values)
+// Single ground surface (uses default fairway values)
 GroundSurface ground;
-FlightSimulator sim(physVars, ball, atmos, ground);
+FlightSimulator sim(ball, atmos, ground);
 
-// Or with custom values using constructor
+// Or with custom values
 GroundSurface green{0.0f, 0.35f, 0.4f, 0.12f, 0.95f, 0.85f};
-FlightSimulator sim2(physVars, ball, atmos, green);
+FlightSimulator sim2(ball, atmos, green);
 ```
 
 Internally creates a `UniformGroundProvider` that returns the same surface everywhere.

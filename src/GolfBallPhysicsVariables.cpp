@@ -8,7 +8,7 @@
  * calculating air density, barometric pressure, spin rates, launch angles, wind effects, and
  * other variables used in golf ball physics calculations.
  *
- * The GolfBallPhysicsVariables class takes a golf ball object and atmospheric data as input,
+ * The GolfBallPhysicsVariables class takes launch data and atmospheric data as input,
  * and provides methods to calculate all the required variables.
  *
  * @copyright Copyright (c) 2025, Gabriel DiFiore
@@ -21,22 +21,20 @@
 #include "physics_constants.hpp"
 
 #include <cmath>
-#include <iostream>
 
 /**
  * @brief Constructs a GolfBallPhysicsVariables object.
  *
- * This constructor initializes a GolfBallPhysicsVariables object with the given golf ball and atmospheric data.
+ * @param launch Launch monitor data for the shot.
+ * @param atmos Atmospheric conditions at the time of the shot.
  *
- * @param ball The golf ball structure containing relevant data.
- * @param atmos The atmospheric data structure containing relevant data.
- *
- * @note The user is responsible for validating the ball and atmos structures before passing them to this constructor.
- *       This class assumes that the input data is valid and within physically reasonable ranges.
- *       Passing invalid or out-of-range data may lead to unexpected behavior or incorrect calculations.
+ * @note The user is responsible for validating the launch and atmos structures before passing
+ *       them to this constructor. This class assumes that the input data is valid and within
+ *       physically reasonable ranges. Passing invalid or out-of-range data may lead to
+ *       unexpected behavior or incorrect calculations.
  */
-GolfBallPhysicsVariables::GolfBallPhysicsVariables(const golfBall &ball, const atmosphericData &atmos)
-    : ball(ball), atmos(atmos)
+GolfBallPhysicsVariables::GolfBallPhysicsVariables(const LaunchData &launch, const AtmosphericData &atmos)
+    : launch(launch), atmos(atmos)
 {
     tempC = math_utils::convertFahrenheitToCelsius(atmos.temp);
     elevationM = math_utils::convertFeetToMeters(atmos.elevation);
@@ -78,28 +76,28 @@ void GolfBallPhysicsVariables::calculateC0()
 
 void GolfBallPhysicsVariables::calculateV0()
 {
-    v0_magnitude = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-    float v0x = v0_magnitude * std::cos(ball.launchAngle * physics_constants::DEG_TO_RAD) * std::sin(ball.direction * physics_constants::DEG_TO_RAD);
-    float v0y = v0_magnitude * std::cos(ball.launchAngle * physics_constants::DEG_TO_RAD) * std::cos(ball.direction * physics_constants::DEG_TO_RAD);
-    float v0z = v0_magnitude * std::sin(ball.launchAngle * physics_constants::DEG_TO_RAD);
+    v0_magnitude = launch.ballSpeedMph * physics_constants::MPH_TO_FT_PER_S;
+    float v0x = v0_magnitude * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD);
+    float v0y = v0_magnitude * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD);
+    float v0z = v0_magnitude * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD);
     v0 = Vector3D{v0x, v0y, v0z};
 }
 
 void GolfBallPhysicsVariables::calculateW()
 {
-    float wx = (ball.backspin * std::cos(ball.direction * physics_constants::DEG_TO_RAD) -
-                ball.sidespin * std::sin(ball.launchAngle * physics_constants::DEG_TO_RAD) * std::sin(ball.direction * physics_constants::DEG_TO_RAD)) *
+    float wx = (launch.backspinRpm * std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD) -
+                launch.sidespinRpm * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD)) *
                physics_constants::RPM_TO_RAD_PER_S;
-    float wy = (-ball.backspin * std::sin(ball.direction * physics_constants::DEG_TO_RAD) -
-                ball.sidespin * std::sin(ball.launchAngle * physics_constants::DEG_TO_RAD) * std::cos(ball.direction * physics_constants::DEG_TO_RAD)) *
+    float wy = (-launch.backspinRpm * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD) -
+                launch.sidespinRpm * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD)) *
                physics_constants::RPM_TO_RAD_PER_S;
-    float wz = (ball.sidespin * std::cos(ball.launchAngle * physics_constants::DEG_TO_RAD)) * physics_constants::RPM_TO_RAD_PER_S;
+    float wz = (launch.sidespinRpm * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD)) * physics_constants::RPM_TO_RAD_PER_S;
     w = Vector3D{wx, wy, wz};
 }
 
 void GolfBallPhysicsVariables::calculateOmega()
 {
-    omega = std::sqrt(std::pow(ball.backspin, 2) + std::pow(ball.sidespin, 2)) * physics_constants::RPM_TO_RAD_PER_S;
+    omega = std::sqrt(std::pow(launch.backspinRpm, 2) + std::pow(launch.sidespinRpm, 2)) * physics_constants::RPM_TO_RAD_PER_S;
 }
 
 void GolfBallPhysicsVariables::calculateROmega()

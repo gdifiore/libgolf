@@ -24,9 +24,9 @@
 // ============================================================================
 
 AerialPhase::AerialPhase(
-	GolfBallPhysicsVariables &physicsVars, const golfBall &ball,
-	const atmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain)
-	: physicsVars(physicsVars), ball(ball), atmos(atmos), terrain(terrain)
+	GolfBallPhysicsVariables &physicsVars, const LaunchData &launch,
+	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain)
+	: physicsVars(physicsVars), launch(launch), atmos(atmos), terrain(terrain)
 {
 	if (!terrain)
 	{
@@ -287,10 +287,10 @@ void AerialPhase::calculateAccel(BallState &state)
 // ============================================================================
 
 BouncePhase::BouncePhase(
-	GolfBallPhysicsVariables &physicsVars, const golfBall &ball,
-	const atmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain)
-	: physicsVars(physicsVars), ball(ball), atmos(atmos), terrain(terrain),
-	  aerialPhase(physicsVars, ball, atmos, terrain)
+	GolfBallPhysicsVariables &physicsVars, const LaunchData &launch,
+	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain)
+	: physicsVars(physicsVars), launch(launch), atmos(atmos), terrain(terrain),
+	  aerialPhase(physicsVars, launch, atmos, terrain)
 {
 	if (!terrain)
 	{
@@ -357,9 +357,9 @@ bool BouncePhase::isPhaseComplete(const BallState &state) const
 // ============================================================================
 
 RollPhase::RollPhase(
-	GolfBallPhysicsVariables &physicsVars, const golfBall &ball,
-	const atmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain)
-	: physicsVars(physicsVars), ball(ball), atmos(atmos), terrain(terrain)
+	GolfBallPhysicsVariables &physicsVars, const LaunchData &launch,
+	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain)
+	: physicsVars(physicsVars), launch(launch), atmos(atmos), terrain(terrain)
 {
 	if (!terrain)
 	{
