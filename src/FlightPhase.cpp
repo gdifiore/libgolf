@@ -242,31 +242,33 @@ void AerialPhase::calculateSpinFactor()
 
 void AerialPhase::calculateAccelD(const BallState &state)
 {
-	accelerationDrag3D[0] = -physicsVars.getC0() * determineCoefficientOfDrag() *
+	auto coefficientOfDrag = determineCoefficientOfDrag();
+	accelerationDrag3D[0] = -physicsVars.getC0() * coefficientOfDrag *
 							vw * (state.velocity[0] - velocity3D_w[0]);
-	accelerationDrag3D[1] = -physicsVars.getC0() * determineCoefficientOfDrag() *
+	accelerationDrag3D[1] = -physicsVars.getC0() * coefficientOfDrag *
 							vw * (state.velocity[1] - velocity3D_w[1]);
-	accelerationDrag3D[2] = -physicsVars.getC0() * determineCoefficientOfDrag() *
+	accelerationDrag3D[2] = -physicsVars.getC0() * coefficientOfDrag *
 							vw * state.velocity[2];
 }
 
 void AerialPhase::calculateAccelM(const BallState &state)
 {
+	auto coefficientOfLift = determineCoefficientOfLift();
 	accelerationMagnitude3D[0] =
 		physicsVars.getC0() *
-		(determineCoefficientOfLift() / physicsVars.getOmega()) * vw *
+		(coefficientOfLift / physicsVars.getOmega()) * vw *
 		(physicsVars.getW()[1] * state.velocity[2] -
 		 physicsVars.getW()[2] * (state.velocity[1] - velocity3D_w[1])) /
 		w_perp_div_w;
 	accelerationMagnitude3D[1] =
 		physicsVars.getC0() *
-		(determineCoefficientOfLift() / physicsVars.getOmega()) * vw *
+		(coefficientOfLift / physicsVars.getOmega()) * vw *
 		(physicsVars.getW()[2] * (state.velocity[0] - velocity3D_w[0]) -
 		 physicsVars.getW()[0] * state.velocity[2]) /
 		w_perp_div_w;
 	accelerationMagnitude3D[2] =
 		physicsVars.getC0() *
-		(determineCoefficientOfLift() / physicsVars.getOmega()) * vw *
+		(coefficientOfLift / physicsVars.getOmega()) * vw *
 		(physicsVars.getW()[0] * (state.velocity[1] - velocity3D_w[1]) -
 		 physicsVars.getW()[1] * (state.velocity[0] - velocity3D_w[0])) /
 		w_perp_div_w;
