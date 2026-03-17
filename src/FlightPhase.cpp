@@ -149,16 +149,16 @@ void AerialPhase::calculateVelocityw(const BallState &state)
 {
 	if (state.position[2] >= atmos.hWind)
 	{
-		vw = sqrt(pow(state.velocity[0] - velocity3D_w[0], 2) +
-				  pow(state.velocity[1] - velocity3D_w[1], 2) + pow(state.velocity[2], 2));
 		velocity3D_w[0] = physicsVars.getVw()[0];
 		velocity3D_w[1] = physicsVars.getVw()[1];
+		vw = sqrt(pow(state.velocity[0] - velocity3D_w[0], 2) +
+				  pow(state.velocity[1] - velocity3D_w[1], 2) + pow(state.velocity[2], 2));
 	}
 	else
 	{
-		vw = v;
 		velocity3D_w[0] = 0;
 		velocity3D_w[1] = 0;
+		vw = v;
 	}
 
 	vwMph = vw / physics_constants::MPH_TO_FT_PER_S;
@@ -166,13 +166,16 @@ void AerialPhase::calculateVelocityw(const BallState &state)
 
 void AerialPhase::calculatePhi(const BallState &state)
 {
+	// Currently unused in force calculations — kept for potential future use.
+	// As a private member function, the optimizer will compile this out in
+	// release builds if it remains uncalled.
 	phi = atan2(state.position[1], state.position[2]) * 180 / physics_constants::PI;
 }
 
 void AerialPhase::calculateTau()
 {
 	const float ballRadius = physics_constants::STD_BALL_CIRCUMFERENCE_IN /
-	                        (2 * physics_constants::PI * physics_constants::INCHES_PER_FOOT);
+							 (2 * physics_constants::PI * physics_constants::INCHES_PER_FOOT);
 
 	// Prevent division by zero or near-zero velocity
 	if (v < physics_constants::MIN_VELOCITY_THRESHOLD)
@@ -206,7 +209,7 @@ float AerialPhase::determineCoefficientOfDrag()
 	{
 		return physics_constants::CD_LOW -
 			   (physics_constants::CD_LOW - physics_constants::CD_HIGH) *
-				   (Re_x_e5 - physics_constants::RE_THRESHOLD_LOW) / physics_constants::RE_THRESHOLD_LOW +
+				   (Re_x_e5 - physics_constants::RE_THRESHOLD_LOW) / (physics_constants::RE_THRESHOLD_HIGH - physics_constants::RE_THRESHOLD_LOW) +
 			   physics_constants::CD_SPIN * spinFactor;
 	}
 	else
@@ -301,12 +304,12 @@ void BouncePhase::calculateStep(BallState &state, float dt)
 	// Get terrain data at ball position
 	float terrainHeight = terrain->getHeight(state.position[0], state.position[1]);
 	Vector3D surfaceNormal = terrain->getNormal(state.position[0], state.position[1]);
-	const GroundSurface& surface = terrain->getSurfaceProperties(state.position[0], state.position[1]);
+	const GroundSurface &surface = terrain->getSurfaceProperties(state.position[0], state.position[1]);
 
 	// Apply bounce impact when ball contacts ground while moving downward
 	float velocityDotNormal = state.velocity[0] * surfaceNormal[0] +
-	                          state.velocity[1] * surfaceNormal[1] +
-	                          state.velocity[2] * surfaceNormal[2];
+							  state.velocity[1] * surfaceNormal[1] +
+							  state.velocity[2] * surfaceNormal[2];
 
 	if (state.position[2] <= terrainHeight && velocityDotNormal < 0.0F)
 	{
@@ -369,7 +372,7 @@ void RollPhase::calculateStep(BallState &state, float dt)
 {
 	// Get terrain data at ball position
 	Vector3D surfaceNormal = terrain->getNormal(state.position[0], state.position[1]);
-	const GroundSurface& surface = terrain->getSurfaceProperties(state.position[0], state.position[1]);
+	const GroundSurface &surface = terrain->getSurfaceProperties(state.position[0], state.position[1]);
 
 	// Store old velocity direction for reversal check
 	float oldVelX = state.velocity[0];

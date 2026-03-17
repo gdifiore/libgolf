@@ -97,6 +97,9 @@ private:
 	float phi;
 	float tau;
 	float rw;
+	// Perpendicular-spin correction factor for Magnus force.
+	// Fixed at 1.0 per the Nathan (UIUC) reference model — a placeholder
+	// for a future correction accounting for non-pure-backspin trajectories.
 	float w_perp_div_w = 1.0F;
 	float Re_x_e5;
 	float vw;

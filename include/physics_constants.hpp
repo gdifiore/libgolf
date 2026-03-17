@@ -44,7 +44,7 @@ namespace physics_constants
     // ========================================================================
 
     /// Offset to convert Celsius to Kelvin
-    constexpr float KELVIN_OFFSET = 273.16F;
+    constexpr float KELVIN_OFFSET = 273.15F;
 
     /// Offset for Fahrenheit to Celsius conversion
     constexpr float FAHRENHEIT_OFFSET = 32.0F;
