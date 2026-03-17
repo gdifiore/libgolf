@@ -9,27 +9,64 @@ permissions:
   contents: write
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      version: ${{ steps.get_version.outputs.version }}
+  build-release:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: libgolf.a
+            archive_ext: tar.gz
+            platform: Linux
+          - os: macos-latest
+            artifact_name: libgolf.a
+            archive_ext: tar.gz
+            platform: macOS
+          - os: windows-latest
+            artifact_name: golf.lib
+            archive_ext: zip
+            platform: Windows
+
     steps:
+      - uses: actions/checkout@v4
+
       - name: Get version from tag
         id: get_version
+        shell: bash
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package headers and library (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p package/include
+          cp -r include/* package/include/
+          cp build/include/version.hpp package/include/
+          cp build/${{ matrix.artifact_name }} package/
+          cd package
+          tar -czf ../libgolf-${{ matrix.platform }}-${{ steps.get_version.outputs.version }}.tar.gz .
+
+      - name: Package headers and library (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p package/include
+          cp -r include/* package/include/
+          cp build/include/version.hpp package/include/
+          cp build/Release/${{ matrix.artifact_name }} package/
+          cd package
+          7z a ../libgolf-${{ matrix.platform }}-${{ steps.get_version.outputs.version }}.zip .
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          files: libgolf-${{ matrix.platform }}-${{ steps.get_version.outputs.version }}.${{ matrix.archive_ext }}
           body: |
             ## libgolf ${{ steps.get_version.outputs.version }}
 
@@ -38,72 +75,3 @@ jobs:
 
             ### Building from Source
             See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for build instructions.
-
-  build-release:
-    name: Build ${{ matrix.os }}
-    needs: create-release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            artifact_name: libgolf.a
-            asset_name: libgolf-linux-x86_64.a
-          - os: macos-latest
-            artifact_name: libgolf.a
-            asset_name: libgolf-macos-x86_64.a
-          - os: windows-latest
-            artifact_name: golf.lib
-            asset_name: libgolf-windows-x86_64.lib
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
-        run: cmake --build build --config Release
-
-      - name: Package headers
-        run: |
-          mkdir -p package/include
-          cp -r include/* package/include/
-          cp build/include/version.hpp package/include/
-
-      - name: Create archive (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          cp build/${{ matrix.artifact_name }} package/
-          cd package
-          tar -czf ../libgolf-${{ runner.os }}-${{ needs.create-release.outputs.version }}.tar.gz .
-
-      - name: Create archive (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          cp build/Release/${{ matrix.artifact_name }} package/
-          cd package
-          7z a ../libgolf-Windows-${{ needs.create-release.outputs.version }}.zip .
-
-      - name: Upload Release Asset (Unix)
-        if: runner.os != 'Windows'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./libgolf-${{ runner.os }}-${{ needs.create-release.outputs.version }}.tar.gz
-          asset_name: libgolf-${{ runner.os }}-${{ needs.create-release.outputs.version }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Release Asset (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./libgolf-Windows-${{ needs.create-release.outputs.version }}.zip
-          asset_name: libgolf-Windows-${{ needs.create-release.outputs.version }}.zip
-          asset_content_type: application/zip
