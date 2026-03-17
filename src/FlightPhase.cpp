@@ -174,9 +174,6 @@ void AerialPhase::calculatePhi(const BallState &state)
 
 void AerialPhase::calculateTau()
 {
-	const float ballRadius = physics_constants::STD_BALL_CIRCUMFERENCE_IN /
-							 (2 * physics_constants::PI * physics_constants::INCHES_PER_FOOT);
-
 	// Prevent division by zero or near-zero velocity
 	if (v < physics_constants::MIN_VELOCITY_THRESHOLD)
 	{
@@ -184,7 +181,7 @@ void AerialPhase::calculateTau()
 		return;
 	}
 
-	tau = 1.0F / (physics_constants::TAU_COEFF * v / ballRadius);
+	tau = 1.0F / (physics_constants::TAU_COEFF * v / physics_constants::STD_BALL_RADIUS_FT);
 }
 
 void AerialPhase::calculateRw(const BallState &state)

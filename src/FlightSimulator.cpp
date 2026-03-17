@@ -17,10 +17,10 @@ FlightSimulator::FlightSimulator(
 	  // state is default-constructed
 	  initialized(false),
 	  physicsVars_(physicsVars),
-	  terrainStorage_(terrain),
-	  aerialPhase(physicsVars_, ball, atmos, terrain ? terrain : std::make_shared<FlatTerrain>(ground)),
-	  bouncePhase(physicsVars_, ball, atmos, terrain ? terrain : std::make_shared<FlatTerrain>(ground)),
-	  rollPhase(physicsVars_, ball, atmos, terrain ? terrain : std::make_shared<FlatTerrain>(ground))
+	  terrainStorage_(terrain ? terrain : std::make_shared<FlatTerrain>(ground)),
+	  aerialPhase(physicsVars_, ball, atmos, terrainStorage_),
+	  bouncePhase(physicsVars_, ball, atmos, terrainStorage_),
+	  rollPhase(physicsVars_, ball, atmos, terrainStorage_)
 {
 }
 

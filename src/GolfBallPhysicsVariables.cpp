@@ -62,7 +62,7 @@ void GolfBallPhysicsVariables::calculateAllVariables()
 void GolfBallPhysicsVariables::calculateRhoMetric()
 {
     rhoMetric = physics_constants::STD_AIR_DENSITY_KG_PER_M3 * ((physics_constants::KELVIN_OFFSET / (math_utils::convertCelsiusToKelvin(tempC)) *
-                                                                 ((barometricPressure * std::exp(-physics_constants::BETA_PRESSURE_DECAY * elevationM) - physics_constants::WATER_VAPOR_COEFF * atmos.relHumidity * (SVP / 100.0)) / physics_constants::STD_PRESSURE_MMHG)));
+                                                                 ((barometricPressure * std::exp(-physics_constants::BETA_PRESSURE_DECAY * elevationM) - physics_constants::WATER_VAPOR_COEFF * atmos.relHumidity * (SVP / 100.0F)) / physics_constants::STD_PRESSURE_MMHG)));
 }
 
 void GolfBallPhysicsVariables::calculateRhoImperial()
@@ -104,7 +104,7 @@ void GolfBallPhysicsVariables::calculateOmega()
 
 void GolfBallPhysicsVariables::calculateROmega()
 {
-    rOmega = (physics_constants::STD_BALL_CIRCUMFERENCE_IN / (2 * physics_constants::PI)) * (omega / 12.0);
+    rOmega = (physics_constants::STD_BALL_CIRCUMFERENCE_IN / (2 * physics_constants::PI)) * (omega / physics_constants::INCHES_PER_FOOT);
 }
 
 void GolfBallPhysicsVariables::calculateVw()
