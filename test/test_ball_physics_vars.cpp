@@ -6,10 +6,10 @@
 // U. of Illinois
 TEST(GolfTest, initVarsDefault)
 {
-  const golfBall ball{0.0, 0.0, 0.0, 160.0, 11.0, 0.0, 3000.0, 0.0};
-  const atmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+  const LaunchData launch{160.0, 11.0, 0.0, 3000.0, 0.0};
+  const AtmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
 
-  auto ballVars = GolfBallPhysicsVariables(ball, atmos);
+  auto ballVars = GolfBallPhysicsVariables(launch, atmos);
 
   ballVars.calculateAllVariables();
   EXPECT_NEAR(ballVars.getRhoImperial(), 0.0748, 0.001);
@@ -35,10 +35,10 @@ TEST(GolfTest, initVarsDefault)
 
 TEST(GolfTest, initVarsNotDefault)
 {
-  const golfBall ball{0.0, 0.0, 0.0, 160.0, 11.0, 0.0, 3000.0, 500.0};
-  const atmosphericData atmos{70.0, 90.0, 2.0, 30.0, 50.0, 50.0, 29.92};
+  const LaunchData launch{160.0, 11.0, 0.0, 3000.0, 500.0};
+  const AtmosphericData atmos{70.0, 90.0, 2.0, 30.0, 50.0, 50.0, 29.92};
 
-  auto vars = GolfBallPhysicsVariables(ball, atmos);
+  auto vars = GolfBallPhysicsVariables(launch, atmos);
 
   vars.calculateAllVariables();
   EXPECT_NEAR(vars.getRhoImperial(), 0.0745, 0.001);

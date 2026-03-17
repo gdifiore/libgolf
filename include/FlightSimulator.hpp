@@ -11,100 +11,123 @@
 #include "terrain_interface.hpp"
 
 #include <memory>
+#include <vector>
 
 /**
  * @brief Manages the complete flight simulation with automatic phase transitions.
  *
  * FlightSimulator encapsulates the complexity of managing different flight phases
- * (aerial, bounce, roll) and handles transitions automatically. Clients only need
- * to call step() repeatedly until the simulation is complete.
+ * (aerial, bounce, roll) and handles transitions automatically.
  *
- * IMPORTANT: You must call initialize() before calling step() or getState().
- *
- * Example usage:
+ * Basic usage:
  * @code
- * FlightSimulator sim(physicsVars, ball, atmos, ground);
- * sim.initialize(initialState);  // REQUIRED before calling step()
- * while (!sim.isComplete()) {
- *     sim.step(0.01f);
- * }
+ * LaunchData launch{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f};
+ * AtmosphericData atmos{70.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50.0f, 29.92f};
+ * GroundSurface ground;
+ *
+ * FlightSimulator sim(launch, atmos, ground);
+ * sim.run();
+ *
+ * const BallState& final = sim.getState();
+ * LandingResult result = sim.getLandingResult();
+ * @endcode
+ *
+ * For full trajectory:
+ * @code
+ * FlightSimulator sim(launch, atmos, ground);
+ * auto trajectory = sim.runAndGetTrajectory();
  * @endcode
  */
 class FlightSimulator
 {
 public:
 	/**
-	 * @brief Constructs a flight simulator with the given parameters.
+	 * @brief Constructs a flight simulator with flat, uniform ground.
 	 *
-	 * This constructor uses a uniform ground surface (same properties everywhere).
-	 * For backward compatibility with existing code.
-	 *
-	 * @param physicsVars Physics variables calculator (will be copied)
-	 * @param ball Golf ball parameters
+	 * @param launch Launch monitor data for the shot
 	 * @param atmos Atmospheric conditions
-	 * @param ground Ground surface properties
-	 * @param terrain Terrain interface for height/normal queries (optional, defaults to flat terrain)
+	 * @param ground Ground surface properties (uniform everywhere)
 	 */
-	FlightSimulator(const GolfBallPhysicsVariables &physicsVars,
-	                const golfBall &ball,
-	                const atmosphericData &atmos,
-	                const GroundSurface &ground,
-	                std::shared_ptr<TerrainInterface> terrain = nullptr);
+	FlightSimulator(const LaunchData &launch,
+	                const AtmosphericData &atmos,
+	                const GroundSurface &ground);
 
 	/**
 	 * @brief Constructs a flight simulator with a custom ground provider.
 	 *
-	 * This constructor allows for dynamic ground type changes during the trajectory.
-	 * The ground provider is wrapped in a TerrainInterface adapter for compatibility.
+	 * Allows position-dependent ground properties (fairway, rough, green, etc.).
 	 *
-	 * @param physicsVars Physics variables calculator (will be copied)
-	 * @param ball Golf ball parameters
+	 * @param launch Launch monitor data for the shot
 	 * @param atmos Atmospheric conditions
-	 * @param groundProvider Ground provider for position-dependent ground properties
+	 * @param groundProvider Ground provider for position-dependent surface properties
 	 */
-	FlightSimulator(const GolfBallPhysicsVariables &physicsVars,
-	                const golfBall &ball,
-	                const atmosphericData &atmos,
+	FlightSimulator(const LaunchData &launch,
+	                const AtmosphericData &atmos,
 	                const GroundProvider &groundProvider);
 
 	/**
-	 * @brief Initializes the simulation with the given initial state.
+	 * @brief Constructs a flight simulator with a custom terrain interface.
 	 *
-	 * This must be called before stepping through the simulation.
-	 * Sets up the aerial phase with the provided initial conditions.
+	 * Allows full 3D terrain with height, slope, and surface properties.
 	 *
-	 * @param initialState The initial ball state (position, velocity, etc.)
+	 * @param launch Launch monitor data for the shot
+	 * @param atmos Atmospheric conditions
+	 * @param ground Ground surface properties (used as fallback)
+	 * @param terrain Custom terrain implementation for height and normal queries
 	 */
-	void initialize(const BallState &initialState);
+	FlightSimulator(const LaunchData &launch,
+	                const AtmosphericData &atmos,
+	                const GroundSurface &ground,
+	                std::shared_ptr<TerrainInterface> terrain);
 
 	/**
-	 * @brief Advances the simulation by one time step.
+	 * @brief Runs the simulation to completion.
 	 *
-	 * Must be called after initialize(). Calling before initialization will
-	 * trigger an assertion failure in debug builds.
+	 * Advances the simulation through all phases until the ball comes to rest.
+	 * Safe to call on an already-complete simulation (no-op).
 	 *
-	 * Automatically handles phase transitions when the current phase completes.
-	 * Safe to call even when simulation is complete (will have no effect).
-	 *
-	 * @param dt Time step duration in seconds
+	 * @param dt Time step in seconds (default: SIMULATION_TIME_STEP)
 	 */
-	void step(float dt);
+	void run(float dt = physics_constants::SIMULATION_TIME_STEP);
 
 	/**
-	 * @brief Checks if the simulation has completed.
+	 * @brief Runs the simulation and returns the full trajectory.
 	 *
-	 * @return true if the ball has stopped rolling, false otherwise
+	 * Equivalent to run() but collects and returns all intermediate states.
+	 * Useful for visualization or analysis.
+	 *
+	 * @param dt Time step in seconds (default: SIMULATION_TIME_STEP)
+	 * @return Vector of BallState snapshots from launch to rest (inclusive)
 	 */
-	[[nodiscard]] bool isComplete() const;
+	std::vector<BallState> runAndGetTrajectory(float dt = physics_constants::SIMULATION_TIME_STEP);
 
 	/**
 	 * @brief Gets the current ball state.
 	 *
-	 * Must be called after initialize().
+	 * Returns the initial state before run(), or the final state after.
 	 *
 	 * @return Reference to the current ball state
 	 */
 	[[nodiscard]] const BallState &getState() const;
+
+	/**
+	 * @brief Computes landing result from the current state.
+	 *
+	 * Should be called after run() for meaningful results.
+	 *
+	 * @return LandingResult with distance, bearing, and time of flight
+	 */
+	[[nodiscard]] LandingResult getLandingResult() const;
+
+	/**
+	 * @brief Gets the derived physics variables for this shot.
+	 *
+	 * Provides access to computed quantities like air density, Reynolds number,
+	 * initial spin rate, etc.
+	 *
+	 * @return Reference to the physics variables
+	 */
+	[[nodiscard]] const GolfBallPhysicsVariables &getPhysicsVariables() const;
 
 	/**
 	 * @brief Gets the name of the current flight phase.
@@ -114,26 +137,20 @@ public:
 	[[nodiscard]] const char *getCurrentPhaseName() const;
 
 private:
-	/**
-	 * @brief Enumeration of flight phases.
-	 */
 	enum class Phase
 	{
-		Aerial,	 // Ball in flight
-		Bounce,	 // Ball bouncing on ground
-		Roll,	 // Ball rolling on ground
-		Complete // Simulation finished
+		Aerial,
+		Bounce,
+		Roll,
+		Complete
 	};
 
 	Phase currentPhase;
 	BallState state;
-	bool initialized;
 
-	// Physics variables storage (owned by this simulator)
-	// Must be declared before phases since phases reference it
+	// Must be declared before phases since phases hold a reference to it
 	GolfBallPhysicsVariables physicsVars_;
 
-	// Terrain storage (for GroundProvider adapter lifetime management)
 	// Must be declared before phases since phases depend on it
 	std::shared_ptr<TerrainInterface> terrainStorage_;
 
@@ -141,10 +158,11 @@ private:
 	BouncePhase bouncePhase;
 	RollPhase rollPhase;
 
-	/**
-	 * @brief Checks if the current phase is complete and transitions if needed.
-	 */
+	void stepOnce(float dt);
 	void checkPhaseTransition();
+
+	// Shared initialization called by all constructors
+	void initializeFromLaunch(const LaunchData &launch);
 };
 
 #endif // FLIGHT_SIMULATOR_HPP

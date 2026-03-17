@@ -7,62 +7,142 @@
  */
 
 #include "FlightSimulator.hpp"
-#include <stdexcept>
+#include "math_utils.hpp"
+#include "physics_constants.hpp"
+
+#include <cmath>
+
+// ---------------------------------------------------------------------------
+// Constructors
+// ---------------------------------------------------------------------------
 
 FlightSimulator::FlightSimulator(
-	const GolfBallPhysicsVariables &physicsVars, const golfBall &ball,
-	const atmosphericData &atmos, const GroundSurface &ground,
+	const LaunchData &launch,
+	const AtmosphericData &atmos,
+	const GroundSurface &ground)
+	: currentPhase(Phase::Aerial),
+	  physicsVars_(launch, atmos),
+	  terrainStorage_(std::make_shared<FlatTerrain>(ground)),
+	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_),
+	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
+{
+	initializeFromLaunch(launch);
+}
+
+FlightSimulator::FlightSimulator(
+	const LaunchData &launch,
+	const AtmosphericData &atmos,
+	const GroundProvider &groundProvider)
+	: currentPhase(Phase::Aerial),
+	  physicsVars_(launch, atmos),
+	  terrainStorage_(std::make_shared<TerrainProviderAdapter>(groundProvider)),
+	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_),
+	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
+{
+	initializeFromLaunch(launch);
+}
+
+FlightSimulator::FlightSimulator(
+	const LaunchData &launch,
+	const AtmosphericData &atmos,
+	const GroundSurface &ground,
 	std::shared_ptr<TerrainInterface> terrain)
 	: currentPhase(Phase::Aerial),
-	  // state is default-constructed
-	  initialized(false),
-	  physicsVars_(physicsVars),
+	  physicsVars_(launch, atmos),
 	  terrainStorage_(terrain ? terrain : std::make_shared<FlatTerrain>(ground)),
-	  aerialPhase(physicsVars_, ball, atmos, terrainStorage_),
-	  bouncePhase(physicsVars_, ball, atmos, terrainStorage_),
-	  rollPhase(physicsVars_, ball, atmos, terrainStorage_)
+	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_),
+	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
+	initializeFromLaunch(launch);
 }
 
-FlightSimulator::FlightSimulator(
-	const GolfBallPhysicsVariables &physicsVars, const golfBall &ball,
-	const atmosphericData &atmos, const GroundProvider &groundProvider)
-	: currentPhase(Phase::Aerial),
-	  // state is default-constructed
-	  initialized(false),
-	  physicsVars_(physicsVars),
-	  terrainStorage_(std::make_shared<TerrainProviderAdapter>(groundProvider)),
-	  aerialPhase(physicsVars_, ball, atmos, terrainStorage_),
-	  bouncePhase(physicsVars_, ball, atmos, terrainStorage_),
-	  rollPhase(physicsVars_, ball, atmos, terrainStorage_)
+void FlightSimulator::initializeFromLaunch(const LaunchData &launch)
 {
-}
+	const float v0_fps = launch.ballSpeedMph * physics_constants::MPH_TO_FT_PER_S;
+	Vector3D startPos{launch.startX, launch.startY, launch.startZ};
 
-void FlightSimulator::initialize(const BallState &initialState)
-{
-	state = initialState;
-	currentPhase = Phase::Aerial;
-	initialized = true;
+	state = BallState::fromLaunchParameters(
+		v0_fps,
+		launch.launchAngleDeg,
+		launch.directionDeg,
+		startPos,
+		physics_constants::GRAVITY_FT_PER_S2,
+		physicsVars_.getROmega());
 
-	// Initialize the aerial phase with the starting state
 	aerialPhase.initialize(state);
 }
 
-void FlightSimulator::step(float dt)
+// ---------------------------------------------------------------------------
+// Public interface
+// ---------------------------------------------------------------------------
+
+void FlightSimulator::run(float dt)
 {
-	// Ensure that the simulator has been initialized
-	if (!initialized)
+	while (currentPhase != Phase::Complete)
 	{
-		throw std::logic_error("FlightSimulator::step() called before initialize()");
+		stepOnce(dt);
+	}
+}
+
+std::vector<BallState> FlightSimulator::runAndGetTrajectory(float dt)
+{
+	std::vector<BallState> trajectory;
+
+	while (currentPhase != Phase::Complete)
+	{
+		trajectory.push_back(state);
+		stepOnce(dt);
 	}
 
-	// Don't step if already complete
-	if (currentPhase == Phase::Complete)
-	{
-		return;
-	}
+	trajectory.push_back(state); // final resting state
 
-	// Execute physics step for current phase
+	return trajectory;
+}
+
+const BallState &FlightSimulator::getState() const
+{
+	return state;
+}
+
+LandingResult FlightSimulator::getLandingResult() const
+{
+	LandingResult result;
+	result.xF = state.position[0] / physics_constants::YARDS_TO_FEET;
+	result.yF = state.position[1] / physics_constants::YARDS_TO_FEET;
+	result.zF = state.position[2] / physics_constants::YARDS_TO_FEET;
+	result.timeOfFlight = state.currentTime;
+	result.bearing = std::atan2(state.position[0], state.position[1]) *
+	                 180.0F / physics_constants::PI;
+	result.distance = math_utils::getDistanceInYards(state.position);
+	return result;
+}
+
+const GolfBallPhysicsVariables &FlightSimulator::getPhysicsVariables() const
+{
+	return physicsVars_;
+}
+
+const char *FlightSimulator::getCurrentPhaseName() const
+{
+	switch (currentPhase)
+	{
+	case Phase::Aerial:   return "aerial";
+	case Phase::Bounce:   return "bounce";
+	case Phase::Roll:     return "roll";
+	case Phase::Complete: return "complete";
+	default:              return "unknown";
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+void FlightSimulator::stepOnce(float dt)
+{
 	switch (currentPhase)
 	{
 	case Phase::Aerial:
@@ -75,44 +155,10 @@ void FlightSimulator::step(float dt)
 		rollPhase.calculateStep(state, dt);
 		break;
 	case Phase::Complete:
-		// Already complete, do nothing
 		break;
 	}
 
-	// Check if we need to transition to the next phase
 	checkPhaseTransition();
-}
-
-bool FlightSimulator::isComplete() const
-{
-	return currentPhase == Phase::Complete;
-}
-
-const BallState &FlightSimulator::getState() const
-{
-	// Ensure that the simulator has been initialized
-	if (!initialized)
-	{
-		throw std::logic_error("FlightSimulator::getState() called before initialize()");
-	}
-	return state;
-}
-
-const char *FlightSimulator::getCurrentPhaseName() const
-{
-	switch (currentPhase)
-	{
-	case Phase::Aerial:
-		return "aerial";
-	case Phase::Bounce:
-		return "bounce";
-	case Phase::Roll:
-		return "roll";
-	case Phase::Complete:
-		return "complete";
-	default:
-		return "unknown";
-	}
 }
 
 void FlightSimulator::checkPhaseTransition()
@@ -141,7 +187,6 @@ void FlightSimulator::checkPhaseTransition()
 		break;
 
 	case Phase::Complete:
-		// Already complete, stay in this state
 		break;
 	}
 }

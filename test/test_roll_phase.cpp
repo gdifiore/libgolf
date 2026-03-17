@@ -18,7 +18,7 @@ protected:
 	void SetUp() override
 	{
 		// Default test ball and atmosphere
-		ball = {0.0, 0.0, 0.0, 100.0, 10.0, 0.0, 2000.0, 0.0};
+		ball = {100.0, 10.0, 0.0, 2000.0, 0.0};
 		atmos = {70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
 
 		// Default ground surface (fairway)
@@ -31,8 +31,8 @@ protected:
 		terrain = std::make_shared<FlatTerrain>(ground);
 	}
 
-	golfBall ball;
-	atmosphericData atmos;
+	LaunchData ball;
+	AtmosphericData atmos;
 	GroundSurface ground;
 	std::shared_ptr<TerrainInterface> terrain;
 };

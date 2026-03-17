@@ -10,29 +10,44 @@ Run `build.sh` in the root directory to build and install the library. Include t
 
 ## Basic Setup
 
-The library uses a phase-based flight simulation architecture that automatically transitions between aerial, bounce, and roll phases. A complete simulation requires initializing four components:
+The library uses a phase-based flight simulation architecture that automatically transitions between aerial, bounce, and roll phases. A complete simulation requires two inputs: launch data and atmospheric conditions.
 
-### 1. Ball and Atmospheric Parameters
+### 1. Launch Data
 
 ```c++
-const golfBall ball{0.0, 0.0, 0.0, 160.0, 11.0, 0.0, 3000.0, 0.0};
-const atmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+// {ballSpeedMph, launchAngleDeg, directionDeg, backspinRpm, sidespinRpm}
+const LaunchData ball{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f};
 ```
 
-Field definitions are documented in `include/golf_ball.hpp` and `include/atmosphere.hpp`. Parameter validation is the responsibility of the calling code. In production use, these values typically originate from launch monitors or environmental sensors.
+These fields match the output of a typical launch monitor. An optional start position can be provided in feet:
 
-### 2. Ground Surface Properties
+```c++
+LaunchData ball{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f};
+ball.startX = 0.0f; // feet, lateral
+ball.startY = 0.0f; // feet, downrange
+ball.startZ = 0.0f; // feet, height above sea level
+```
+
+### 2. Atmospheric Data
+
+```c++
+// {tempF, windX, windY, windZ, windDir, humidity, pressure}
+const AtmosphericData atmos{70.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50.0f, 29.92f};
+```
+
+Field definitions are documented in `include/atmosphere.hpp`.
+
+### 3. Ground Surface Properties
 
 #### Single Ground Surface (Simple)
 
 ```c++
 GroundSurface ground; // Uses default fairway properties
 
-// Or with custom values using constructor:
+// Or with custom values:
 // GroundSurface green{0.0f, 0.35f, 0.4f, 0.12f, 0.95f, 0.85f};
+// {height, restitution, frictionStatic, frictionDynamic, firmness, spinRetention}
 ```
-
-The `GroundSurface` struct defines physical surface characteristics that affect bounce and roll behavior. Default values represent typical fairway conditions. You can customize using the constructor: `GroundSurface{height, restitution, frictionStatic, frictionDynamic, firmness, spinRetention}`. See `include/ground_surface.hpp` for parameter details.
 
 #### Dynamic Ground Surfaces (Advanced)
 
@@ -43,115 +58,79 @@ class MyGroundProvider : public GroundProvider {
 public:
     GroundSurface getGroundAt(float x, float y) const override {
         // Return different surfaces based on position
-        // x = lateral position (feet)
-        // y = downrange position (feet)
+        // x = lateral position (feet), y = downrange position (feet)
     }
 };
 
 MyGroundProvider provider;
-FlightSimulator sim(physVars, ball, atmos, provider);
+FlightSimulator sim(ball, atmos, provider);
 ```
 
 See [Ground Providers Guide](ground_providers.md) for details.
 
-### 3. Physics Variables
-
-```c++
-GolfBallPhysicsVariables physVars(ball, atmos);
-```
-
-This class computes derived aerodynamic coefficients from the ball and atmospheric parameters.
-
-### 4. Flight Simulator
-
-```c++
-FlightSimulator sim(physVars, ball, atmos, ground);
-```
-
-The simulator manages phase transitions and numerical integration throughout the ball's trajectory.
-
-## Initializing the Simulation
-
-Create the initial ball state from sensor data. All ball parameters (position, velocity, spin) must be explicitly provided:
-
-```c++
-const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-Vector3D start_pos{
-    ball.x0 * physics_constants::YARDS_TO_FEET,
-    ball.y0 * physics_constants::YARDS_TO_FEET,
-    ball.z0 * physics_constants::YARDS_TO_FEET
-};
-
-BallState initialState = BallState::fromLaunchParameters(
-    v0_fps,
-    ball.launchAngle,
-    ball.direction,
-    start_pos,
-    physics_constants::GRAVITY_FT_PER_S2,
-    physVars.getROmega()  // Initial spin from backspin/sidespin
-);
-
-sim.initialize(initialState);
-```
-
-The `fromLaunchParameters()` factory method converts launch speed (ft/s), angle (degrees), and direction (degrees) into velocity components. The initial position must be converted from yards to feet. Spin magnitude is derived from the ball's backspin and sidespin values via `physVars.getROmega()`. Initialization is required before advancing the simulation.
-
 ## Running the Simulation
 
-### Manual Stepping
-
-Advance the simulation using a time-stepping loop:
+### Run to Completion
 
 ```c++
-const float dt = 0.01F; // 10ms time step
+FlightSimulator sim(ball, atmos, ground);
+sim.run(); // uses default 10ms time step
 
-while (!sim.isComplete())
-{
-    sim.step(dt);
-}
-
-const BallState& finalState = sim.getState();
+LandingResult result = sim.getLandingResult();
+printf("Distance: %.1f yards\n", result.distance);
+printf("Bearing:  %.1f degrees\n", result.bearing);
 ```
 
-The `step()` method advances the simulation by one time increment and automatically handles phase transitions. The `isComplete()` method returns true when the ball has come to rest.
+`LandingResult` contains:
+- `xF`, `yF`, `zF` — final position in yards
+- `distance` — total distance in yards
+- `bearing` — direction in degrees
+- `timeOfFlight` — total simulation time in seconds
 
 ### Trajectory Collection
 
 To capture the complete flight path for visualization or analysis:
 
 ```c++
-std::vector<Vector3D> trajectory;
-const float dt = 0.01F;
+FlightSimulator sim(ball, atmos, ground);
+auto trajectory = sim.runAndGetTrajectory(); // vector of BallState
 
-while (!sim.isComplete())
-{
-    const BallState& state = sim.getState();
-    trajectory.push_back(state.position);
-    sim.step(dt);
+for (const auto& state : trajectory) {
+    printf("%.1f %.1f %.1f\n",
+           state.position[0] / physics_constants::YARDS_TO_FEET,
+           state.position[1] / physics_constants::YARDS_TO_FEET,
+           state.position[2]);
 }
-
-trajectory.push_back(sim.getState().position); // Final position
 ```
 
 See `examples/calculate_ball_trajectory.cpp` for a complete implementation.
 
-### Landing Point Only
+### Custom Time Step
 
-For applications requiring only the final position:
+Both `run()` and `runAndGetTrajectory()` accept an optional time step in seconds (default `0.01f`):
 
 ```c++
-const float dt = 0.01F;
-
-while (!sim.isComplete())
-{
-    sim.step(dt);
-}
-
-const BallState& finalState = sim.getState();
-Vector3D landingPosition = finalState.position;
+sim.run(0.005f); // 5ms time step for higher resolution
 ```
 
-See `examples/calculate_ball_landing.cpp` for a complete implementation.
+## Querying State
+
+After `run()`, the final ball state is available via `getState()`:
+
+```c++
+const BallState& finalState = sim.getState();
+// finalState.position — Vector3D in feet
+// finalState.velocity — Vector3D in ft/s
+// finalState.spinRate — rad/s
+// finalState.currentTime — seconds
+```
+
+Physics variables computed at launch (air density, Reynolds number, etc.) are accessible via:
+
+```c++
+const GolfBallPhysicsVariables& vars = sim.getPhysicsVariables();
+float rho = vars.getRhoImperial(); // slugs/ft³
+```
 
 ## Coordinate System
 
@@ -170,7 +149,7 @@ The simulator automatically manages three flight phases:
 2. **Bounce**: Ball impacting and rebounding from the ground surface
 3. **Roll**: Ball rolling along the ground until coming to rest
 
-Phase transitions occur automatically based on physical conditions. The current phase can be queried using `sim.getCurrentPhaseName()`.
+The current phase can be queried using `sim.getCurrentPhaseName()`, which returns `"aerial"`, `"bounce"`, `"roll"`, or `"complete"`.
 
 ## Advanced Features
 

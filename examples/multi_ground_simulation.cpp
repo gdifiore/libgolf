@@ -13,7 +13,6 @@
 
 #include "FlightSimulator.hpp"
 #include "GroundProvider.hpp"
-#include "GolfBallPhysicsVariables.hpp"
 #include "physics_constants.hpp"
 
 #include <cmath>
@@ -83,48 +82,20 @@ public:
 int main()
 {
 	// Shot parameters: 160 mph ball speed, 11° launch angle, straight shot
-	const golfBall ball{0.0, 0.0, 0.0, 160.0, 11.0, 0.0, 3000.0, 0.0};
-	const atmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+	const LaunchData ball{160.0F, 11.0F, 0.0F, 3000.0F, 0.0F};
+	const AtmosphericData atmos{70.0F, 0.0F, 0.0F, 0.0F, 0.0F, 50.0F, 29.92F};
 
 	// Create custom ground provider for our golf hole
 	GolfHoleGroundProvider groundProvider;
 
-	GolfBallPhysicsVariables physVars(ball, atmos);
-	FlightSimulator sim(physVars, ball, atmos, groundProvider);
-
-	// Setup initial state from sensor data
-	const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D start_pos{
-		ball.x0 * physics_constants::YARDS_TO_FEET,
-		ball.y0 * physics_constants::YARDS_TO_FEET,
-		ball.z0 * physics_constants::YARDS_TO_FEET};
-
-	BallState initialState = BallState::fromLaunchParameters(
-		v0_fps,
-		ball.launchAngle,
-		ball.direction,
-		start_pos,
-		physics_constants::GRAVITY_FT_PER_S2,
-		physVars.getROmega());
-
-	sim.initialize(initialState);
+	FlightSimulator sim(ball, atmos, groundProvider);
 
 	// Run simulation and collect trajectory points
+	auto states = sim.runAndGetTrajectory();
+
 	std::vector<Vector3D> trajectory;
-	std::vector<const char *> phaseNames;
-	const float dt = 0.01F;
-
-	while (!sim.isComplete())
-	{
-		const BallState &state = sim.getState();
-		trajectory.push_back(state.position);
-		phaseNames.push_back(sim.getCurrentPhaseName());
-		sim.step(dt);
-	}
-
-	// Add final position
-	trajectory.push_back(sim.getState().position);
-	phaseNames.push_back(sim.getCurrentPhaseName());
+	for (const auto& s : states)
+		trajectory.push_back(s.position);
 
 	// Print summary
 	const BallState &finalState = sim.getState();
@@ -135,9 +106,9 @@ int main()
 	printf("=== Multi-Ground Trajectory Simulation ===\n\n");
 
 	printf("Shot Parameters:\n");
-	printf("  Ball speed: %.1f mph\n", ball.exitSpeed);
-	printf("  Launch angle: %.1f°\n", ball.launchAngle);
-	printf("  Backspin: %.1f rpm\n\n", ball.backspin);
+	printf("  Ball speed: %.1f mph\n", ball.ballSpeedMph);
+	printf("  Launch angle: %.1f°\n", ball.launchAngleDeg);
+	printf("  Backspin: %.1f rpm\n\n", ball.backspinRpm);
 
 	printf("Final Landing:\n");
 	printf("  Lateral: %.1f yards\n", finalLateralYards);
@@ -162,16 +133,14 @@ int main()
 	printf("Final Surface: %s\n\n", finalSurface);
 
 	printf("Trajectory points (lateral, downrange, height in yards/feet):\n");
-	printf("Phase     Lateral    Downrange  Height\n");
-	printf("-------   --------   ---------  ------\n");
+	printf("Lateral    Downrange  Height\n");
+	printf("--------   ---------  ------\n");
 
 	// Print every 10th point to keep output manageable
 	for (size_t i = 0; i < trajectory.size(); i += 10)
 	{
 		const auto &pos = trajectory[i];
-		const char *phase = phaseNames[i];
-		printf("%-8s  %8.1f   %9.1f  %6.1f\n",
-		       phase,
+		printf("%8.1f   %9.1f  %6.1f\n",
 		       pos[0] / physics_constants::YARDS_TO_FEET,
 		       pos[1] / physics_constants::YARDS_TO_FEET,
 		       pos[2]);
@@ -181,8 +150,7 @@ int main()
 	if (trajectory.size() % 10 != 1)
 	{
 		const auto &pos = trajectory.back();
-		printf("%-8s  %8.1f   %9.1f  %6.1f\n",
-		       phaseNames.back(),
+		printf("%8.1f   %9.1f  %6.1f\n",
 		       pos[0] / physics_constants::YARDS_TO_FEET,
 		       pos[1] / physics_constants::YARDS_TO_FEET,
 		       pos[2]);

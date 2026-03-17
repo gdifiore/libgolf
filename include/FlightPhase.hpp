@@ -61,8 +61,8 @@ class AerialPhase : public FlightPhase
 {
 public:
 	AerialPhase(GolfBallPhysicsVariables &physicsVars,
-	            const golfBall &ball,
-	            const atmosphericData &atmos,
+	            const LaunchData &launch,
+	            const AtmosphericData &atmos,
 	            std::shared_ptr<TerrainInterface> terrain);
 
 	void initialize(BallState &state);
@@ -87,8 +87,8 @@ public:
 
 private:
 	GolfBallPhysicsVariables &physicsVars;
-	golfBall ball;
-	atmosphericData atmos;
+	LaunchData launch;
+	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 
 	// Calculated variables (derived from state)
@@ -135,8 +135,8 @@ class BouncePhase : public FlightPhase
 {
 public:
 	BouncePhase(GolfBallPhysicsVariables &physicsVars,
-	            const golfBall &ball,
-	            const atmosphericData &atmos,
+	            const LaunchData &launch,
+	            const AtmosphericData &atmos,
 	            std::shared_ptr<TerrainInterface> terrain);
 
 	void calculateStep(BallState &state, float dt) override;
@@ -144,8 +144,8 @@ public:
 
 private:
 	GolfBallPhysicsVariables &physicsVars;
-	golfBall ball;
-	atmosphericData atmos;
+	LaunchData launch;
+	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 	AerialPhase aerialPhase; // Used for aerodynamic calculations between bounces
 };
@@ -161,8 +161,8 @@ class RollPhase : public FlightPhase
 {
 public:
 	RollPhase(GolfBallPhysicsVariables &physicsVars,
-	          const golfBall &ball,
-	          const atmosphericData &atmos,
+	          const LaunchData &launch,
+	          const AtmosphericData &atmos,
 	          std::shared_ptr<TerrainInterface> terrain);
 
 	void calculateStep(BallState &state, float dt) override;
@@ -170,8 +170,8 @@ public:
 
 private:
 	GolfBallPhysicsVariables &physicsVars;
-	golfBall ball;
-	atmosphericData atmos;
+	LaunchData launch;
+	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 };
 

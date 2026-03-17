@@ -7,7 +7,6 @@
 #include <cmath>
 #include "FlightSimulator.hpp"
 #include "GroundProvider.hpp"
-#include "GolfBallPhysicsVariables.hpp"
 #include "physics_constants.hpp"
 
 // =============================================================================
@@ -107,17 +106,8 @@ class GroundProviderTest : public ::testing::Test
 protected:
 	void SetUp() override
 	{
-		// Standard test ball parameters
-		ball = {
-			0.0F,    // x0
-			0.0F,    // y0
-			0.0F,    // z0
-			120.0F,  // exitSpeed (mph)
-			25.0F,   // launchAngle (degrees)
-			0.0F,    // direction (degrees)
-			3000.0F, // backspin (rpm)
-			0.0F     // sidespin (rpm)
-		};
+		// Standard test ball parameters: 120 mph, 25° launch, 3000 rpm backspin
+		ball = {120.0F, 25.0F, 0.0F, 3000.0F, 0.0F};
 
 		// Standard atmospheric conditions
 		atmos = {
@@ -141,8 +131,8 @@ protected:
 		};
 	}
 
-	golfBall ball;
-	atmosphericData atmos;
+	LaunchData ball;
+	AtmosphericData atmos;
 	GroundSurface ground;
 };
 
@@ -188,74 +178,33 @@ TEST_F(GroundProviderTest, UniformProviderPreservesAllProperties)
 }
 
 // =============================================================================
-// Backward Compatibility Tests
+// Constructor Tests
 // =============================================================================
 
-TEST_F(GroundProviderTest, LegacyConstructorStillWorks)
+TEST_F(GroundProviderTest, FlatGroundConstructorWorks)
 {
-	GolfBallPhysicsVariables physVars(ball, atmos);
+	FlightSimulator sim(ball, atmos, ground);
+	sim.run(0.01F);
 
-	// Old constructor with single ground surface should still compile and work
-	FlightSimulator sim(physVars, ball, atmos, ground);
-
-	const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D start_pos{0.0F, 0.0F, 0.0F};
-
-	BallState initialState = BallState::fromLaunchParameters(
-		v0_fps, ball.launchAngle, ball.direction, start_pos,
-		physics_constants::GRAVITY_FT_PER_S2, physVars.getROmega());
-
-	sim.initialize(initialState);
-
-	// Should run without errors
-	const float dt = 0.01F;
-	int stepCount = 0;
-	while (!sim.isComplete() && stepCount < 10000)
-	{
-		sim.step(dt);
-		stepCount++;
-	}
-
-	EXPECT_TRUE(sim.isComplete());
-	EXPECT_GT(stepCount, 0);
+	EXPECT_STREQ(sim.getCurrentPhaseName(), "complete");
+	EXPECT_GT(sim.getLandingResult().distance, 0.0F);
 }
 
-TEST_F(GroundProviderTest, LegacyAndProviderConstructorEquivalent)
+TEST_F(GroundProviderTest, FlatAndProviderConstructorEquivalent)
 {
-	GolfBallPhysicsVariables physVars1(ball, atmos);
-	GolfBallPhysicsVariables physVars2(ball, atmos);
-
-	// Legacy constructor
-	FlightSimulator sim1(physVars1, ball, atmos, ground);
+	// Flat ground constructor
+	FlightSimulator sim1(ball, atmos, ground);
 
 	// Provider constructor with uniform provider
 	UniformGroundProvider provider(ground);
-	FlightSimulator sim2(physVars2, ball, atmos, provider);
+	FlightSimulator sim2(ball, atmos, provider);
 
-	// Initialize both with same state
-	const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D start_pos{0.0F, 0.0F, 0.0F};
-
-	BallState initialState = BallState::fromLaunchParameters(
-		v0_fps, ball.launchAngle, ball.direction, start_pos,
-		physics_constants::GRAVITY_FT_PER_S2, physVars1.getROmega());
-
-	sim1.initialize(initialState);
-	sim2.initialize(initialState);
-
-	// Run both simulations
-	const float dt = 0.01F;
-	while (!sim1.isComplete() || !sim2.isComplete())
-	{
-		if (!sim1.isComplete())
-			sim1.step(dt);
-		if (!sim2.isComplete())
-			sim2.step(dt);
-	}
+	sim1.run(0.01F);
+	sim2.run(0.01F);
 
 	// Final positions should be identical
-	const BallState &final1 = sim1.getState();
-	const BallState &final2 = sim2.getState();
+	const BallState& final1 = sim1.getState();
+	const BallState& final2 = sim2.getState();
 
 	EXPECT_NEAR(final1.position[0], final2.position[0], 0.01F);
 	EXPECT_NEAR(final1.position[1], final2.position[1], 0.01F);
@@ -269,125 +218,60 @@ TEST_F(GroundProviderTest, LegacyAndProviderConstructorEquivalent)
 TEST_F(GroundProviderTest, BallLandsOnElevatedGreen)
 {
 	SimpleTestGroundProvider provider;
-	GolfBallPhysicsVariables physVars(ball, atmos);
 
-	ball.exitSpeed = 160.0F; // High speed to reach 200+ yards
-	ball.launchAngle = 11.0F;
+	ball.ballSpeedMph = 160.0F; // High speed to reach 200+ yards
+	ball.launchAngleDeg = 11.0F;
 
-	FlightSimulator sim(physVars, ball, atmos, provider);
+	FlightSimulator sim(ball, atmos, provider);
+	sim.run(0.01F);
 
-	const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D start_pos{0.0F, 0.0F, 0.0F};
-
-	BallState initialState = BallState::fromLaunchParameters(
-		v0_fps, ball.launchAngle, ball.direction, start_pos,
-		physics_constants::GRAVITY_FT_PER_S2, physVars.getROmega());
-
-	sim.initialize(initialState);
-
-	const float dt = 0.01F;
-	while (!sim.isComplete())
-	{
-		sim.step(dt);
-	}
-
-	const BallState &finalState = sim.getState();
+	const BallState& finalState = sim.getState();
 	const float finalDownrangeYards = finalState.position[1] / physics_constants::YARDS_TO_FEET;
 
 	// Ball should have traveled far enough to reach the green
 	EXPECT_GT(finalDownrangeYards, 200.0F);
 
 	// Final height should be at or near the green height (3ft)
-	// (might be slightly different due to bounce/roll)
 	EXPECT_NEAR(finalState.position[2], 3.0F, 0.5F);
 }
 
 TEST_F(GroundProviderTest, SurfaceTransitionAffectsRolling)
 {
 	SimpleTestGroundProvider provider;
-	GolfBallPhysicsVariables physVars(ball, atmos);
 
-	ball.exitSpeed = 160.0F;
-	ball.launchAngle = 11.0F;
+	ball.ballSpeedMph = 160.0F;
+	ball.launchAngleDeg = 11.0F;
 
-	FlightSimulator sim(physVars, ball, atmos, provider);
+	FlightSimulator sim(ball, atmos, provider);
+	sim.run(0.01F);
 
-	const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D start_pos{0.0F, 0.0F, 0.0F};
+	// Ball should reach the green (200+ yards) and come to rest at green height (3ft)
+	const BallState& finalState = sim.getState();
+	const float finalDownrangeYards = finalState.position[1] / physics_constants::YARDS_TO_FEET;
 
-	BallState initialState = BallState::fromLaunchParameters(
-		v0_fps, ball.launchAngle, ball.direction, start_pos,
-		physics_constants::GRAVITY_FT_PER_S2, physVars.getROmega());
-
-	sim.initialize(initialState);
-
-	bool enteredRollPhase = false;
-	bool rolledOnGreen = false;
-
-	const float dt = 0.01F;
-	while (!sim.isComplete())
-	{
-		const BallState &state = sim.getState();
-		const char *phaseName = sim.getCurrentPhaseName();
-		const float downrangeYards = state.position[1] / physics_constants::YARDS_TO_FEET;
-
-		// Check if we're rolling on the green
-		if (strcmp(phaseName, "roll") == 0)
-		{
-			enteredRollPhase = true;
-			if (downrangeYards >= 200.0F)
-			{
-				rolledOnGreen = true;
-			}
-		}
-
-		sim.step(dt);
-	}
-
-	EXPECT_TRUE(enteredRollPhase);
-	EXPECT_TRUE(rolledOnGreen);
+	EXPECT_GT(finalDownrangeYards, 200.0F);
+	EXPECT_NEAR(finalState.position[2], 3.0F, 0.5F);
 }
 
 TEST_F(GroundProviderTest, LateralRoughIncreasesRollingFriction)
 {
 	LateralTestGroundProvider provider;
-	GolfBallPhysicsVariables physVars1(ball, atmos);
-	GolfBallPhysicsVariables physVars2(ball, atmos);
 
 	// First shot: straight down fairway
-	ball.direction = 0.0F;
-	FlightSimulator sim1(physVars1, ball, atmos, provider);
+	LaunchData ball1 = ball;
+	ball1.directionDeg = 0.0F;
+	FlightSimulator sim1(ball1, atmos, provider);
 
 	// Second shot: hooked into rough (left)
-	ball.direction = -15.0F; // 15 degrees left
-	FlightSimulator sim2(physVars2, ball, atmos, provider);
+	LaunchData ball2 = ball;
+	ball2.directionDeg = -15.0F; // 15 degrees left
+	FlightSimulator sim2(ball2, atmos, provider);
 
-	const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D start_pos{0.0F, 0.0F, 0.0F};
+	sim1.run(0.01F);
+	sim2.run(0.01F);
 
-	BallState initialState1 = BallState::fromLaunchParameters(
-		v0_fps, ball.launchAngle, 0.0F, start_pos,
-		physics_constants::GRAVITY_FT_PER_S2, physVars1.getROmega());
-
-	BallState initialState2 = BallState::fromLaunchParameters(
-		v0_fps, ball.launchAngle, -15.0F, start_pos,
-		physics_constants::GRAVITY_FT_PER_S2, physVars2.getROmega());
-
-	sim1.initialize(initialState1);
-	sim2.initialize(initialState2);
-
-	const float dt = 0.01F;
-	while (!sim1.isComplete())
-	{
-		sim1.step(dt);
-	}
-	while (!sim2.isComplete())
-	{
-		sim2.step(dt);
-	}
-
-	const BallState &final1 = sim1.getState();
-	const BallState &final2 = sim2.getState();
+	const BallState& final1 = sim1.getState();
+	const BallState& final2 = sim2.getState();
 
 	const float distance1 = final1.position[1] / physics_constants::YARDS_TO_FEET;
 	const float distance2 = final2.position[1] / physics_constants::YARDS_TO_FEET;
@@ -433,32 +317,15 @@ TEST_F(GroundProviderTest, MultipleGroundTransitions)
 	};
 
 	MultiZoneProvider provider;
-	GolfBallPhysicsVariables physVars(ball, atmos);
 
-	ball.exitSpeed = 140.0F;
+	ball.ballSpeedMph = 140.0F;
 
-	FlightSimulator sim(physVars, ball, atmos, provider);
+	FlightSimulator sim(ball, atmos, provider);
+	sim.run(0.01F);
 
-	const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D start_pos{0.0F, 0.0F, 0.0F};
+	EXPECT_STREQ(sim.getCurrentPhaseName(), "complete");
 
-	BallState initialState = BallState::fromLaunchParameters(
-		v0_fps, ball.launchAngle, ball.direction, start_pos,
-		physics_constants::GRAVITY_FT_PER_S2, physVars.getROmega());
-
-	sim.initialize(initialState);
-
-	const float dt = 0.01F;
-	int stepCount = 0;
-	while (!sim.isComplete() && stepCount < 5000)
-	{
-		sim.step(dt);
-		stepCount++;
-	}
-
-	EXPECT_TRUE(sim.isComplete());
-
-	const BallState &finalState = sim.getState();
+	const BallState& finalState = sim.getState();
 
 	// Final height should correspond to the zone where it landed
 	// If it made it past 100 yards, should be near 2ft
@@ -476,30 +343,14 @@ TEST_F(GroundProviderTest, MultipleGroundTransitions)
 TEST_F(GroundProviderTest, VeryShortShotUsesCorrectGround)
 {
 	// Very low speed shot that lands immediately
-	ball.exitSpeed = 30.0F;
-	ball.launchAngle = 45.0F;
+	ball.ballSpeedMph = 30.0F;
+	ball.launchAngleDeg = 45.0F;
 
 	SimpleTestGroundProvider provider;
-	GolfBallPhysicsVariables physVars(ball, atmos);
+	FlightSimulator sim(ball, atmos, provider);
+	sim.run(0.01F);
 
-	FlightSimulator sim(physVars, ball, atmos, provider);
-
-	const float v0_fps = ball.exitSpeed * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D start_pos{0.0F, 0.0F, 0.0F};
-
-	BallState initialState = BallState::fromLaunchParameters(
-		v0_fps, ball.launchAngle, ball.direction, start_pos,
-		physics_constants::GRAVITY_FT_PER_S2, physVars.getROmega());
-
-	sim.initialize(initialState);
-
-	const float dt = 0.01F;
-	while (!sim.isComplete())
-	{
-		sim.step(dt);
-	}
-
-	const BallState &finalState = sim.getState();
+	const BallState& finalState = sim.getState();
 
 	// Should land on fairway (ground level), not green
 	const float finalYards = finalState.position[1] / physics_constants::YARDS_TO_FEET;
