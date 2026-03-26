@@ -1,8 +1,8 @@
 #ifndef GOLFBALLPHYSICSVARIABLES_HPP
 #define GOLFBALLPHYSICSVARIABLES_HPP
 
-#include "atmosphere.hpp"
-#include "golf_ball.hpp"
+#include "atmospheric_data.hpp"
+#include "launch_data.hpp"
 #include "math_utils.hpp"
 #include "physics_constants.hpp"
 

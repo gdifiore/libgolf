@@ -10,8 +10,8 @@
  */
 
 #include "FlightPhase.hpp"
-#include "atmosphere.hpp"
-#include "golf_ball.hpp"
+#include "atmospheric_data.hpp"
+#include "launch_data.hpp"
 #include "ground_physics.hpp"
 #include "physics_constants.hpp"
 

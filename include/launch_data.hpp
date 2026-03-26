@@ -1,5 +1,5 @@
-#ifndef GOLF_BALL_HPP
-#define GOLF_BALL_HPP
+#ifndef LAUNCH_DATA_HPP
+#define LAUNCH_DATA_HPP
 
 /**
  * @brief Launch parameters from a launch monitor or sensor.
@@ -137,4 +137,4 @@ struct LandingResult
 	float distance;
 };
 
-#endif // GOLF_BALL_HPP
+#endif // LAUNCH_DATA_HPP

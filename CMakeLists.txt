@@ -35,10 +35,10 @@ set(SOURCES
 
 set(HEADERS
    ${PROJECT_INCLUDE_DIR}/libgolf.hpp
-   ${PROJECT_INCLUDE_DIR}/golf_ball.hpp
+   ${PROJECT_INCLUDE_DIR}/launch_data.hpp
    ${PROJECT_INCLUDE_DIR}/math_utils.hpp
    ${PROJECT_INCLUDE_DIR}/GolfBallPhysicsVariables.hpp
-   ${PROJECT_INCLUDE_DIR}/atmosphere.hpp
+   ${PROJECT_INCLUDE_DIR}/atmospheric_data.hpp
    ${PROJECT_INCLUDE_DIR}/FlightPhase.hpp
    ${PROJECT_INCLUDE_DIR}/FlightSimulator.hpp
    ${PROJECT_INCLUDE_DIR}/BallState.hpp

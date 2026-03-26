@@ -15,8 +15,8 @@
  */
 
 #include "GolfBallPhysicsVariables.hpp"
-#include "golf_ball.hpp"
-#include "atmosphere.hpp"
+#include "launch_data.hpp"
+#include "atmospheric_data.hpp"
 #include "math_utils.hpp"
 #include "physics_constants.hpp"
 

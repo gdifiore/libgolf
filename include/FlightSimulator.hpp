@@ -5,8 +5,8 @@
 #include "FlightPhase.hpp"
 #include "GolfBallPhysicsVariables.hpp"
 #include "GroundProvider.hpp"
-#include "atmosphere.hpp"
-#include "golf_ball.hpp"
+#include "atmospheric_data.hpp"
+#include "launch_data.hpp"
 #include "ground_surface.hpp"
 #include "terrain_interface.hpp"
 

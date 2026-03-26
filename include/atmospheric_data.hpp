@@ -1,5 +1,5 @@
-#ifndef ATMOSPHERE_HPP
-#define ATMOSPHERE_HPP
+#ifndef ATMOSPHERIC_DATA_HPP
+#define ATMOSPHERIC_DATA_HPP
 
 /**
  * @brief Atmospheric conditions for flight simulation
@@ -66,4 +66,4 @@ struct AtmosphericData
 	float pressure;
 };
 
-#endif // ATMOSPHERE_HPP
+#endif // ATMOSPHERIC_DATA_HPP
