@@ -79,9 +79,18 @@ struct LaunchData
 	/**
 	 * @brief Starting height above ground (feet).
 	 *
-	 * Typically 0.0 for ground-level shots.
+	 * Typically 0.0 for ground-level shots. Set to tee height for teed-up shots.
 	 */
 	float startZ = 0.0f;
+
+	/**
+	 * @note Sensor position is not a library concern. The simulation starts the
+	 * ball at (startX, startY, startZ) and runs physics from there. If your
+	 * sensor is physically offset from the ball, translate to ball coordinates
+	 * before constructing LaunchData — for example, a sensor 2 ft behind the
+	 * tee would set startY = -2.0f. In the common case where the sensor is
+	 * co-located with the ball, leave all start fields at their defaults (0).
+	 */
 };
 
 /**
