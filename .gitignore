@@ -33,6 +33,7 @@
 
 # Custom
 build/
+build-wasm/
 Bld/*
 .vscode/
 CMakeFiles/*

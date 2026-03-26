@@ -1,0 +1,23 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "wasm",
+      "displayName": "WebAssembly (Emscripten)",
+      "description": "Build libgolf as a static library targeting WebAssembly. Requires the Emscripten SDK — set EMSDK to your emsdk root before configuring.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-wasm",
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "wasm",
+      "displayName": "WebAssembly (Emscripten)",
+      "configurePreset": "wasm"
+    }
+  ]
+}

@@ -75,3 +75,36 @@ jobs:
 
             ### Building from Source
             See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for build instructions.
+
+  build-wasm:
+    name: Build WebAssembly
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Configure CMake (wasm preset)
+        run: cmake --preset wasm
+
+      - name: Build
+        run: cmake --build --preset wasm
+
+      - name: Package wasm artifacts
+        run: |
+          mkdir -p package
+          cp build-wasm/libgolf_wasm.js package/
+          cp build-wasm/libgolf_wasm.wasm package/
+          cd package
+          zip ../libgolf-wasm-${{ steps.get_version.outputs.version }}.zip .
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: libgolf-wasm-${{ steps.get_version.outputs.version }}.zip

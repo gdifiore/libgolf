@@ -66,7 +66,7 @@ if(MSVC)
 else()
     # GCC/Clang flags
     set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-    set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
 endif()
 
 # Code coverage option
@@ -77,50 +77,73 @@ if(ENABLE_COVERAGE AND NOT MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 endif()
 
-# Include Google Test
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.17.0
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+if(NOT EMSCRIPTEN)
+    # Include Google Test
+    include(FetchContent)
+    FetchContent_Declare(
+      googletest
+      GIT_REPOSITORY https://github.com/google/googletest.git
+      GIT_TAG v1.17.0
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
 
-# Enable testing
-enable_testing()
+    # Enable testing
+    enable_testing()
 
-# Specify the test source files
-set(TEST_SOURCES
-    ${PROJECT_TEST_DIR}/test_ball_physics_vars.cpp
-    ${PROJECT_TEST_DIR}/test_math_utils.cpp
-    ${PROJECT_TEST_DIR}/test_bounce_phase.cpp
-    ${PROJECT_TEST_DIR}/test_roll_phase.cpp
-    ${PROJECT_TEST_DIR}/test_flight_simulator.cpp
-    ${PROJECT_TEST_DIR}/test_ground_provider.cpp
-    ${PROJECT_TEST_DIR}/test_terrain_interface.cpp
-    ${PROJECT_TEST_DIR}/test_ground_physics.cpp
-    ${PROJECT_SRC_DIR}/GolfBallPhysicsVariables.cpp
-    ${PROJECT_SRC_DIR}/math_utils.cpp
-)
+    # Specify the test source files
+    set(TEST_SOURCES
+        ${PROJECT_TEST_DIR}/test_ball_physics_vars.cpp
+        ${PROJECT_TEST_DIR}/test_math_utils.cpp
+        ${PROJECT_TEST_DIR}/test_bounce_phase.cpp
+        ${PROJECT_TEST_DIR}/test_roll_phase.cpp
+        ${PROJECT_TEST_DIR}/test_flight_simulator.cpp
+        ${PROJECT_TEST_DIR}/test_ground_provider.cpp
+        ${PROJECT_TEST_DIR}/test_terrain_interface.cpp
+        ${PROJECT_TEST_DIR}/test_ground_physics.cpp
+        ${PROJECT_SRC_DIR}/GolfBallPhysicsVariables.cpp
+        ${PROJECT_SRC_DIR}/math_utils.cpp
+    )
 
-# Add test executable and link with gtest_main and the static library
-add_executable(libgolf_tests ${TEST_SOURCES})
-target_link_libraries(libgolf_tests ${PROJECT_NAME} GTest::gtest_main)
+    # Add test executable and link with gtest_main and the static library
+    add_executable(libgolf_tests ${TEST_SOURCES})
+    target_link_libraries(libgolf_tests ${PROJECT_NAME} GTest::gtest_main)
 
-# Examples
-add_executable(calculate_ball_landing examples/calculate_ball_landing.cpp)
-target_link_libraries(calculate_ball_landing ${PROJECT_NAME})
+    # Examples
+    add_executable(calculate_ball_landing examples/calculate_ball_landing.cpp)
+    target_link_libraries(calculate_ball_landing ${PROJECT_NAME})
 
-add_executable(calculate_ball_trajectory examples/calculate_ball_trajectory.cpp)
-target_link_libraries(calculate_ball_trajectory ${PROJECT_NAME})
+    add_executable(calculate_ball_trajectory examples/calculate_ball_trajectory.cpp)
+    target_link_libraries(calculate_ball_trajectory ${PROJECT_NAME})
 
-add_executable(multi_ground_simulation examples/multi_ground_simulation.cpp)
-target_link_libraries(multi_ground_simulation ${PROJECT_NAME})
+    add_executable(multi_ground_simulation examples/multi_ground_simulation.cpp)
+    target_link_libraries(multi_ground_simulation ${PROJECT_NAME})
 
-# Discover tests
-include(GoogleTest)
-gtest_discover_tests(libgolf_tests)
+    # Discover tests
+    include(GoogleTest)
+    gtest_discover_tests(libgolf_tests)
+endif()
+
+if(EMSCRIPTEN)
+    # JavaScript/wasm binding for the web visualizer
+    add_executable(libgolf_wasm wasm/bindings.cpp)
+    target_link_libraries(libgolf_wasm PRIVATE ${PROJECT_NAME})
+    set_target_properties(libgolf_wasm PROPERTIES SUFFIX ".js")
+    target_link_options(libgolf_wasm PRIVATE
+        "-lembind"
+        "-sEXPORT_ES6=1"
+        "-sMODULARIZE=1"
+        "-sEXPORT_NAME=createLibGolf"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "-sENVIRONMENT=web"
+    )
+    # Copy web visualizer alongside the wasm output so it can be served directly
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/web/index.html"
+        "${CMAKE_BINARY_DIR}/index.html"
+        COPYONLY
+    )
+endif()
 
 install(TARGETS golf DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
