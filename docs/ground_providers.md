@@ -206,7 +206,7 @@ Ground is checked:
 2. Every 0.1 seconds during roll phase
 3. At phase transitions (aerial → bounce, bounce → roll)
 
-Your `getGroundAt()` is called 10-30 times per trajectory, not every simulation step (which would be 500+).
+Your `getGroundAt()` is called 3-10 times per trajectory, not every simulation step (which would be 500+).
 
 This means:
 - Each bounce uses the ground properties at that location

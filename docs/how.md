@@ -2,7 +2,14 @@
 
 ## Installation
 
-Run `build.sh` in the root directory to build and install the library. Include the main header in your source files:
+Build with CMake:
+
+```sh
+cmake -B build
+cmake --build build
+```
+
+Include the main header in your source files:
 
 ```c++
 #include <libgolf.hpp>
@@ -25,17 +32,17 @@ These fields match the output of a typical launch monitor. An optional start pos
 LaunchData ball{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f};
 ball.startX = 0.0f; // feet, lateral
 ball.startY = 0.0f; // feet, downrange
-ball.startZ = 0.0f; // feet, height above sea level
+ball.startZ = 0.0f; // feet, height above ground
 ```
 
 ### 2. Atmospheric Data
 
 ```c++
-// {tempF, windX, windY, windZ, windDir, humidity, pressure}
+// {tempF, elevationFt, windSpeedMph, windDirDeg, windHeightFt, humidity%, pressureInHg}
 const AtmosphericData atmos{70.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50.0f, 29.92f};
 ```
 
-Field definitions are documented in `include/atmosphere.hpp`.
+Field definitions are documented in `include/atmospheric_data.hpp`.
 
 ### 3. Ground Surface Properties
 
