@@ -3,6 +3,11 @@
 
 The in-air math here is based on [work done](http://baseball.physics.illinois.edu/trajectory-calculator-golf.html) by Prof. Alan M. Nathan at the  University of Illinois Urbana-Champaign.
 
+## Requirements
+
+- C++20 or later
+- CMake 3.14+
+
 ## Build
 ```bash
 git clone https://github.com/gdifiore/libgolf.git
@@ -32,8 +37,22 @@ chmod +x build.sh
 ```cpp
 #include <libgolf.hpp>
 
-const LaunchData ball{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f}; // mph, °, °, rpm, rpm
-const AtmosphericData atmos{70.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50.0f, 29.92f};
+const LaunchData ball{
+    .ballSpeedMph = 160.0f,
+    .launchAngleDeg = 11.0f,
+    .directionDeg = 0.0f,
+    .backspinRpm = 3000.0f,
+    .sidespinRpm = 0.0f,
+};
+const AtmosphericData atmos{
+    .temp = 70.0f,
+    .elevation = 0.0f,
+    .vWind = 0.0f,
+    .phiWind = 0.0f,
+    .hWind = 0.0f,
+    .relHumidity = 50.0f,
+    .pressure = 29.92f,
+};
 GroundSurface ground; // Default fairway
 
 FlightSimulator sim(ball, atmos, ground);

@@ -34,10 +34,24 @@ std::vector<float> runTrajectory(
     float windSpeedMph,
     float windDirDeg)
 {
-    LaunchData launch{ballSpeedMph, launchAngleDeg, directionDeg, backspinRpm, sidespinRpm};
+    LaunchData launch{
+        .ballSpeedMph = ballSpeedMph,
+        .launchAngleDeg = launchAngleDeg,
+        .directionDeg = directionDeg,
+        .backspinRpm = backspinRpm,
+        .sidespinRpm = sidespinRpm,
+    };
 
     // Standard sea-level atmosphere with caller-supplied wind
-    AtmosphericData atmos{70.0f, 0.0f, windSpeedMph, windDirDeg, 0.0f, 50.0f, 29.92f};
+    AtmosphericData atmos{
+        .temp = 70.0f,
+        .elevation = 0.0f,
+        .vWind = windSpeedMph,
+        .phiWind = windDirDeg,
+        .hWind = 0.0f,
+        .relHumidity = 50.0f,
+        .pressure = 29.92f,
+    };
 
     GroundSurface ground; // default fairway values
 

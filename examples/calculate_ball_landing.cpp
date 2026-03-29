@@ -5,8 +5,22 @@
 
 int main()
 {
-    const LaunchData ball{160.0, 11.0, 0.0, 3000.0, 0.0};
-    const AtmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+    const LaunchData ball{
+        .ballSpeedMph = 160.0f,
+        .launchAngleDeg = 11.0f,
+        .directionDeg = 0.0f,
+        .backspinRpm = 3000.0f,
+        .sidespinRpm = 0.0f,
+    };
+    const AtmosphericData atmos{
+        .temp = 70.0f,
+        .elevation = 0.0f,
+        .vWind = 0.0f,
+        .phiWind = 0.0f,
+        .hWind = 0.0f,
+        .relHumidity = 50.0f,
+        .pressure = 29.92f,
+    };
 
     GroundSurface ground; // Default ground properties
 

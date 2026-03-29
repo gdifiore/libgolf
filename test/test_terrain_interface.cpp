@@ -166,8 +166,22 @@ TEST(TerrainInterfaceTest, BallBouncesOnSlopedTerrain)
     auto terrain = std::make_shared<MockSlopedTerrain>(15.0F, surface);
 
     // Set up physics
-    LaunchData ball{100.0, 10.0, 0.0, 2000.0, 0.0};
-    AtmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+    LaunchData ball{
+        .ballSpeedMph = 100.0f,
+        .launchAngleDeg = 10.0f,
+        .directionDeg = 0.0f,
+        .backspinRpm = 2000.0f,
+        .sidespinRpm = 0.0f,
+    };
+    AtmosphericData atmos{
+        .temp = 70.0f,
+        .elevation = 0.0f,
+        .vWind = 0.0f,
+        .phiWind = 0.0f,
+        .hWind = 0.0f,
+        .relHumidity = 50.0f,
+        .pressure = 29.92f,
+    };
     GolfBallPhysicsVariables physicsVars(ball, atmos);
 
     // Create bounce phase with sloped terrain
@@ -194,8 +208,22 @@ TEST(TerrainInterfaceTest, BallRollsDownSlope)
     auto terrain = std::make_shared<MockSlopedTerrain>(10.0F, surface);
 
     // Set up physics
-    LaunchData ball{100.0, 10.0, 0.0, 2000.0, 0.0};
-    AtmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+    LaunchData ball{
+        .ballSpeedMph = 100.0f,
+        .launchAngleDeg = 10.0f,
+        .directionDeg = 0.0f,
+        .backspinRpm = 2000.0f,
+        .sidespinRpm = 0.0f,
+    };
+    AtmosphericData atmos{
+        .temp = 70.0f,
+        .elevation = 0.0f,
+        .vWind = 0.0f,
+        .phiWind = 0.0f,
+        .hWind = 0.0f,
+        .relHumidity = 50.0f,
+        .pressure = 29.92f,
+    };
     GolfBallPhysicsVariables physicsVars(ball, atmos);
 
     // Create roll phase

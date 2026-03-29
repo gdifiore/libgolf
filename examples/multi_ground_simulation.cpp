@@ -82,8 +82,22 @@ public:
 int main()
 {
 	// Shot parameters: 160 mph ball speed, 11° launch angle, straight shot
-	const LaunchData ball{160.0F, 11.0F, 0.0F, 3000.0F, 0.0F};
-	const AtmosphericData atmos{70.0F, 0.0F, 0.0F, 0.0F, 0.0F, 50.0F, 29.92F};
+	const LaunchData ball{
+		.ballSpeedMph = 160.0F,
+		.launchAngleDeg = 11.0F,
+		.directionDeg = 0.0F,
+		.backspinRpm = 3000.0F,
+		.sidespinRpm = 0.0F,
+	};
+	const AtmosphericData atmos{
+		.temp = 70.0F,
+		.elevation = 0.0F,
+		.vWind = 0.0F,
+		.phiWind = 0.0F,
+		.hWind = 0.0F,
+		.relHumidity = 50.0F,
+		.pressure = 29.92F,
+	};
 
 	// Create custom ground provider for our golf hole
 	GolfHoleGroundProvider groundProvider;

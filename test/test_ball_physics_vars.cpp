@@ -6,8 +6,22 @@
 // U. of Illinois
 TEST(GolfTest, initVarsDefault)
 {
-  const LaunchData launch{160.0, 11.0, 0.0, 3000.0, 0.0};
-  const AtmosphericData atmos{70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+  const LaunchData launch{
+      .ballSpeedMph = 160.0f,
+      .launchAngleDeg = 11.0f,
+      .directionDeg = 0.0f,
+      .backspinRpm = 3000.0f,
+      .sidespinRpm = 0.0f,
+  };
+  const AtmosphericData atmos{
+      .temp = 70.0f,
+      .elevation = 0.0f,
+      .vWind = 0.0f,
+      .phiWind = 0.0f,
+      .hWind = 0.0f,
+      .relHumidity = 50.0f,
+      .pressure = 29.92f,
+  };
 
   auto ballVars = GolfBallPhysicsVariables(launch, atmos);
 
@@ -35,8 +49,22 @@ TEST(GolfTest, initVarsDefault)
 
 TEST(GolfTest, initVarsNotDefault)
 {
-  const LaunchData launch{160.0, 11.0, 0.0, 3000.0, 500.0};
-  const AtmosphericData atmos{70.0, 90.0, 2.0, 30.0, 50.0, 50.0, 29.92};
+  const LaunchData launch{
+      .ballSpeedMph = 160.0f,
+      .launchAngleDeg = 11.0f,
+      .directionDeg = 0.0f,
+      .backspinRpm = 3000.0f,
+      .sidespinRpm = 500.0f,
+  };
+  const AtmosphericData atmos{
+      .temp = 70.0f,
+      .elevation = 90.0f,
+      .vWind = 2.0f,
+      .phiWind = 30.0f,
+      .hWind = 50.0f,
+      .relHumidity = 50.0f,
+      .pressure = 29.92f,
+  };
 
   auto vars = GolfBallPhysicsVariables(launch, atmos);
 

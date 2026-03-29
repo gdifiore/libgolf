@@ -1,5 +1,13 @@
 # Usage Guide
 
+## Requirements
+
+C++20 or later is required. Ensure your CMake toolchain targets C++20:
+
+```cmake
+set(CMAKE_CXX_STANDARD 20)
+```
+
 ## Installation
 
 Build with CMake:
@@ -22,14 +30,25 @@ The library uses a phase-based flight simulation architecture that automatically
 ### 1. Launch Data
 
 ```c++
-// {ballSpeedMph, launchAngleDeg, directionDeg, backspinRpm, sidespinRpm}
-const LaunchData ball{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f};
+const LaunchData ball{
+    .ballSpeedMph = 160.0f,
+    .launchAngleDeg = 11.0f,
+    .directionDeg = 0.0f,
+    .backspinRpm = 3000.0f,
+    .sidespinRpm = 0.0f,
+};
 ```
 
 These fields match the output of a typical launch monitor. An optional start position can be provided in feet:
 
 ```c++
-LaunchData ball{160.0f, 11.0f, 0.0f, 3000.0f, 0.0f};
+LaunchData ball{
+    .ballSpeedMph = 160.0f,
+    .launchAngleDeg = 11.0f,
+    .directionDeg = 0.0f,
+    .backspinRpm = 3000.0f,
+    .sidespinRpm = 0.0f,
+};
 ball.startX = 0.0f; // feet, lateral
 ball.startY = 0.0f; // feet, downrange
 ball.startZ = 0.0f; // feet, height above ground
@@ -38,8 +57,15 @@ ball.startZ = 0.0f; // feet, height above ground
 ### 2. Atmospheric Data
 
 ```c++
-// {tempF, elevationFt, windSpeedMph, windDirDeg, windHeightFt, humidity%, pressureInHg}
-const AtmosphericData atmos{70.0f, 0.0f, 0.0f, 0.0f, 0.0f, 50.0f, 29.92f};
+const AtmosphericData atmos{
+    .temp = 70.0f,
+    .elevation = 0.0f,
+    .vWind = 0.0f,
+    .phiWind = 0.0f,
+    .hWind = 0.0f,
+    .relHumidity = 50.0f,
+    .pressure = 29.92f,
+};
 ```
 
 Field definitions are documented in `include/atmospheric_data.hpp`.
