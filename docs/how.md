@@ -84,22 +84,22 @@ GroundSurface ground; // Uses default fairway properties
 
 #### Dynamic Ground Surfaces (Advanced)
 
-For simulations requiring different ground types throughout the trajectory (e.g., fairway → rough → green), implement the `GroundProvider` interface:
+For position-dependent surfaces (e.g., fairway → rough → green), implement `TerrainInterface`:
 
 ```c++
-class MyGroundProvider : public GroundProvider {
+class MyTerrain : public TerrainInterface {
 public:
-    GroundSurface getGroundAt(float x, float y) const override {
-        // Return different surfaces based on position
-        // x = lateral position (feet), y = downrange position (feet)
+    float getHeight(float x, float y) const override { return 0.0f; }
+    Vector3D getNormal(float x, float y) const override { return {0.0f, 0.0f, 1.0f}; }
+    const GroundSurface& getSurfaceProperties(float x, float y) const override {
+        // Return surface based on position
     }
 };
 
-MyGroundProvider provider;
-FlightSimulator sim(ball, atmos, provider);
+FlightSimulator sim(ball, atmos, std::make_shared<MyTerrain>());
 ```
 
-See [Ground Providers Guide](ground_providers.md) for details.
+See [Terrain System](terrain.md) for details.
 
 ## Running the Simulation
 
@@ -188,14 +188,7 @@ The current phase can be queried using `sim.getCurrentPhaseName()`, which return
 
 ### Dynamic Ground Surfaces
 
-When using a `GroundProvider` instead of a single `GroundSurface`, the simulator automatically queries ground properties at the ball's current position during phase transitions. This enables realistic modeling of:
-
-- Golf holes with fairways, roughs, and greens
-- Elevated surfaces (e.g., raised greens)
-- Varying terrain firmness and friction
-- Bunkers and other hazards
-
-Ground is queried before each bounce and periodically during rolling (every 0.1s), so the ball automatically picks up surface changes as it moves. See the [Ground Providers Guide](ground_providers.md) for details.
+When passing a `TerrainInterface` instead of a flat `GroundSurface`, the simulator queries terrain properties at the ball's position during phase transitions. This enables fairways, roughs, greens, slopes, and elevated surfaces. See the [Terrain System](terrain.md) for implementation details.
 
 ### Custom Aerodynamic Model
 
@@ -206,27 +199,30 @@ By default, the simulator uses a built-in drag/lift model for a standard golf ba
 
 class MyModel : public AerodynamicModel {
 public:
-    double computeCd(double Re_x_e5, double spinFactor) const override {
-        // Return drag coefficient as a function of Reynolds number and spin factor
-        return 0.35;  // placeholder: constant drag
+    Vector3D computeAcceleration(const AerodynamicState& s) const override {
+        float vRelX = s.velocity[0] - s.windVelocity[0];
+        float vRelY = s.velocity[1] - s.windVelocity[1];
+        float vRelZ = s.velocity[2] - s.windVelocity[2];
+        float vw = std::sqrt(vRelX*vRelX + vRelY*vRelY + vRelZ*vRelZ);
+
+        if (vw < 0.01f) return {0.0f, 0.0f, 0.0f};
+
+        // Constant drag, no lift
+        float scale = -s.c0 * 0.30f * vw;
+        return { scale * vRelX, scale * vRelY, scale * vRelZ };
     }
 
-    double computeCl(double Re_x_e5, double spinFactor) const override {
-        // Return lift coefficient as a function of Reynolds number and spin factor
-        return 1.5 * spinFactor;  // placeholder: linear lift
-    }
-
-    double computeSpinDecayTau(double velocity, double ballRadius) const override {
-        // Return spin decay time constant in seconds
-        return 1.0 / (0.00002 * velocity / ballRadius);
+    double computeSpinDecayTau(const AerodynamicState& s) const override {
+        double v = std::sqrt(s.velocity[0]*s.velocity[0] +
+                             s.velocity[1]*s.velocity[1] +
+                             s.velocity[2]*s.velocity[2]);
+        return 1.0 / (0.00002 * v / s.ballRadius);
     }
 };
 
 auto model = std::make_shared<MyModel>();
 FlightSimulator sim(ball, atmos, ground, model);
 ```
-
-The two dimensionless inputs — `Re_x_e5` (Reynolds number / 100,000) and `spinFactor` (S = ω·r/v) — are computed from the current ball state each time step; your implementation only needs to express the physics. Omitting the model argument uses `DefaultAerodynamicModel`, which implements the built-in piecewise-linear Cd/Cl model.
 
 See [Aerodynamic Models](aerodynamic_model.md) for full details and worked examples.
 

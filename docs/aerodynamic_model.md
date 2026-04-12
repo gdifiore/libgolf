@@ -252,4 +252,4 @@ The library intentionally exposes the minimum state its reference model needs, r
 - **Default implementation**: `include/DefaultAerodynamicModel.hpp`
 - **Aerodynamic constants**: `include/physics_constants.hpp`
 - **Integrator**: `src/FlightPhase.cpp` (`AerialPhase`)
-- **Ground customization**: [Ground Providers](ground_providers.md), [Terrain System](terrain.md)
+- **Ground customization**: [Terrain System](terrain.md)
