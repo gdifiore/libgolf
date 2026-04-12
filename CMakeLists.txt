@@ -93,6 +93,7 @@ if(NOT EMSCRIPTEN)
 
     # Specify the test source files
     set(TEST_SOURCES
+        ${PROJECT_TEST_DIR}/test_aerodynamic_model.cpp
         ${PROJECT_TEST_DIR}/test_ball_physics_vars.cpp
         ${PROJECT_TEST_DIR}/test_math_utils.cpp
         ${PROJECT_TEST_DIR}/test_bounce_phase.cpp
