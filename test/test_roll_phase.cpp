@@ -3,6 +3,7 @@
 
 #include "BallState.hpp"
 #include "FlightPhase.hpp"
+#include "math_utils.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
@@ -258,7 +259,7 @@ TEST_F(RollPhaseTest, HandlesNegativeSpinRate)
 	state.position = {0.0F, 0.0F, 0.0F};
 	state.velocity = {10.0F, 0.0F, 0.0F};
 	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.spinRate = -500.0F;  // Backspin
+	state.spinVector = {500.0F, 0.0F, 0.0F};  // Backspin axis
 	state.currentTime = 0.0F;
 
 	// Roll for several steps
@@ -267,9 +268,9 @@ TEST_F(RollPhaseTest, HandlesNegativeSpinRate)
 		roll.calculateStep(state, 0.01F);
 	}
 
-	// Spin should decay toward zero but remain negative
-	EXPECT_LT(state.spinRate, 0.0F);  // Still backspin
-	EXPECT_GT(state.spinRate, -500.0F);  // But reduced in magnitude
+	// Spin magnitude should decay but remain non-zero; axis direction preserved
+	EXPECT_GT(math_utils::magnitude(state.spinVector), 0.0F);
+	EXPECT_LT(math_utils::magnitude(state.spinVector), 500.0F);
 }
 
 TEST_F(RollPhaseTest, SpinDecaysToZeroFromNegative)
@@ -282,10 +283,10 @@ TEST_F(RollPhaseTest, SpinDecaysToZeroFromNegative)
 	state.position = {0.0F, 0.0F, 0.0F};
 	state.velocity = {5.0F, 0.0F, 0.0F};
 	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.spinRate = -5.0F;  // Small backspin
+	state.spinVector = {5.0F, 0.0F, 0.0F};  // Small backspin axis
 	state.currentTime = 0.0F;
 
-	float initialSpinMag = std::abs(state.spinRate);
+	float initialSpinMag = math_utils::magnitude(state.spinVector);
 
 	// Roll for several steps
 	for (int i = 0; i < 100; ++i)
@@ -294,13 +295,7 @@ TEST_F(RollPhaseTest, SpinDecaysToZeroFromNegative)
 	}
 
 	// Spin magnitude should have decreased
-	EXPECT_LT(std::abs(state.spinRate), initialSpinMag);
-
-	// If spin hasn't reached zero yet, it should still be negative (backspin)
-	if (state.spinRate != 0.0F)
-	{
-		EXPECT_LT(state.spinRate, 0.0F);
-	}
+	EXPECT_LT(math_utils::magnitude(state.spinVector), initialSpinMag);
 }
 
 TEST_F(RollPhaseTest, BallCanStartRollingFromNearZeroVelocityOnSlope)

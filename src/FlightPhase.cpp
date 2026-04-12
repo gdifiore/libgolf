@@ -12,6 +12,7 @@
 #include "FlightPhase.hpp"
 #include "DefaultAerodynamicModel.hpp"
 #include "atmospheric_data.hpp"
+#include "math_utils.hpp"
 #include "launch_data.hpp"
 #include "ground_physics.hpp"
 #include "physics_constants.hpp"
@@ -47,9 +48,9 @@ AerialPhase::AerialPhase(
 
 void AerialPhase::initialize(BallState &state)
 {
-	if (std::abs(state.spinRate) < physics_constants::MIN_VELOCITY_THRESHOLD)
+	if (math_utils::magnitude(state.spinVector) < physics_constants::MIN_VELOCITY_THRESHOLD)
 	{
-		state.spinRate = physicsVars.getROmega();
+		state.spinVector = physicsVars.getW();
 	}
 
 	v    = std::sqrt(state.velocity[0] * state.velocity[0] +
@@ -86,8 +87,12 @@ void AerialPhase::calculateStep(BallState &state, float dt)
 
 	// Spin decay uses the velocity from the previous step (v is still current).
 	// Exponential model: torque opposing spin is proportional to spin rate itself.
+	// All components decay uniformly — axis direction is preserved.
 	calculateTau(state);
-	state.spinRate = state.spinRate * std::exp(-dt / tau);
+	const float decay = std::exp(-dt / tau);
+	state.spinVector[0] *= decay;
+	state.spinVector[1] *= decay;
+	state.spinVector[2] *= decay;
 
 	calculatePosition(state, dt);
 	calculateV(state, dt);       // updates v, vMph, state.velocity
@@ -164,7 +169,7 @@ void AerialPhase::calculateTau(const BallState &state)
 
 void AerialPhase::calculateRw(const BallState &state)
 {
-	rw = state.spinRate;
+	rw = math_utils::magnitude(state.spinVector);
 }
 
 void AerialPhase::calculateAccel(BallState &state)
@@ -177,30 +182,10 @@ void AerialPhase::calculateAccel(BallState &state)
 
 AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) const
 {
-	// Reconstruct the current spin vector in rad/s from the decayed scalar spin rate.
-	//
-	// state.spinRate stores surface speed (r * omega) in ft/s.
-	// physicsVars.getW() is the full initial spin vector (rad/s components).
-	// physicsVars.getROmega() is the initial surface speed (r * omega_0) in ft/s.
-	//
-	// Scaling W by (spinRate / rOmega) preserves the launch spin axis direction
-	// while reducing the magnitude to match the current decayed spin rate.
-	const float rOmega = physicsVars.getROmega();
-	const float spinDecayRatio = (rOmega > physics_constants::MIN_VELOCITY_THRESHOLD)
-	                                 ? (state.spinRate / rOmega)
-	                                 : 0.0F;
-
-	const Vector3D &W = physicsVars.getW();
-	const Vector3D currentSpinVector = {
-	    W[0] * spinDecayRatio,
-	    W[1] * spinDecayRatio,
-	    W[2] * spinDecayRatio
-	};
-
 	return AerodynamicState{
 	    .velocity     = state.velocity,
 	    .windVelocity = {velocity3D_w[0], velocity3D_w[1], 0.0F},
-	    .spinVector   = currentSpinVector,
+	    .spinVector   = state.spinVector,
 	    .c0           = physicsVars.getC0(),
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
 	    .re100        = physicsVars.getRe100()
@@ -236,9 +221,19 @@ void BouncePhase::calculateStep(BallState &state, float dt)
 
 	if (state.position[2] <= terrainHeight && velocityDotNormal < 0.0F)
 	{
-		auto result = GroundPhysics::calculateBounce(state.velocity, surfaceNormal, state.spinRate, surface);
-		state.velocity  = result.newVelocity;
-		state.spinRate  = result.newSpinRate;
+		// calculateBounce expects surface speed (r·ω, ft/s) for the Penner spin model.
+		const float spinMag         = math_utils::magnitude(state.spinVector);
+		const float spinSurfaceSpeed = spinMag * physics_constants::STD_BALL_RADIUS_FT;
+		auto result = GroundPhysics::calculateBounce(state.velocity, surfaceNormal, spinSurfaceSpeed, surface);
+		state.velocity = result.newVelocity;
+		// Apply the retention factor back to the spin vector to preserve axis direction.
+		if (spinSurfaceSpeed > physics_constants::MIN_VELOCITY_THRESHOLD)
+		{
+			const float scale = result.newSpinRate / spinSurfaceSpeed;
+			state.spinVector[0] *= scale;
+			state.spinVector[1] *= scale;
+			state.spinVector[2] *= scale;
+		}
 		state.position[2] = terrainHeight;
 	}
 
@@ -293,7 +288,7 @@ void RollPhase::calculateStep(BallState &state, float dt)
 	float oldVelX = state.velocity[0];
 	float oldVelY = state.velocity[1];
 
-	state.acceleration = GroundPhysics::calculateRollAcceleration(state.velocity, surfaceNormal, state.spinRate, surface);
+	state.acceleration = GroundPhysics::calculateRollAcceleration(state.velocity, surfaceNormal, 0.0F, surface);
 
 	state.velocity[0] += state.acceleration[0] * dt;
 	state.velocity[1] += state.acceleration[1] * dt;
@@ -315,15 +310,20 @@ void RollPhase::calculateStep(BallState &state, float dt)
 	state.position[2] = terrainHeight;
 	state.velocity[2] = 0.0F;
 
-	// Linear spin decay: rolling friction applies approximately constant torque
-	float spinDecay = physics_constants::ROLL_SPIN_DECAY_RATE * dt;
-	if (std::abs(state.spinRate) > spinDecay)
+	// Linear spin decay: rolling friction applies approximately constant torque.
+	// Magnitude decreases by a fixed amount per second; axis direction is preserved.
+	const float spinMag   = math_utils::magnitude(state.spinVector);
+	const float spinDecay = physics_constants::ROLL_SPIN_DECAY_RATE * dt;
+	if (spinMag > spinDecay)
 	{
-		state.spinRate -= std::copysign(spinDecay, state.spinRate);
+		const float scale = (spinMag - spinDecay) / spinMag;
+		state.spinVector[0] *= scale;
+		state.spinVector[1] *= scale;
+		state.spinVector[2] *= scale;
 	}
 	else
 	{
-		state.spinRate = 0.0F;
+		state.spinVector = {0.0F, 0.0F, 0.0F};
 	}
 
 	state.currentTime += dt;

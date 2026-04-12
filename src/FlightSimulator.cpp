@@ -73,7 +73,7 @@ void FlightSimulator::initializeFromLaunch(const LaunchData &launch)
 		launch.directionDeg,
 		startPos,
 		physics_constants::GRAVITY_FT_PER_S2,
-		physicsVars_.getROmega());
+		physicsVars_.getW());
 
 	aerialPhase.initialize(state);
 }
