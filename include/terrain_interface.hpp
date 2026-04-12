@@ -52,8 +52,6 @@
 #include "math_utils.hpp"
 
 #include <memory>
-#include <limits>
-#include <stdexcept>
 
 /**
  * Abstract interface for terrain queries.
@@ -170,51 +168,5 @@ private:
     GroundSurface surface;
 };
 
-// Forward declaration for GroundProvider
-class GroundProvider;
-
-/**
- * Adapter that wraps a GroundProvider to work as a TerrainInterface.
- *
- * This adapter allows the GroundProvider system (position-dependent ground properties)
- * to work with the TerrainInterface system. It assumes flat terrain with varying
- * surface properties based on position.
- *
- * The adapter owns a copy of the provider to ensure proper lifetime management.
- *
- * @warning NOT thread-safe. Mutable cache members (cachedSurface_, cachedX_,
- *          cachedY_, cacheValid_) will cause data races if shared across threads.
- *          Use per-thread instances or mutex protection.
- */
-class TerrainProviderAdapter : public TerrainInterface
-{
-public:
-	/**
-	 * Constructs an adapter from a GroundProvider.
-	 *
-	 * Creates a copy of the provider to ensure it remains valid for the
-	 * lifetime of this adapter.
-	 *
-	 * @param provider The ground provider to wrap (will be cloned)
-	 * @throws std::invalid_argument if cloning fails
-	 */
-	explicit TerrainProviderAdapter(const GroundProvider& provider);
-
-	[[nodiscard]] auto getHeight(float x, float y) const -> float override;
-	[[nodiscard]] auto getNormal(float x, float y) const noexcept -> Vector3D override;
-	[[nodiscard]] auto getSurfaceProperties(float x, float y) const -> const GroundSurface& override;
-
-private:
-	std::unique_ptr<GroundProvider> provider_;
-	mutable GroundSurface cachedSurface_;  // Mutable for caching in const method
-	mutable float cachedX_ = 0.0F;
-	mutable float cachedY_ = 0.0F;
-	mutable bool cacheValid_ = false;  // Explicit initialization flag
-
-	// Helper to update cache only when position changes
-	// cppcheck-suppress-begin unusedPrivateFunction
-	void updateCache(float x, float y) const;
-	// cppcheck-suppress-end unusedPrivateFunction
-};
 
 #endif // TERRAIN_INTERFACE_HPP

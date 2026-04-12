@@ -6,7 +6,6 @@
 #include "FlightSimulator.hpp"
 #include "FlightPhase.hpp"
 #include "ShotPhysicsContext.hpp"
-#include "GroundProvider.hpp"
 #include "BallState.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"

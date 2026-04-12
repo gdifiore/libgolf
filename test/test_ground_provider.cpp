@@ -1,107 +1,87 @@
 /**
  * @file test_ground_provider.cpp
- * @brief Unit tests for the GroundProvider interface and dynamic ground support
+ * @brief Integration tests for FlightSimulator with dynamic terrain.
+ *
+ * These tests exercise position-dependent terrain implemented via TerrainInterface,
+ * covering zone transitions, elevation changes, and surface property variations.
  */
 
 #include <gtest/gtest.h>
 #include <cmath>
 #include "FlightSimulator.hpp"
-#include "GroundProvider.hpp"
+#include "terrain_interface.hpp"
 #include "physics_constants.hpp"
 
 // =============================================================================
-// Test Fixtures and Helper Classes
+// Test Terrain Implementations
 // =============================================================================
 
 /**
- * @brief Test ground provider that returns different surfaces based on distance.
+ * @brief Flat terrain that returns different surfaces based on downrange distance.
  *
- * - Fairway: 0-200 yards (standard properties)
- * - Green: 200+ yards (elevated 3ft, lower friction)
+ * - Fairway: 0-200 yards (standard properties, height = 0)
+ * - Green:  200+ yards (elevated 3ft, lower friction)
  */
-class SimpleTestGroundProvider : public GroundProvider
+class SimpleTestTerrain : public TerrainInterface
 {
 public:
-	SimpleTestGroundProvider() = default;
-	SimpleTestGroundProvider(const SimpleTestGroundProvider&) : GroundProvider() {}
-
-	GroundSurface getGroundAt(float x, float y) const override
+	float getHeight(float x, float y) const override
 	{
-		(void)x; // Not used in this simple test
+		return getSurfaceProperties(x, y).height;
+	}
 
+	Vector3D getNormal([[maybe_unused]] float x, [[maybe_unused]] float y) const override
+	{
+		return {0.0F, 0.0F, 1.0F};
+	}
+
+	const GroundSurface &getSurfaceProperties([[maybe_unused]] float x, float y) const override
+	{
 		const float downrangeYards = y / physics_constants::YARDS_TO_FEET;
 
 		if (downrangeYards >= 200.0F)
 		{
-			// Green (elevated)
-			return GroundSurface{
-				3.0F,   // height: elevated
-				0.35F,  // restitution
-				0.4F,   // frictionStatic
-				0.12F,  // frictionDynamic
-				0.95F,  // firmness
-				0.85F   // spinRetention
-			};
+			static const GroundSurface kGreen{3.0F, 0.35F, 0.4F, 0.12F, 0.95F, 0.85F};
+			return kGreen;
 		}
 
-		// Fairway
-		return GroundSurface{
-			0.0F,   // height: ground level
-			0.4F,   // restitution
-			0.5F,   // frictionStatic
-			0.2F,   // frictionDynamic
-			0.8F,   // firmness
-			0.75F   // spinRetention
-		};
-	}
-
-	std::unique_ptr<GroundProvider> clone() const override
-	{
-		return std::make_unique<SimpleTestGroundProvider>(*this);
+		static const GroundSurface kFairway{0.0F, 0.4F, 0.5F, 0.2F, 0.8F, 0.75F};
+		return kFairway;
 	}
 };
 
 /**
- * @brief Test ground provider with lateral variation (rough on edges).
+ * @brief Flat terrain with rough beyond ±15 yards from centerline.
  */
-class LateralTestGroundProvider : public GroundProvider
+class LateralTestTerrain : public TerrainInterface
 {
 public:
-	LateralTestGroundProvider() = default;
-
-	LateralTestGroundProvider(const LateralTestGroundProvider&) : GroundProvider() {}
-
-	GroundSurface getGroundAt(float x, float y) const override
+	float getHeight([[maybe_unused]] float x, [[maybe_unused]] float y) const override
 	{
-		(void)y; // Not used in this test
-
-		const float lateralYards = x / physics_constants::YARDS_TO_FEET;
-
-		// Rough beyond ±15 yards from center
-		if (std::abs(lateralYards) > 15.0F)
-		{
-			return GroundSurface{
-				0.0F,   // height
-				0.25F,  // restitution (softer)
-				0.6F,   // frictionStatic (higher)
-				0.5F,   // frictionDynamic (much higher)
-				0.4F,   // firmness (softer)
-				0.55F   // spinRetention (lower)
-			};
-		}
-
-		// Fairway
-		return GroundSurface{
-			0.0F, 0.4F, 0.5F, 0.2F, 0.8F, 0.75F};
+		return 0.0F;
 	}
 
-	std::unique_ptr<GroundProvider> clone() const override
+	Vector3D getNormal([[maybe_unused]] float x, [[maybe_unused]] float y) const override
 	{
-		return std::make_unique<LateralTestGroundProvider>(*this);
+		return {0.0F, 0.0F, 1.0F};
+	}
+
+	const GroundSurface &getSurfaceProperties(float x, [[maybe_unused]] float y) const override
+	{
+		const float lateralYards = x / physics_constants::YARDS_TO_FEET;
+
+		if (std::abs(lateralYards) > 15.0F)
+		{
+			static const GroundSurface kRough{0.0F, 0.25F, 0.6F, 0.5F, 0.4F, 0.55F};
+			return kRough;
+		}
+
+		static const GroundSurface kFairway{0.0F, 0.4F, 0.5F, 0.2F, 0.8F, 0.75F};
+		return kFairway;
 	}
 };
 
-class GroundProviderTest : public ::testing::Test
+class DynamicTerrainTest : public ::testing::Test
 {
 protected:
 	void SetUp() override
@@ -109,7 +89,6 @@ protected:
 		// Standard test ball parameters: 120 mph, 25° launch, 3000 rpm backspin
 		ball = {120.0F, 25.0F, 0.0F, 3000.0F, 0.0F};
 
-		// Standard atmospheric conditions
 		atmos = {
 			70.0F,  // temperature (F)
 			0.0F,   // wind x
@@ -120,15 +99,7 @@ protected:
 			29.92F  // pressure
 		};
 
-		// Standard ground conditions
-		ground = GroundSurface{
-			0.0F,   // height
-			0.4F,   // restitution
-			0.5F,   // frictionStatic
-			0.2F,   // frictionDynamic
-			0.8F,   // firmness
-			0.75F   // spinRetention
-		};
+		ground = GroundSurface{0.0F, 0.4F, 0.5F, 0.2F, 0.8F, 0.75F};
 	}
 
 	LaunchData ball;
@@ -137,51 +108,10 @@ protected:
 };
 
 // =============================================================================
-// UniformGroundProvider Tests
-// =============================================================================
-
-TEST_F(GroundProviderTest, UniformProviderReturnsSameSurface)
-{
-	UniformGroundProvider provider(ground);
-
-	// Should return the same surface regardless of position
-	GroundSurface surface1 = provider.getGroundAt(0.0F, 0.0F);
-	GroundSurface surface2 = provider.getGroundAt(100.0F, 500.0F);
-	GroundSurface surface3 = provider.getGroundAt(-50.0F, 1000.0F);
-
-	EXPECT_FLOAT_EQ(surface1.height, ground.height);
-	EXPECT_FLOAT_EQ(surface1.restitution, ground.restitution);
-	EXPECT_FLOAT_EQ(surface1.frictionDynamic, ground.frictionDynamic);
-
-	EXPECT_FLOAT_EQ(surface2.height, ground.height);
-	EXPECT_FLOAT_EQ(surface3.height, ground.height);
-}
-
-TEST_F(GroundProviderTest, UniformProviderPreservesAllProperties)
-{
-	ground.height = 5.0F;
-	ground.restitution = 0.3F;
-	ground.frictionStatic = 0.6F;
-	ground.frictionDynamic = 0.25F;
-	ground.firmness = 0.9F;
-	ground.spinRetention = 0.8F;
-
-	UniformGroundProvider provider(ground);
-	GroundSurface result = provider.getGroundAt(123.0F, 456.0F);
-
-	EXPECT_FLOAT_EQ(result.height, 5.0F);
-	EXPECT_FLOAT_EQ(result.restitution, 0.3F);
-	EXPECT_FLOAT_EQ(result.frictionStatic, 0.6F);
-	EXPECT_FLOAT_EQ(result.frictionDynamic, 0.25F);
-	EXPECT_FLOAT_EQ(result.firmness, 0.9F);
-	EXPECT_FLOAT_EQ(result.spinRetention, 0.8F);
-}
-
-// =============================================================================
 // Constructor Tests
 // =============================================================================
 
-TEST_F(GroundProviderTest, FlatGroundConstructorWorks)
+TEST_F(DynamicTerrainTest, FlatGroundConstructorWorks)
 {
 	FlightSimulator sim(ball, atmos, ground);
 	sim.run(0.01F);
@@ -190,170 +120,138 @@ TEST_F(GroundProviderTest, FlatGroundConstructorWorks)
 	EXPECT_GT(sim.getLandingResult().distance, 0.0F);
 }
 
-TEST_F(GroundProviderTest, FlatAndProviderConstructorEquivalent)
+TEST_F(DynamicTerrainTest, TerrainConstructorWorks)
 {
-	// Flat ground constructor
-	FlightSimulator sim1(ball, atmos, ground);
+	FlightSimulator sim(ball, atmos, std::make_shared<SimpleTestTerrain>());
+	sim.run(0.01F);
 
-	// Provider constructor with uniform provider
-	UniformGroundProvider provider(ground);
-	FlightSimulator sim2(ball, atmos, provider);
-
-	sim1.run(0.01F);
-	sim2.run(0.01F);
-
-	// Final positions should be identical
-	const BallState& final1 = sim1.getState();
-	const BallState& final2 = sim2.getState();
-
-	EXPECT_NEAR(final1.position[0], final2.position[0], 0.01F);
-	EXPECT_NEAR(final1.position[1], final2.position[1], 0.01F);
-	EXPECT_NEAR(final1.position[2], final2.position[2], 0.01F);
+	EXPECT_STREQ(sim.getCurrentPhaseName(), "complete");
+	EXPECT_GT(sim.getLandingResult().distance, 0.0F);
 }
 
 // =============================================================================
-// Dynamic Ground Tests
+// Dynamic Terrain Tests
 // =============================================================================
 
-TEST_F(GroundProviderTest, BallLandsOnElevatedGreen)
+TEST_F(DynamicTerrainTest, BallLandsOnElevatedGreen)
 {
-	SimpleTestGroundProvider provider;
-
-	ball.ballSpeedMph = 160.0F; // High speed to reach 200+ yards
+	ball.ballSpeedMph   = 160.0F; // High speed to reach 200+ yards
 	ball.launchAngleDeg = 11.0F;
 
-	FlightSimulator sim(ball, atmos, provider);
+	FlightSimulator sim(ball, atmos, std::make_shared<SimpleTestTerrain>());
 	sim.run(0.01F);
 
-	const BallState& finalState = sim.getState();
-	const float finalDownrangeYards = finalState.position[1] / physics_constants::YARDS_TO_FEET;
-
-	// Ball should have traveled far enough to reach the green
-	EXPECT_GT(finalDownrangeYards, 200.0F);
-
-	// Final height should be at or near the green height (3ft)
-	EXPECT_NEAR(finalState.position[2], 3.0F, 0.5F);
-}
-
-TEST_F(GroundProviderTest, SurfaceTransitionAffectsRolling)
-{
-	SimpleTestGroundProvider provider;
-
-	ball.ballSpeedMph = 160.0F;
-	ball.launchAngleDeg = 11.0F;
-
-	FlightSimulator sim(ball, atmos, provider);
-	sim.run(0.01F);
-
-	// Ball should reach the green (200+ yards) and come to rest at green height (3ft)
-	const BallState& finalState = sim.getState();
-	const float finalDownrangeYards = finalState.position[1] / physics_constants::YARDS_TO_FEET;
+	const BallState &finalState        = sim.getState();
+	const float finalDownrangeYards    = finalState.position[1] / physics_constants::YARDS_TO_FEET;
 
 	EXPECT_GT(finalDownrangeYards, 200.0F);
 	EXPECT_NEAR(finalState.position[2], 3.0F, 0.5F);
 }
 
-TEST_F(GroundProviderTest, LateralRoughIncreasesRollingFriction)
+TEST_F(DynamicTerrainTest, SurfaceTransitionAffectsRolling)
 {
-	LateralTestGroundProvider provider;
+	ball.ballSpeedMph   = 160.0F;
+	ball.launchAngleDeg = 11.0F;
 
-	// First shot: straight down fairway
-	LaunchData ball1 = ball;
+	FlightSimulator sim(ball, atmos, std::make_shared<SimpleTestTerrain>());
+	sim.run(0.01F);
+
+	const BallState &finalState        = sim.getState();
+	const float finalDownrangeYards    = finalState.position[1] / physics_constants::YARDS_TO_FEET;
+
+	EXPECT_GT(finalDownrangeYards, 200.0F);
+	EXPECT_NEAR(finalState.position[2], 3.0F, 0.5F);
+}
+
+TEST_F(DynamicTerrainTest, LateralRoughIncreasesRollingFriction)
+{
+	auto terrain = std::make_shared<LateralTestTerrain>();
+
+	// Straight shot: stays in fairway
+	LaunchData ball1   = ball;
 	ball1.directionDeg = 0.0F;
-	FlightSimulator sim1(ball1, atmos, provider);
+	FlightSimulator sim1(ball1, atmos, terrain);
 
-	// Second shot: hooked into rough (left)
-	LaunchData ball2 = ball;
-	ball2.directionDeg = -15.0F; // 15 degrees left
-	FlightSimulator sim2(ball2, atmos, provider);
+	// Hooked shot: lands in rough
+	LaunchData ball2   = ball;
+	ball2.directionDeg = -15.0F;
+	FlightSimulator sim2(ball2, atmos, terrain);
 
 	sim1.run(0.01F);
 	sim2.run(0.01F);
 
-	const BallState& final1 = sim1.getState();
-	const BallState& final2 = sim2.getState();
+	const float distance1 = sim1.getState().position[1] / physics_constants::YARDS_TO_FEET;
+	const float distance2 = sim2.getState().position[1] / physics_constants::YARDS_TO_FEET;
 
-	const float distance1 = final1.position[1] / physics_constants::YARDS_TO_FEET;
-	const float distance2 = final2.position[1] / physics_constants::YARDS_TO_FEET;
-
-	// Shot in rough should travel shorter distance due to higher friction
-	// (though the angled shot also affects this - we're testing the combined effect)
-	EXPECT_LT(distance2, distance1 * 1.1F); // Rough shot shouldn't go much farther
+	// Rough shot shouldn't roll out significantly farther than the straight shot
+	EXPECT_LT(distance2, distance1 * 1.1F);
 }
 
-TEST_F(GroundProviderTest, MultipleGroundTransitions)
+TEST_F(DynamicTerrainTest, MultipleGroundTransitions)
 {
-	// Create a provider that changes ground every 50 yards
-	class MultiZoneProvider : public GroundProvider
+	class MultiZoneTerrain : public TerrainInterface
 	{
 	public:
-		MultiZoneProvider() = default;
-
-		MultiZoneProvider(const MultiZoneProvider&) : GroundProvider() {}
-
-		GroundSurface getGroundAt(float x, float y) const override
+		float getHeight(float x, float y) const override
 		{
-			(void)x;
+			return getSurfaceProperties(x, y).height;
+		}
+
+		Vector3D getNormal([[maybe_unused]] float x, [[maybe_unused]] float y) const override
+		{
+			return {0.0F, 0.0F, 1.0F};
+		}
+
+		const GroundSurface &getSurfaceProperties([[maybe_unused]] float x, float y) const override
+		{
 			const float yards = y / physics_constants::YARDS_TO_FEET;
 
 			if (yards < 50.0F)
 			{
-				return GroundSurface{0.0F, 0.4F, 0.5F, 0.2F, 0.8F, 0.75F}; // Zone 1
+				static const GroundSurface kZone1{0.0F, 0.4F, 0.5F, 0.2F, 0.8F, 0.75F};
+				return kZone1;
 			}
 			else if (yards < 100.0F)
 			{
-				return GroundSurface{1.0F, 0.35F, 0.6F, 0.3F, 0.7F, 0.7F}; // Zone 2 (elevated 1ft, higher friction)
+				static const GroundSurface kZone2{1.0F, 0.35F, 0.6F, 0.3F, 0.7F, 0.7F};
+				return kZone2;
 			}
 			else
 			{
-				return GroundSurface{2.0F, 0.3F, 0.4F, 0.15F, 0.9F, 0.8F}; // Zone 3 (elevated 2ft, lower friction)
+				static const GroundSurface kZone3{2.0F, 0.3F, 0.4F, 0.15F, 0.9F, 0.8F};
+				return kZone3;
 			}
-		}
-
-		std::unique_ptr<GroundProvider> clone() const override
-		{
-			return std::make_unique<MultiZoneProvider>(*this);
 		}
 	};
 
-	MultiZoneProvider provider;
-
 	ball.ballSpeedMph = 140.0F;
 
-	FlightSimulator sim(ball, atmos, provider);
+	FlightSimulator sim(ball, atmos, std::make_shared<MultiZoneTerrain>());
 	sim.run(0.01F);
 
 	EXPECT_STREQ(sim.getCurrentPhaseName(), "complete");
 
-	const BallState& finalState = sim.getState();
+	const BallState &finalState = sim.getState();
+	const float finalYards      = finalState.position[1] / physics_constants::YARDS_TO_FEET;
 
-	// Final height should correspond to the zone where it landed
-	// If it made it past 100 yards, should be near 2ft
-	const float finalYards = finalState.position[1] / physics_constants::YARDS_TO_FEET;
 	if (finalYards >= 100.0F)
 	{
 		EXPECT_NEAR(finalState.position[2], 2.0F, 1.0F);
 	}
 }
 
-// =============================================================================
-// Edge Cases and Robustness Tests
-// =============================================================================
-
-TEST_F(GroundProviderTest, VeryShortShotUsesCorrectGround)
+TEST_F(DynamicTerrainTest, VeryShortShotUsesCorrectGround)
 {
-	// Very low speed shot that lands immediately
-	ball.ballSpeedMph = 30.0F;
+	ball.ballSpeedMph   = 30.0F;
 	ball.launchAngleDeg = 45.0F;
 
-	SimpleTestGroundProvider provider;
-	FlightSimulator sim(ball, atmos, provider);
+	FlightSimulator sim(ball, atmos, std::make_shared<SimpleTestTerrain>());
 	sim.run(0.01F);
 
-	const BallState& finalState = sim.getState();
+	const BallState &finalState = sim.getState();
+	const float finalYards      = finalState.position[1] / physics_constants::YARDS_TO_FEET;
 
-	// Should land on fairway (ground level), not green
-	const float finalYards = finalState.position[1] / physics_constants::YARDS_TO_FEET;
+	// Short shot should land on fairway (ground level), not the elevated green
 	EXPECT_LT(finalYards, 200.0F);
 	EXPECT_NEAR(finalState.position[2], 0.0F, 0.5F);
 }

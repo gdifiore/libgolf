@@ -43,7 +43,6 @@ set(HEADERS
    ${PROJECT_INCLUDE_DIR}/FlightSimulator.hpp
    ${PROJECT_INCLUDE_DIR}/BallState.hpp
    ${PROJECT_INCLUDE_DIR}/ground_surface.hpp
-   ${PROJECT_INCLUDE_DIR}/GroundProvider.hpp
    ${PROJECT_INCLUDE_DIR}/terrain_interface.hpp
    ${PROJECT_INCLUDE_DIR}/ground_physics.hpp
    ${PROJECT_INCLUDE_DIR}/physics_constants.hpp

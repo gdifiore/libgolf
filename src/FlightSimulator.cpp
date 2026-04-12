@@ -11,6 +11,7 @@
 #include "physics_constants.hpp"
 
 #include <cmath>
+#include <stdexcept>
 
 // ---------------------------------------------------------------------------
 // Constructors
@@ -34,31 +35,20 @@ FlightSimulator::FlightSimulator(
 FlightSimulator::FlightSimulator(
 	const LaunchData &launch,
 	const AtmosphericData &atmos,
-	const GroundProvider &groundProvider,
-	std::shared_ptr<AerodynamicModel> model)
-	: currentPhase(Phase::Aerial),
-	  physicsVars_(launch, atmos),
-	  terrainStorage_(std::make_shared<TerrainProviderAdapter>(groundProvider)),
-	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
-	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
-{
-	initializeFromLaunch(launch);
-}
-
-FlightSimulator::FlightSimulator(
-	const LaunchData &launch,
-	const AtmosphericData &atmos,
-	const GroundSurface &ground,
 	std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> model)
 	: currentPhase(Phase::Aerial),
 	  physicsVars_(launch, atmos),
-	  terrainStorage_(terrain ? terrain : std::make_shared<FlatTerrain>(ground)),
+	  terrainStorage_(terrain),
 	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
+	// Null check: phase constructors also validate, but fail early here for clarity
+	if (!terrain)
+	{
+		throw std::invalid_argument("FlightSimulator: terrain must not be null");
+	}
 	initializeFromLaunch(launch);
 }
 
