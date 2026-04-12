@@ -23,7 +23,7 @@ TEST(GolfTest, initVarsDefault)
       .pressure = 29.92f,
   };
 
-  auto ballVars = GolfBallPhysicsVariables(launch, atmos);
+  auto ballVars = ShotPhysicsContext(launch, atmos);
 
   ballVars.calculateAllVariables();
   EXPECT_NEAR(ballVars.getRhoImperial(), 0.0748, 0.001);
@@ -66,7 +66,7 @@ TEST(GolfTest, initVarsNotDefault)
       .pressure = 29.92f,
   };
 
-  auto vars = GolfBallPhysicsVariables(launch, atmos);
+  auto vars = ShotPhysicsContext(launch, atmos);
 
   vars.calculateAllVariables();
   EXPECT_NEAR(vars.getRhoImperial(), 0.0745, 0.001);

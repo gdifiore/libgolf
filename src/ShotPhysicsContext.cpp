@@ -1,20 +1,20 @@
 /**
- * @file GolfBallPhysicsVariables.cpp
+ * @file ShotPhysicsContext.cpp
  * @author Gabriel DiFiore
- * @brief Contains the implementation of the GolfBallPhysicsVariables class.
+ * @brief Contains the implementation of the ShotPhysicsContext class.
  *
- * This file defines the GolfBallPhysicsVariables class, which is responsible for calculating
+ * This file defines the ShotPhysicsContext class, which is responsible for calculating
  * various intermediate physics variables related to a golf ball. It includes functions for
  * calculating air density, barometric pressure, spin rates, launch angles, wind effects, and
  * other variables used in golf ball physics calculations.
  *
- * The GolfBallPhysicsVariables class takes launch data and atmospheric data as input,
+ * The ShotPhysicsContext class takes launch data and atmospheric data as input,
  * and provides methods to calculate all the required variables.
  *
  * @copyright Copyright (c) 2025, Gabriel DiFiore
  */
 
-#include "GolfBallPhysicsVariables.hpp"
+#include "ShotPhysicsContext.hpp"
 #include "launch_data.hpp"
 #include "atmospheric_data.hpp"
 #include "math_utils.hpp"
@@ -23,7 +23,7 @@
 #include <cmath>
 
 /**
- * @brief Constructs a GolfBallPhysicsVariables object.
+ * @brief Constructs a ShotPhysicsContext object.
  *
  * @param launch Launch monitor data for the shot.
  * @param atmos Atmospheric conditions at the time of the shot.
@@ -33,7 +33,7 @@
  *       physically reasonable ranges. Passing invalid or out-of-range data may lead to
  *       unexpected behavior or incorrect calculations.
  */
-GolfBallPhysicsVariables::GolfBallPhysicsVariables(const LaunchData &launch, const AtmosphericData &atmos)
+ShotPhysicsContext::ShotPhysicsContext(const LaunchData &launch, const AtmosphericData &atmos)
     : launch(launch), atmos(atmos)
 {
     tempC = math_utils::convertFahrenheitToCelsius(atmos.temp);
@@ -42,7 +42,7 @@ GolfBallPhysicsVariables::GolfBallPhysicsVariables(const LaunchData &launch, con
     calculateAllVariables();
 }
 
-void GolfBallPhysicsVariables::calculateAllVariables()
+void ShotPhysicsContext::calculateAllVariables()
 {
     calculateBarometricPressure();
     calculateSVP();
@@ -57,24 +57,24 @@ void GolfBallPhysicsVariables::calculateAllVariables()
     calculateRe100();
 }
 
-void GolfBallPhysicsVariables::calculateRhoMetric()
+void ShotPhysicsContext::calculateRhoMetric()
 {
     rhoMetric = physics_constants::STD_AIR_DENSITY_KG_PER_M3 * ((physics_constants::KELVIN_OFFSET / (math_utils::convertCelsiusToKelvin(tempC)) *
                                                                  ((barometricPressure * std::exp(-physics_constants::BETA_PRESSURE_DECAY * elevationM) - physics_constants::WATER_VAPOR_COEFF * atmos.relHumidity * (SVP / 100.0F)) / physics_constants::STD_PRESSURE_MMHG)));
 }
 
-void GolfBallPhysicsVariables::calculateRhoImperial()
+void ShotPhysicsContext::calculateRhoImperial()
 {
     rhoImperial = rhoMetric * physics_constants::KG_PER_M3_TO_LB_PER_FT3;
 }
 
-void GolfBallPhysicsVariables::calculateC0()
+void ShotPhysicsContext::calculateC0()
 {
     c0 = physics_constants::DRAG_FORCE_CONST * rhoImperial * (physics_constants::REF_BALL_MASS_OZ / physics_constants::STD_BALL_MASS_OZ) *
          std::pow(physics_constants::STD_BALL_CIRCUMFERENCE_IN / physics_constants::REF_BALL_CIRC_IN, 2);
 }
 
-void GolfBallPhysicsVariables::calculateV0()
+void ShotPhysicsContext::calculateV0()
 {
     v0_magnitude = launch.ballSpeedMph * physics_constants::MPH_TO_FT_PER_S;
     float v0x = v0_magnitude * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD);
@@ -83,7 +83,7 @@ void GolfBallPhysicsVariables::calculateV0()
     v0 = Vector3D{v0x, v0y, v0z};
 }
 
-void GolfBallPhysicsVariables::calculateW()
+void ShotPhysicsContext::calculateW()
 {
     float wx = (launch.backspinRpm * std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD) -
                 launch.sidespinRpm * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD)) *
@@ -95,34 +95,34 @@ void GolfBallPhysicsVariables::calculateW()
     w = Vector3D{wx, wy, wz};
 }
 
-void GolfBallPhysicsVariables::calculateOmega()
+void ShotPhysicsContext::calculateOmega()
 {
     omega = std::sqrt(std::pow(launch.backspinRpm, 2) + std::pow(launch.sidespinRpm, 2)) * physics_constants::RPM_TO_RAD_PER_S;
 }
 
-void GolfBallPhysicsVariables::calculateROmega()
+void ShotPhysicsContext::calculateROmega()
 {
     rOmega = (physics_constants::STD_BALL_CIRCUMFERENCE_IN / (2 * physics_constants::PI)) * (omega / physics_constants::INCHES_PER_FOOT);
 }
 
-void GolfBallPhysicsVariables::calculateVw()
+void ShotPhysicsContext::calculateVw()
 {
     float vxw = atmos.vWind * physics_constants::MPH_TO_FT_PER_S * std::sin(atmos.phiWind * physics_constants::DEG_TO_RAD);
     float vyw = atmos.vWind * physics_constants::MPH_TO_FT_PER_S * std::cos(atmos.phiWind * physics_constants::DEG_TO_RAD);
     vw = Vector3D{vxw, vyw, 0.0f};
 }
 
-void GolfBallPhysicsVariables::calculateSVP()
+void ShotPhysicsContext::calculateSVP()
 {
     SVP = physics_constants::SVP_COEFF_A * std::exp((physics_constants::SVP_COEFF_B - tempC / physics_constants::SVP_COEFF_C) * tempC / (physics_constants::SVP_COEFF_D + tempC));
 }
 
-void GolfBallPhysicsVariables::calculateBarometricPressure()
+void ShotPhysicsContext::calculateBarometricPressure()
 {
     barometricPressure = atmos.pressure * physics_constants::INHG_TO_MMHG;
 }
 
-void GolfBallPhysicsVariables::calculateRe100()
+void ShotPhysicsContext::calculateRe100()
 {
     Re100 = rhoMetric * physics_constants::RE100_VELOCITY_M_PER_S * (physics_constants::STD_BALL_CIRCUMFERENCE_IN / (physics_constants::PI * physics_constants::INCHES_PER_METER)) *
             (math_utils::convertCelsiusToKelvin(tempC) + physics_constants::SUTHERLAND_CONSTANT) /

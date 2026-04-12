@@ -47,3 +47,4 @@ issues
 *_notes.md
 *_review.md
 web/
+.cache/
