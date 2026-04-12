@@ -1,8 +1,9 @@
 #ifndef FLIGHTPHASE_HPP
 #define FLIGHTPHASE_HPP
 
+#include "AerodynamicModel.hpp"
 #include "BallState.hpp"
-#include "GolfBallPhysicsVariables.hpp"
+#include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
 #include "ground_surface.hpp"
@@ -52,75 +53,61 @@ protected:
  * @brief Implements the aerial flight phase with full aerodynamic calculations.
  *
  * This phase handles the golf ball's flight through the air, including:
- * - Drag and lift forces
- * - Spin decay
+ * - Drag and lift forces (delegated to AerodynamicModel)
+ * - Spin decay (delegated to AerodynamicModel)
  * - Wind effects
- * - Reynolds number calculations
+ * - Velocity-Verlet integration
  */
 class AerialPhase : public FlightPhase
 {
 public:
-	AerialPhase(GolfBallPhysicsVariables &physicsVars,
+	AerialPhase(ShotPhysicsContext &physicsVars,
 	            const LaunchData &launch,
 	            const AtmosphericData &atmos,
-	            std::shared_ptr<TerrainInterface> terrain);
+	            std::shared_ptr<TerrainInterface> terrain,
+	            std::shared_ptr<AerodynamicModel> model = nullptr);
 
 	void initialize(BallState &state);
 	void calculateStep(BallState &state, float dt) override;
 	void calculateAccelerations(BallState &state);
 	bool isPhaseComplete(const BallState &state) const override;
 
-	// Getters for physics variables (needed for testing)
+	// Getters for observable flight quantities (useful for testing and diagnostics)
 	[[nodiscard]] auto getV() const -> float { return v; }
 	[[nodiscard]] auto getVMph() const -> float { return vMph; }
 	[[nodiscard]] auto getPhi() const -> float { return phi; }
 	[[nodiscard]] auto getTau() const -> float { return tau; }
 	[[nodiscard]] auto getRw() const -> float { return rw; }
-	[[nodiscard]] auto getWPerpDivW() const -> float { return w_perp_div_w; }
-	[[nodiscard]] auto getRe_x_e5() const -> float { return Re_x_e5; }
 	[[nodiscard]] auto getVw() const -> float { return vw; }
 	[[nodiscard]] auto getVwMph() const -> float { return vwMph; }
-	[[nodiscard]] auto getSpinFactor() const -> float { return spinFactor; }
-
-	auto determineCoefficientOfDrag() -> float;
-	auto determineCoefficientOfLift() -> float;
 
 private:
-	GolfBallPhysicsVariables &physicsVars;
+	ShotPhysicsContext &physicsVars;
 	LaunchData launch;
 	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
+	std::shared_ptr<AerodynamicModel> model_;
 
-	// Calculated variables (derived from state)
+	// Cached scalar quantities derived from BallState each step
 	float v;
 	float vMph;
 	float phi;
 	float tau;
 	float rw;
-	// Perpendicular-spin correction factor for Magnus force.
-	// Fixed at 1.0 per the Nathan (UIUC) reference model — a placeholder
-	// for a future correction accounting for non-pure-backspin trajectories.
-	float w_perp_div_w = 1.0F;
-	float Re_x_e5;
 	float vw;
 	float vwMph;
-	float spinFactor;
 	Vector3D velocity3D_w;
-	Vector3D accelerationDrag3D;
-	Vector3D accelerationMagnitude3D;
 
 	// Private calculation methods
 	void calculatePosition(BallState &state, float dt);
 	void calculateV(BallState &state, float dt);
 	void calculateVelocityw(const BallState &state);
 	void calculatePhi(const BallState &state);
-	void calculateTau();
+	void calculateTau(const BallState &state);
 	void calculateRw(const BallState &state);
-	void calculateRe_x_e5();
-	void calculateSpinFactor();
-	void calculateAccelD(const BallState &state);
-	void calculateAccelM(const BallState &state);
 	void calculateAccel(BallState &state);
+
+	[[nodiscard]] AerodynamicState buildAerodynamicState(const BallState &state) const;
 };
 
 /**
@@ -134,16 +121,17 @@ private:
 class BouncePhase : public FlightPhase
 {
 public:
-	BouncePhase(GolfBallPhysicsVariables &physicsVars,
+	BouncePhase(ShotPhysicsContext &physicsVars,
 	            const LaunchData &launch,
 	            const AtmosphericData &atmos,
-	            std::shared_ptr<TerrainInterface> terrain);
+	            std::shared_ptr<TerrainInterface> terrain,
+	            std::shared_ptr<AerodynamicModel> model = nullptr);
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;
 
 private:
-	GolfBallPhysicsVariables &physicsVars;
+	ShotPhysicsContext &physicsVars;
 	LaunchData launch;
 	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
@@ -160,7 +148,7 @@ private:
 class RollPhase : public FlightPhase
 {
 public:
-	RollPhase(GolfBallPhysicsVariables &physicsVars,
+	RollPhase(ShotPhysicsContext &physicsVars,
 	          const LaunchData &launch,
 	          const AtmosphericData &atmos,
 	          std::shared_ptr<TerrainInterface> terrain);
@@ -169,7 +157,7 @@ public:
 	bool isPhaseComplete(const BallState &state) const override;
 
 private:
-	GolfBallPhysicsVariables &physicsVars;
+	ShotPhysicsContext &physicsVars;
 	LaunchData launch;
 	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;

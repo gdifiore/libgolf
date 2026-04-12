@@ -3,7 +3,7 @@
 
 #include "BallState.hpp"
 #include "FlightPhase.hpp"
-#include "GolfBallPhysicsVariables.hpp"
+#include "ShotPhysicsContext.hpp"
 #include "GroundProvider.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
@@ -47,10 +47,12 @@ public:
 	 * @param launch Launch monitor data for the shot
 	 * @param atmos Atmospheric conditions
 	 * @param ground Ground surface properties (uniform everywhere)
+	 * @param model Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
-	                const GroundSurface &ground);
+	                const GroundSurface &ground,
+	                std::shared_ptr<AerodynamicModel> model = nullptr);
 
 	/**
 	 * @brief Constructs a flight simulator with a custom ground provider.
@@ -60,10 +62,12 @@ public:
 	 * @param launch Launch monitor data for the shot
 	 * @param atmos Atmospheric conditions
 	 * @param groundProvider Ground provider for position-dependent surface properties
+	 * @param model Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
-	                const GroundProvider &groundProvider);
+	                const GroundProvider &groundProvider,
+	                std::shared_ptr<AerodynamicModel> model = nullptr);
 
 	/**
 	 * @brief Constructs a flight simulator with a custom terrain interface.
@@ -74,11 +78,13 @@ public:
 	 * @param atmos Atmospheric conditions
 	 * @param ground Ground surface properties (used as fallback)
 	 * @param terrain Custom terrain implementation for height and normal queries
+	 * @param model Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
 	                const GroundSurface &ground,
-	                std::shared_ptr<TerrainInterface> terrain);
+	                std::shared_ptr<TerrainInterface> terrain,
+	                std::shared_ptr<AerodynamicModel> model = nullptr);
 
 	/**
 	 * @brief Runs the simulation to completion.
@@ -127,7 +133,7 @@ public:
 	 *
 	 * @return Reference to the physics variables
 	 */
-	[[nodiscard]] const GolfBallPhysicsVariables &getPhysicsVariables() const;
+	[[nodiscard]] const ShotPhysicsContext &getPhysicsVariables() const;
 
 	/**
 	 * @brief Gets the name of the current flight phase.
@@ -149,7 +155,7 @@ private:
 	BallState state;
 
 	// Must be declared before phases since phases hold a reference to it
-	GolfBallPhysicsVariables physicsVars_;
+	ShotPhysicsContext physicsVars_;
 
 	// Must be declared before phases since phases depend on it
 	std::shared_ptr<TerrainInterface> terrainStorage_;

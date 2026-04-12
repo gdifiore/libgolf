@@ -37,7 +37,7 @@ public:
 	 * @param vel Initial velocity vector
 	 * @param accel Initial acceleration vector
 	 * @param time Initial time value
-	 * @param spin Initial spin rate in rad/s (default: 0)
+	 * @param spin Initial surface speed r·ω (ft/s; default: 0)
 	 */
 	BallState(const Vector3D &pos, const Vector3D &vel, const Vector3D &accel, float time, float spin = 0.0F)
 		: position(pos), velocity(vel), acceleration(accel), currentTime(time), spinRate(spin) {}
@@ -54,7 +54,7 @@ public:
 	 * @param direction_deg Direction angle in degrees (0 = straight, positive = right)
 	 * @param start_pos Starting position (default: origin)
 	 * @param gravity Gravitational acceleration in ft/s² (default: earth gravity)
-	 * @param initial_spin_rad_s Initial spin rate in rad/s (default: 0)
+	 * @param initial_surface_speed Initial surface speed r·ω (ft/s; default: 0)
 	 * @return BallState initialized with calculated velocity and default values
 	 */
 	static BallState fromLaunchParameters(
@@ -63,7 +63,7 @@ public:
 		float direction_deg,
 		const Vector3D &start_pos = Vector3D{0.0F, 0.0F, 0.0F},
 		float gravity = physics_constants::GRAVITY_FT_PER_S2,
-		float initial_spin_rad_s = 0.0F)
+		float initial_surface_speed = 0.0F)
 	{
 		const float theta_rad = launch_angle_deg * physics_constants::DEG_TO_RAD;
 		const float phi_rad = direction_deg * physics_constants::DEG_TO_RAD;
@@ -79,7 +79,7 @@ public:
 
 		Vector3D acceleration{0.0F, 0.0F, -gravity};
 
-		return BallState(start_pos, velocity, acceleration, 0.0F, initial_spin_rad_s);
+		return BallState(start_pos, velocity, acceleration, 0.0F, initial_surface_speed);
 	}
 
 	// State variables
@@ -87,7 +87,7 @@ public:
 	Vector3D velocity;	   // Current velocity (vx, vy, vz) in ft/s
 	Vector3D acceleration; // Current acceleration (ax, ay, az) in ft/s²
 	float currentTime;	   // Current simulation time in seconds
-	float spinRate;		   // Current spin rate in rad/s
+	float spinRate;		   // Current surface speed r·ω (ft/s); decays as spin decays
 };
 
 #endif // BALLSTATE_HPP

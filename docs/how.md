@@ -154,14 +154,14 @@ After `run()`, the final ball state is available via `getState()`:
 const BallState& finalState = sim.getState();
 // finalState.position — Vector3D in feet
 // finalState.velocity — Vector3D in ft/s
-// finalState.spinRate — rad/s
+// finalState.spinRate — surface speed r·ω (ft/s)
 // finalState.currentTime — seconds
 ```
 
 Physics variables computed at launch (air density, Reynolds number, etc.) are accessible via:
 
 ```c++
-const GolfBallPhysicsVariables& vars = sim.getPhysicsVariables();
+const ShotPhysicsContext& vars = sim.getPhysicsVariables();
 float rho = vars.getRhoImperial(); // slugs/ft³
 ```
 
@@ -196,6 +196,39 @@ When using a `GroundProvider` instead of a single `GroundSurface`, the simulator
 - Bunkers and other hazards
 
 Ground is queried before each bounce and periodically during rolling (every 0.1s), so the ball automatically picks up surface changes as it moves. See the [Ground Providers Guide](ground_providers.md) for details.
+
+### Custom Aerodynamic Model
+
+By default, the simulator uses a built-in drag/lift model for a standard golf ball. You can replace it by implementing `AerodynamicModel` and passing it to `FlightSimulator`:
+
+```c++
+#include <libgolf.hpp>
+
+class MyModel : public AerodynamicModel {
+public:
+    double computeCd(double Re_x_e5, double spinFactor) const override {
+        // Return drag coefficient as a function of Reynolds number and spin factor
+        return 0.35;  // placeholder: constant drag
+    }
+
+    double computeCl(double Re_x_e5, double spinFactor) const override {
+        // Return lift coefficient as a function of Reynolds number and spin factor
+        return 1.5 * spinFactor;  // placeholder: linear lift
+    }
+
+    double computeSpinDecayTau(double velocity, double ballRadius) const override {
+        // Return spin decay time constant in seconds
+        return 1.0 / (0.00002 * velocity / ballRadius);
+    }
+};
+
+auto model = std::make_shared<MyModel>();
+FlightSimulator sim(ball, atmos, ground, model);
+```
+
+The two dimensionless inputs — `Re_x_e5` (Reynolds number / 100,000) and `spinFactor` (S = ω·r/v) — are computed from the current ball state each time step; your implementation only needs to express the physics. Omitting the model argument uses `DefaultAerodynamicModel`, which implements the built-in piecewise-linear Cd/Cl model.
+
+See [Aerodynamic Models](aerodynamic_model.md) for full details and worked examples.
 
 ### Example Programs
 
