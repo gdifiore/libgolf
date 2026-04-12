@@ -29,7 +29,7 @@ AerialPhase::AerialPhase(
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> model)
 	: physicsVars(physicsVars), launch(launch), atmos(atmos), terrain(terrain),
-	  model_(model ? std::move(model) : std::make_shared<DefaultAerodynamicModel>())
+	  model(model ? std::move(model) : std::make_shared<DefaultAerodynamicModel>())
 {
 	if (!terrain)
 	{
@@ -164,7 +164,7 @@ void AerialPhase::calculateTau(const BallState &state)
 		return;
 	}
 
-	tau = static_cast<float>(model_->computeSpinDecayTau(buildAerodynamicState(state)));
+	tau = static_cast<float>(model->computeSpinDecayTau(buildAerodynamicState(state)));
 }
 
 void AerialPhase::calculateRw(const BallState &state)
@@ -174,7 +174,7 @@ void AerialPhase::calculateRw(const BallState &state)
 
 void AerialPhase::calculateAccel(BallState &state)
 {
-	Vector3D aeroAccel = model_->computeAcceleration(buildAerodynamicState(state));
+	Vector3D aeroAccel = model->computeAcceleration(buildAerodynamicState(state));
 	state.acceleration[0] = aeroAccel[0];
 	state.acceleration[1] = aeroAccel[1];
 	state.acceleration[2] = aeroAccel[2] - physics_constants::GRAVITY_FT_PER_S2;
@@ -184,7 +184,7 @@ AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) cons
 {
 	return AerodynamicState{
 	    .velocity     = state.velocity,
-	    .windVelocity = {velocity3D_w[0], velocity3D_w[1], 0.0F},
+	    .windVelocity = {velocity3D_w[0], velocity3D_w[1], 0.0F}, // vertical wind not modelled
 	    .spinVector   = state.spinVector,
 	    .c0           = physicsVars.getC0(),
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,

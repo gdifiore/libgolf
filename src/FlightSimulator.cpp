@@ -25,7 +25,7 @@ FlightSimulator::FlightSimulator(
 	  physicsVars_(launch, atmos),
 	  terrainStorage_(std::make_shared<FlatTerrain>(ground)),
 	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, std::move(model)),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
 	initializeFromLaunch(launch);
@@ -40,7 +40,7 @@ FlightSimulator::FlightSimulator(
 	  physicsVars_(launch, atmos),
 	  terrainStorage_(std::make_shared<TerrainProviderAdapter>(groundProvider)),
 	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, std::move(model)),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
 	initializeFromLaunch(launch);
@@ -56,7 +56,7 @@ FlightSimulator::FlightSimulator(
 	  physicsVars_(launch, atmos),
 	  terrainStorage_(terrain ? terrain : std::make_shared<FlatTerrain>(ground)),
 	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, std::move(model)),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
 	initializeFromLaunch(launch);

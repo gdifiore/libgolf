@@ -62,7 +62,7 @@ public:
 		const double spinFactor = omegaMag * static_cast<double>(state.ballRadius) / vw;
 
 		const double Cd = computeCd(Re_x_e5, spinFactor);
-		const double Cl = computeCl(Re_x_e5, spinFactor);
+		const double Cl = computeCl(spinFactor);
 
 		// Drag: -C0 * Cd * vw * vRel
 		const double dragScale = -static_cast<double>(state.c0) * Cd * vw;
@@ -117,7 +117,7 @@ public:
 		}
 	}
 
-	double computeCl(double /*Re_x_e5*/, double spinFactor) const
+	double computeCl(double spinFactor) const
 	{
 		if (spinFactor <= static_cast<double>(physics_constants::SPIN_FACTOR_THRESHOLD))
 		{

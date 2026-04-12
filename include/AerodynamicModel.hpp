@@ -34,8 +34,7 @@ struct AerodynamicState
  * flight phase. Two responsibilities:
  *
  *   1. computeAcceleration — return the total aerodynamic acceleration vector
- *      (drag + Magnus + any other forces). Gravity is NOT included; AerialPhase
- *      adds it separately so the model only needs to express aerodynamics.
+ *      (drag + Magnus + any other forces). Gravity is excluded; see method docs.
  *
  *   2. computeSpinDecayTau — return the exponential decay time constant (s).
  *      AerialPhase applies:  spinRate *= exp(-dt / tau)
@@ -59,10 +58,10 @@ class AerodynamicModel
 public:
 	virtual ~AerodynamicModel() = default;
 
-	AerodynamicModel(const AerodynamicModel &) = default;
-	AerodynamicModel &operator=(const AerodynamicModel &) = default;
-	AerodynamicModel(AerodynamicModel &&) = default;
-	AerodynamicModel &operator=(AerodynamicModel &&) = default;
+	AerodynamicModel(const AerodynamicModel &) = delete;
+	AerodynamicModel &operator=(const AerodynamicModel &) = delete;
+	AerodynamicModel(AerodynamicModel &&) = delete;
+	AerodynamicModel &operator=(AerodynamicModel &&) = delete;
 
 	/**
 	 * @brief Computes aerodynamic acceleration (drag + Magnus; gravity excluded).

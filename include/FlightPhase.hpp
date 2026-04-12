@@ -86,7 +86,7 @@ private:
 	LaunchData launch;
 	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
-	std::shared_ptr<AerodynamicModel> model_;
+	std::shared_ptr<AerodynamicModel> model;
 
 	// Cached scalar quantities derived from BallState each step
 	float v;

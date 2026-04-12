@@ -79,7 +79,7 @@ TEST_F(DefaultModelTest, CdAboveHighReThreshold)
 
 TEST_F(DefaultModelTest, ClZeroSpin)
 {
-	EXPECT_NEAR(model.computeCl(0.0, 0.0), 0.0, 1e-6);
+	EXPECT_NEAR(model.computeCl(0.0), 0.0, 1e-6);
 }
 
 TEST_F(DefaultModelTest, ClLowSpin)
@@ -87,7 +87,7 @@ TEST_F(DefaultModelTest, ClLowSpin)
 	// S = 0.1: Cl = LIFT_COEFF1*0.1 + LIFT_COEFF2*0.01
 	double expected = static_cast<double>(physics_constants::LIFT_COEFF1) * 0.1 +
 	                  static_cast<double>(physics_constants::LIFT_COEFF2) * 0.01;
-	EXPECT_NEAR(model.computeCl(0.0, 0.1), expected, 1e-5);
+	EXPECT_NEAR(model.computeCl(0.1), expected, 1e-5);
 }
 
 TEST_F(DefaultModelTest, ClAtSpinThresholdUsesQuadratic)
@@ -96,14 +96,14 @@ TEST_F(DefaultModelTest, ClAtSpinThresholdUsesQuadratic)
 	double s = static_cast<double>(physics_constants::SPIN_FACTOR_THRESHOLD);
 	double expected = static_cast<double>(physics_constants::LIFT_COEFF1) * s +
 	                  static_cast<double>(physics_constants::LIFT_COEFF2) * s * s;
-	EXPECT_NEAR(model.computeCl(0.0, s), expected, 1e-5);
+	EXPECT_NEAR(model.computeCl(s), expected, 1e-5);
 }
 
 TEST_F(DefaultModelTest, ClAboveThresholdClamped)
 {
 	// S > SPIN_FACTOR_THRESHOLD → CL_DEFAULT
-	EXPECT_NEAR(model.computeCl(0.0, 0.5), physics_constants::CL_DEFAULT, 1e-6);
-	EXPECT_NEAR(model.computeCl(0.0, 1.0), physics_constants::CL_DEFAULT, 1e-6);
+	EXPECT_NEAR(model.computeCl(0.5), physics_constants::CL_DEFAULT, 1e-6);
+	EXPECT_NEAR(model.computeCl(1.0), physics_constants::CL_DEFAULT, 1e-6);
 }
 
 // ============================================================================
@@ -281,4 +281,70 @@ TEST(CustomAerodynamicModelTest, CustomModelIsUsedByFlightSimulator)
 	// A ball with no drag or lift travels significantly farther than one with
 	// realistic aerodynamics — confirms the custom model is actually exercised.
 	EXPECT_GT(noDragDist, defaultDist * 1.5F);
+}
+
+// ============================================================================
+// Spin decay integration — verifies exponential rate, not just direction
+// ============================================================================
+
+// Returns a fixed tau regardless of velocity, with no aerodynamic forces.
+// This lets us verify the decay rate precisely without coupling to drag physics.
+class ConstantTauModel : public AerodynamicModel
+{
+public:
+	explicit ConstantTauModel(double tau) : tau_(tau) {}
+	Vector3D computeAcceleration(const AerodynamicState &) const override { return {}; }
+	double computeSpinDecayTau(const AerodynamicState &) const override { return tau_; }
+private:
+	double tau_;
+};
+
+TEST(SpinDecayIntegrationTest, SpinDecaysAtExpectedExponentialRate)
+{
+	// With tau = 1.0 s and dt = 0.01 s, after 100 steps (1.0 s of flight)
+	// the expected remaining spin fraction is exp(-1.0) ≈ 0.368.
+	// A no-op model returning tau=1e9 would give ≈1.000 — clearly distinguishable.
+	constexpr double kTau = 1.0;
+	constexpr float  kDt  = 0.01F;
+	constexpr int    kSteps = 100; // = 1.0 s
+
+	const LaunchData launch{
+	    .ballSpeedMph   = 100.0f,
+	    .launchAngleDeg = 30.0f,
+	    .directionDeg   = 0.0f,
+	    .backspinRpm    = 3000.0f,
+	    .sidespinRpm    = 0.0f,
+	};
+	const AtmosphericData atmos{
+	    .temp        = 70.0f,
+	    .elevation   = 0.0f,
+	    .vWind       = 0.0f,
+	    .phiWind     = 0.0f,
+	    .hWind       = 0.0f,
+	    .relHumidity = 50.0f,
+	    .pressure    = 29.92f,
+	};
+	GroundSurface ground;
+	ground.height          = 0.0F;
+	ground.restitution     = 0.4F;
+	ground.frictionStatic  = 0.5F;
+	ground.frictionDynamic = 0.2F;
+	ground.firmness        = 0.8F;
+
+	FlightSimulator sim(launch, atmos, ground, std::make_shared<ConstantTauModel>(kTau));
+	auto trajectory = sim.runAndGetTrajectory(kDt);
+
+	ASSERT_GT(trajectory.size(), static_cast<size_t>(kSteps))
+	    << "Trajectory too short to sample spin after " << kSteps << " steps";
+
+	float spin0 = math_utils::magnitude(trajectory[0].spinVector);
+	ASSERT_GT(spin0, 0.0F);
+
+	float spinT = math_utils::magnitude(trajectory[kSteps].spinVector);
+
+	float expectedFraction = std::exp(-static_cast<float>(kSteps) * kDt /
+	                                  static_cast<float>(kTau));
+	float actualFraction   = spinT / spin0;
+
+	EXPECT_NEAR(actualFraction, expectedFraction, 0.02F);
 }
