@@ -37,7 +37,7 @@ public:
 	 * @param vel Initial velocity vector
 	 * @param accel Initial acceleration vector
 	 * @param time Initial time value
-	 * @param spin Initial surface speed r·ω (ft/s; default: 0)
+	 * @param spin Initial spin angular velocity (rad/s; default: zero vector)
 	 */
 	BallState(const Vector3D &pos, const Vector3D &vel, const Vector3D &accel, float time,
 	          Vector3D spin = {0.0F, 0.0F, 0.0F})

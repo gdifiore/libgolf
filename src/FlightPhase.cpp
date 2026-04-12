@@ -59,7 +59,6 @@ void AerialPhase::initialize(BallState &state)
 	vMph = v / physics_constants::MPH_TO_FT_PER_S;
 
 	calculateVelocityw(state);
-	vw = v;
 
 	calculatePhi(state);
 	calculateTau(state);
@@ -200,7 +199,7 @@ BouncePhase::BouncePhase(
 	ShotPhysicsContext &physicsVars, const LaunchData &launch,
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> model)
-	: physicsVars(physicsVars), launch(launch), atmos(atmos), terrain(terrain),
+	: terrain(terrain),
 	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(model))
 {
 	if (!terrain)
@@ -270,9 +269,11 @@ bool BouncePhase::isPhaseComplete(const BallState &state) const
 // ============================================================================
 
 RollPhase::RollPhase(
-	ShotPhysicsContext &physicsVars, const LaunchData &launch,
-	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain)
-	: physicsVars(physicsVars), launch(launch), atmos(atmos), terrain(terrain)
+	[[maybe_unused]] ShotPhysicsContext &physicsVars,
+	[[maybe_unused]] const LaunchData &launch,
+	[[maybe_unused]] const AtmosphericData &atmos,
+	std::shared_ptr<TerrainInterface> terrain)
+	: terrain(terrain)
 {
 	if (!terrain)
 	{

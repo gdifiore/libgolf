@@ -34,9 +34,8 @@ public:
 	}
 	[[nodiscard]] auto getRe100() const -> float { return Re100; }
 
-	void calculateAllVariables();
-
 private:
+	void calculateAllVariables();
 	LaunchData launch;
 	AtmosphericData atmos;
 

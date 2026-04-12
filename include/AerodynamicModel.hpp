@@ -37,7 +37,7 @@ struct AerodynamicState
  *      (drag + Magnus + any other forces). Gravity is excluded; see method docs.
  *
  *   2. computeSpinDecayTau — return the exponential decay time constant (s).
- *      AerialPhase applies:  spinRate *= exp(-dt / tau)
+ *      AerialPhase applies:  spinVector *= exp(-dt / tau)  (each component)
  *      Return a very large value (e.g. 1e6) to effectively disable spin decay.
  *
  * Both methods are called once per simulation timestep. The AerodynamicState

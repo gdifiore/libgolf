@@ -53,8 +53,8 @@ protected:
  * @brief Implements the aerial flight phase with full aerodynamic calculations.
  *
  * This phase handles the golf ball's flight through the air, including:
- * - Drag and lift forces (delegated to AerodynamicModel)
- * - Spin decay (delegated to AerodynamicModel)
+ * - Drag and lift forces
+ * - Spin decay
  * - Wind effects
  * - Velocity-Verlet integration
  */
@@ -131,9 +131,6 @@ public:
 	bool isPhaseComplete(const BallState &state) const override;
 
 private:
-	ShotPhysicsContext &physicsVars;
-	LaunchData launch;
-	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 	AerialPhase aerialPhase; // Used for aerodynamic calculations between bounces
 };
@@ -157,9 +154,6 @@ public:
 	bool isPhaseComplete(const BallState &state) const override;
 
 private:
-	ShotPhysicsContext &physicsVars;
-	LaunchData launch;
-	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 };
 
