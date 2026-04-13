@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(golf VERSION 3.0.1 LANGUAGES CXX)
+project(golf VERSION 4.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -137,12 +137,6 @@ if(EMSCRIPTEN)
         "-sEXPORT_NAME=createLibGolf"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sENVIRONMENT=web"
-    )
-    # Copy web visualizer alongside the wasm output so it can be served directly
-    configure_file(
-        "${CMAKE_SOURCE_DIR}/web/index.html"
-        "${CMAKE_BINARY_DIR}/index.html"
-        COPYONLY
     )
 endif()
 

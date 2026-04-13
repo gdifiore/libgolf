@@ -102,7 +102,7 @@ jobs:
           cp build-wasm/libgolf_wasm.js package/
           cp build-wasm/libgolf_wasm.wasm package/
           cd package
-          zip ../libgolf-wasm-${{ steps.get_version.outputs.version }}.zip .
+          zip -r ../libgolf-wasm-${{ steps.get_version.outputs.version }}.zip .
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
