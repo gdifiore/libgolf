@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include "FlightSimulator.hpp"
+#include "math_utils.hpp"
 #include "physics_constants.hpp"
 
 class FlightSimulatorTest : public ::testing::Test
@@ -168,8 +169,8 @@ TEST_F(FlightSimulatorTest, SpinDecaysAcrossAllPhases)
 
 	ASSERT_GT(trajectory.size(), 1U);
 
-	float initialSpin = trajectory.front().spinRate;
-	float finalSpin = trajectory.back().spinRate;
+	float initialSpin = math_utils::magnitude(trajectory.front().spinVector);
+	float finalSpin   = math_utils::magnitude(trajectory.back().spinVector);
 
 	EXPECT_GT(initialSpin, 0.0F) << "Should start with non-zero spin";
 	EXPECT_LE(finalSpin, initialSpin) << "Final spin should not exceed initial spin";

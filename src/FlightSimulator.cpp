@@ -19,12 +19,13 @@
 FlightSimulator::FlightSimulator(
 	const LaunchData &launch,
 	const AtmosphericData &atmos,
-	const GroundSurface &ground)
+	const GroundSurface &ground,
+	std::shared_ptr<AerodynamicModel> model)
 	: currentPhase(Phase::Aerial),
 	  physicsVars_(launch, atmos),
 	  terrainStorage_(std::make_shared<FlatTerrain>(ground)),
-	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_),
+	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
 	initializeFromLaunch(launch);
@@ -33,12 +34,13 @@ FlightSimulator::FlightSimulator(
 FlightSimulator::FlightSimulator(
 	const LaunchData &launch,
 	const AtmosphericData &atmos,
-	const GroundProvider &groundProvider)
+	const GroundProvider &groundProvider,
+	std::shared_ptr<AerodynamicModel> model)
 	: currentPhase(Phase::Aerial),
 	  physicsVars_(launch, atmos),
 	  terrainStorage_(std::make_shared<TerrainProviderAdapter>(groundProvider)),
-	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_),
+	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
 	initializeFromLaunch(launch);
@@ -48,12 +50,13 @@ FlightSimulator::FlightSimulator(
 	const LaunchData &launch,
 	const AtmosphericData &atmos,
 	const GroundSurface &ground,
-	std::shared_ptr<TerrainInterface> terrain)
+	std::shared_ptr<TerrainInterface> terrain,
+	std::shared_ptr<AerodynamicModel> model)
 	: currentPhase(Phase::Aerial),
 	  physicsVars_(launch, atmos),
 	  terrainStorage_(terrain ? terrain : std::make_shared<FlatTerrain>(ground)),
-	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_),
+	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
 	initializeFromLaunch(launch);
@@ -70,7 +73,7 @@ void FlightSimulator::initializeFromLaunch(const LaunchData &launch)
 		launch.directionDeg,
 		startPos,
 		physics_constants::GRAVITY_FT_PER_S2,
-		physicsVars_.getROmega());
+		physicsVars_.getW());
 
 	aerialPhase.initialize(state);
 }
@@ -121,7 +124,7 @@ LandingResult FlightSimulator::getLandingResult() const
 	return result;
 }
 
-const GolfBallPhysicsVariables &FlightSimulator::getPhysicsVariables() const
+const ShotPhysicsContext &FlightSimulator::getPhysicsVariables() const
 {
 	return physicsVars_;
 }

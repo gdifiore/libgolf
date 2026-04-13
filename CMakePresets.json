@@ -2,6 +2,24 @@
   "version": 3,
   "configurePresets": [
     {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Native debug build with debug symbols and no optimization.",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Native release build with full optimization.",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
       "name": "wasm",
       "displayName": "WebAssembly (Emscripten)",
       "description": "Build libgolf as a static library targeting WebAssembly. Requires the Emscripten SDK — set EMSDK to your emsdk root before configuring.",
@@ -14,6 +32,16 @@
     }
   ],
   "buildPresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "configurePreset": "release"
+    },
     {
       "name": "wasm",
       "displayName": "WebAssembly (Emscripten)",

@@ -1,9 +1,11 @@
 #ifndef LIBGOLF_HPP
 #define LIBGOLF_HPP
 
+#include "AerodynamicModel.hpp"
+#include "DefaultAerodynamicModel.hpp"
 #include "FlightSimulator.hpp"
 #include "FlightPhase.hpp"
-#include "GolfBallPhysicsVariables.hpp"
+#include "ShotPhysicsContext.hpp"
 #include "GroundProvider.hpp"
 #include "BallState.hpp"
 #include "atmospheric_data.hpp"

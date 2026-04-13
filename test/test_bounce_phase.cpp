@@ -3,7 +3,7 @@
 
 #include "BallState.hpp"
 #include "FlightPhase.hpp"
-#include "GolfBallPhysicsVariables.hpp"
+#include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
 #include "ground_surface.hpp"
@@ -39,7 +39,7 @@ protected:
 
 TEST_F(BouncePhaseTest, AppliesCoefficientOfRestitution)
 {
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	// Ball falling straight down at 30 ft/s
@@ -61,7 +61,7 @@ TEST_F(BouncePhaseTest, AppliesCoefficientOfRestitution)
 
 TEST_F(BouncePhaseTest, AppliesFrictionToHorizontalVelocity)
 {
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	// Ball with horizontal and vertical velocity
@@ -82,7 +82,7 @@ TEST_F(BouncePhaseTest, AppliesFrictionToHorizontalVelocity)
 
 TEST_F(BouncePhaseTest, EnergyRetentionMatchesCORSquared)
 {
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	// Ball falling vertically
@@ -110,7 +110,7 @@ TEST_F(BouncePhaseTest, DifferentCORValues)
 	ground.restitution = 0.8F;
 	terrain = std::make_shared<FlatTerrain>(ground);  // Recreate with updated ground
 
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	BallState state;
@@ -129,7 +129,7 @@ TEST_F(BouncePhaseTest, DifferentCORValues)
 
 TEST_F(BouncePhaseTest, HandlesMultipleBounces)
 {
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	// Ball falling down
@@ -162,7 +162,7 @@ TEST_F(BouncePhaseTest, HandlesMultipleBounces)
 
 TEST_F(BouncePhaseTest, TransitionsToRollPhaseWhenVelocityIsLow)
 {
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	// Ball on ground with low vertical velocity
@@ -177,7 +177,7 @@ TEST_F(BouncePhaseTest, TransitionsToRollPhaseWhenVelocityIsLow)
 
 TEST_F(BouncePhaseTest, DoesNotCompleteWhileBallIsDescending)
 {
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	// Ball still falling
@@ -192,7 +192,7 @@ TEST_F(BouncePhaseTest, DoesNotCompleteWhileBallIsDescending)
 
 TEST_F(BouncePhaseTest, DoesNotReApplyBounceWhileBallIsAirborne)
 {
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	// Initial impact
@@ -224,7 +224,7 @@ TEST_F(BouncePhaseTest, HighFrictionSurface)
 	ground.firmness = 0.3F;
 	terrain = std::make_shared<FlatTerrain>(ground);  // Recreate with updated ground
 
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	BallState state;
@@ -242,7 +242,7 @@ TEST_F(BouncePhaseTest, HighFrictionSurface)
 
 TEST_F(BouncePhaseTest, PreventsBallFromGoingBelowGround)
 {
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	BallState state;
@@ -261,7 +261,7 @@ TEST_F(BouncePhaseTest, NonZeroGroundHeight)
 	ground.height = 5.0F; // Ground at 5 feet
 	terrain = std::make_shared<FlatTerrain>(ground);  // Recreate with updated ground
 
-	GolfBallPhysicsVariables physicsVars(ball, atmos);
+	ShotPhysicsContext physicsVars(ball, atmos);
 	BouncePhase bounce(physicsVars, ball, atmos, terrain);
 
 	BallState state;

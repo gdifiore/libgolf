@@ -26,7 +26,7 @@ include_directories(${PROJECT_BINARY_DIR}/include)
 
 set(SOURCES
    ${PROJECT_SRC_DIR}/math_utils.cpp
-   ${PROJECT_SRC_DIR}/GolfBallPhysicsVariables.cpp
+   ${PROJECT_SRC_DIR}/ShotPhysicsContext.cpp
    ${PROJECT_SRC_DIR}/FlightPhase.cpp
    ${PROJECT_SRC_DIR}/FlightSimulator.cpp
    ${PROJECT_SRC_DIR}/ground_physics.cpp
@@ -37,7 +37,7 @@ set(HEADERS
    ${PROJECT_INCLUDE_DIR}/libgolf.hpp
    ${PROJECT_INCLUDE_DIR}/launch_data.hpp
    ${PROJECT_INCLUDE_DIR}/math_utils.hpp
-   ${PROJECT_INCLUDE_DIR}/GolfBallPhysicsVariables.hpp
+   ${PROJECT_INCLUDE_DIR}/ShotPhysicsContext.hpp
    ${PROJECT_INCLUDE_DIR}/atmospheric_data.hpp
    ${PROJECT_INCLUDE_DIR}/FlightPhase.hpp
    ${PROJECT_INCLUDE_DIR}/FlightSimulator.hpp
@@ -93,6 +93,7 @@ if(NOT EMSCRIPTEN)
 
     # Specify the test source files
     set(TEST_SOURCES
+        ${PROJECT_TEST_DIR}/test_aerodynamic_model.cpp
         ${PROJECT_TEST_DIR}/test_ball_physics_vars.cpp
         ${PROJECT_TEST_DIR}/test_math_utils.cpp
         ${PROJECT_TEST_DIR}/test_bounce_phase.cpp
@@ -101,7 +102,7 @@ if(NOT EMSCRIPTEN)
         ${PROJECT_TEST_DIR}/test_ground_provider.cpp
         ${PROJECT_TEST_DIR}/test_terrain_interface.cpp
         ${PROJECT_TEST_DIR}/test_ground_physics.cpp
-        ${PROJECT_SRC_DIR}/GolfBallPhysicsVariables.cpp
+        ${PROJECT_SRC_DIR}/ShotPhysicsContext.cpp
         ${PROJECT_SRC_DIR}/math_utils.cpp
     )
 

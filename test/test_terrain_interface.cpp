@@ -182,7 +182,7 @@ TEST(TerrainInterfaceTest, BallBouncesOnSlopedTerrain)
         .relHumidity = 50.0f,
         .pressure = 29.92f,
     };
-    GolfBallPhysicsVariables physicsVars(ball, atmos);
+    ShotPhysicsContext physicsVars(ball, atmos);
 
     // Create bounce phase with sloped terrain
     BouncePhase bounce(physicsVars, ball, atmos, terrain);
@@ -224,7 +224,7 @@ TEST(TerrainInterfaceTest, BallRollsDownSlope)
         .relHumidity = 50.0f,
         .pressure = 29.92f,
     };
-    GolfBallPhysicsVariables physicsVars(ball, atmos);
+    ShotPhysicsContext physicsVars(ball, atmos);
 
     // Create roll phase
     RollPhase roll(physicsVars, ball, atmos, terrain);

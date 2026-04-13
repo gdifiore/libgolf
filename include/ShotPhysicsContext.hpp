@@ -1,15 +1,15 @@
-#ifndef GOLFBALLPHYSICSVARIABLES_HPP
-#define GOLFBALLPHYSICSVARIABLES_HPP
+#ifndef SHOT_PHYSICS_CONTEXT_HPP
+#define SHOT_PHYSICS_CONTEXT_HPP
 
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
 #include "math_utils.hpp"
 #include "physics_constants.hpp"
 
-class GolfBallPhysicsVariables
+class ShotPhysicsContext
 {
 public:
-	GolfBallPhysicsVariables(const LaunchData &launch,
+	ShotPhysicsContext(const LaunchData &launch,
 							 const AtmosphericData &atmos);
 
 	// Getters
@@ -34,9 +34,8 @@ public:
 	}
 	[[nodiscard]] auto getRe100() const -> float { return Re100; }
 
-	void calculateAllVariables();
-
 private:
+	void calculateAllVariables();
 	LaunchData launch;
 	AtmosphericData atmos;
 
@@ -71,4 +70,4 @@ private:
 	void calculateRe100();
 };
 
-#endif // GOLFBALLPHYSICSVARIABLES_HPP
+#endif // SHOT_PHYSICS_CONTEXT_HPP
