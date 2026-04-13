@@ -120,6 +120,8 @@ TEST_F(DefaultModelTest, TauAtTypicalSpeed)
 	    .c0           = 0.005682F,
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
 	    .re100        = 123600.0F,
+	    .position     = {0.0F, 0.0F, 0.0F},
+	    .currentTime  = 0.0F,
 	};
 	double r        = static_cast<double>(physics_constants::STD_BALL_RADIUS_FT);
 	double expected = r / (static_cast<double>(physics_constants::TAU_COEFF) * 100.0);
@@ -136,6 +138,8 @@ TEST_F(DefaultModelTest, TauScalesInverselyWithSpeed)
 	    .c0           = 0.005682F,
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
 	    .re100        = 123600.0F,
+	    .position     = {0.0F, 0.0F, 0.0F},
+	    .currentTime  = 0.0F,
 	};
 	AerodynamicState fast{
 	    .velocity     = {0.0F, 100.0F, 0.0F},
@@ -144,6 +148,8 @@ TEST_F(DefaultModelTest, TauScalesInverselyWithSpeed)
 	    .c0           = 0.005682F,
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
 	    .re100        = 123600.0F,
+	    .position     = {0.0F, 0.0F, 0.0F},
+	    .currentTime  = 0.0F,
 	};
 	EXPECT_NEAR(model.computeSpinDecayTau(slow),
 	            model.computeSpinDecayTau(fast) * 2.0, 0.1);
@@ -162,6 +168,8 @@ TEST_F(DefaultModelTest, ZeroVelocityReturnsZeroAcceleration)
 	    .c0           = 0.005682F,
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
 	    .re100        = 123600.0F,
+	    .position     = {0.0F, 0.0F, 0.0F},
+	    .currentTime  = 0.0F,
 	};
 	auto a = model.computeAcceleration(state);
 	EXPECT_NEAR(a[0], 0.0F, 1e-6F);
@@ -179,6 +187,8 @@ TEST_F(DefaultModelTest, DragOpposesBallMotion)
 	    .c0           = 0.005682F,
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
 	    .re100        = 123600.0F,
+	    .position     = {0.0F, 0.0F, 0.0F},
+	    .currentTime  = 0.0F,
 	};
 	auto a = model.computeAcceleration(state);
 	EXPECT_NEAR(a[0], 0.0F, 1e-4F);
@@ -197,6 +207,8 @@ TEST_F(DefaultModelTest, BackspinProducesUpwardMagnusForce)
 	    .c0           = 0.005682F,
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
 	    .re100        = 123600.0F,
+	    .position     = {0.0F, 0.0F, 0.0F},
+	    .currentTime  = 0.0F,
 	};
 	auto a = model.computeAcceleration(state);
 	EXPECT_LT(a[1], 0.0F);   // drag still opposes forward motion
@@ -214,6 +226,8 @@ TEST_F(DefaultModelTest, TailwindReducesEffectiveDrag)
 	    .c0           = 0.005682F,
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
 	    .re100        = 123600.0F,
+	    .position     = {0.0F, 0.0F, 0.0F},
+	    .currentTime  = 0.0F,
 	};
 	AerodynamicState tailWind = noWind;
 	tailWind.windVelocity     = {0.0F, 30.0F, 0.0F};  // same direction

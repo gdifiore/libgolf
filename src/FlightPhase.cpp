@@ -187,7 +187,9 @@ AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) cons
 	    .spinVector   = state.spinVector,
 	    .c0           = physicsVars.getC0(),
 	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = physicsVars.getRe100()
+	    .re100        = physicsVars.getRe100(),
+	    .position     = state.position,
+	    .currentTime  = state.currentTime
 	};
 }
 
