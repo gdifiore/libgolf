@@ -15,24 +15,27 @@ struct AerodynamicState {
     Vector3D velocity;     // Ball velocity (ft/s)
     Vector3D windVelocity; // Wind at ball height (ft/s; zero below hWind threshold)
     Vector3D spinVector;   // Current spin vector (rad/s); direction = launch axis, magnitude decays
-    float    c0;           // Force coefficient (encodes air density and ball geometry)
+    float    c0;           // Lumped force coefficient (air density × cross-section / mass)
     float    ballRadius;   // Ball radius (ft)
-    float    re100;        // Reynolds number at 100 mph under current atmospheric conditions
+    float    re100;        // Lumped Reynolds reference: Re at 100 mph under current atmospherics
+    Vector3D position;     // Ball position (ft; x=lateral, y=forward, z=height)
+    float    currentTime;  // Simulation time since launch (s)
 };
 ```
 
-**Reynolds number** at any speed:
-```
-Re      = (|velocity - windVelocity|_mph / 100) * re100
-Re_x_e5 = Re / 1e5
-```
+The fields fall into three groups:
 
-**Spin factor** (dimensionless surface-to-translational speed ratio):
+**Kinematic state** — `velocity`, `windVelocity`, `spinVector`, `position`, and `currentTime` are snapshots of the ball and its surrounding wind at the current timestep. The default model uses only the first three; `position` and `currentTime` are there so models with altitude-, location-, or time-dependent behaviour can reach for them.
+
+**Ball geometry** — `ballRadius` is populated from `physics_constants::STD_BALL_RADIUS_FT`. The library does not currently support non-standard ball sizes; changing the constant is the only hook.
+
+**Lumped atmosphere** — `c0` and `re100` are precomputed by `ShotPhysicsContext` from temperature, pressure, and humidity. They're a compact encoding for lumped-parameter force laws, but they are lossy — raw air density, viscosity, and gas composition cannot be recovered from them. If your model needs the raw quantities, see [Limitations & Extension](#limitations--extension) below.
+
+One derived quantity shows up in most coefficient correlations: the **spin factor** `S`, a dimensionless ratio of the ball's surface speed to its wind-relative speed.
+
 ```
 S = |spinVector| * ballRadius / |velocity - windVelocity|
 ```
-
-**`c0`** encodes air density, ball mass, and ball cross-section into a single force coefficient. The standard drag force law is `F_drag = -c0 * Cd * vw * v_rel`.
 
 ## Interface
 
@@ -44,8 +47,9 @@ public:
     virtual Vector3D computeAcceleration(const AerodynamicState& state) const = 0;
 
     // Return spin decay time constant tau (seconds).
-    // AerialPhase applies: spinRate *= exp(-dt / tau)
-    // Return 1e6 to effectively disable spin decay.
+    // AerialPhase applies: spinVector *= exp(-dt / tau) (per component, so the
+    // spin axis is preserved and magnitude decays exponentially).
+    // Return a very large value (e.g. 1e6) to effectively disable spin decay.
     virtual double computeSpinDecayTau(const AerodynamicState& state) const = 0;
 };
 ```
@@ -54,13 +58,21 @@ Both methods are `const` — do not store mutable state that changes during flig
 
 ## DefaultAerodynamicModel
 
-The built-in model (`include/DefaultAerodynamicModel.hpp`) implements:
+The built-in model (`include/DefaultAerodynamicModel.hpp`) is a Reynolds/spin-factor parameterisation. It reads the lumped atmospheric fields, ignores `position` and `currentTime`, and reconstructs Reynolds number as:
 
-**Force law:**
 ```
-F_drag   = -c0 * Cd * vw * (v - v_wind)
+Re      = (|velocity - windVelocity|_mph / 100) * re100
+Re_x_e5 = Re / 1e5
+```
+
+The force law (with `vw = |v - v_wind|` and `v_rel = v - v_wind`) is:
+
+```
+F_drag   = -c0 * Cd * vw * v_rel
 F_magnus =  c0 * (Cl / |omega|) * vw * (omega × v_rel)
 ```
+
+`c0` folds air density, ball cross-section, and ball mass into a single constant, so these expressions yield acceleration in ft/s² directly — no separate divide by mass is needed.
 
 **Drag** (piecewise-linear through the drag crisis):
 ```
@@ -218,8 +230,20 @@ The model instance is shared between aerial and bounce phases internally. Models
 - Both methods are `const` — implement as stateless functions over the provided state
 - The library does not clamp or validate return values; unphysical outputs produce unphysical trajectories
 - Gravity (`-32.174 ft/s²` in z) is added by `AerialPhase` after `computeAcceleration` returns — do not include it
-- `spinVector` is in rad/s and carries the full 3D spin axis. `|spinVector| * ballRadius` gives the surface speed in ft/s (equivalent to `state.spinRate` as stored internally)
+- `spinVector` is in rad/s and carries the full 3D spin axis. Its magnitude times `ballRadius` gives the ball's surface speed in ft/s — the quantity classical references write as `r·ω`
 - `computeSpinDecayTau` uses velocity before position/velocity integration, consistent with aerodynamic damping physics (faster ball → faster spin loss)
+
+## Limitations & Extension
+
+`AerodynamicState` captures what the simulator natively tracks, which is deliberately narrower than "everything an aerodynamic model could ever want." Some model families need information that the library does not carry, and adding it means changing the simulator itself rather than just subclassing `AerodynamicModel`. The common cases:
+
+- **Raw atmospheric quantities** — air density ρ, dynamic viscosity μ, temperature, humidity, pressure. `c0` and `re100` are lumped into `ShotPhysicsContext`; they bundle these quantities and cannot be inverted back to the raw values. Exposing the raw values means plumbing them through `ShotPhysicsContext` alongside the lumped ones.
+- **Ball orientation or attitude** — the simulator treats the ball as axisymmetric, so `BallState` has no quaternion or rotation matrix. Dimple-pattern-aware models, non-axisymmetric wake models, and full rigid-body rotational dynamics all require extending `BallState` and the integrator.
+- **Rigid-body inertia** — if your model wants to return a torque and evolve a full angular-momentum vector, it needs the ball's moment of inertia and an integrator that consumes it. The current `spinVector *= exp(-dt/τ)` assumes isotropic scalar decay and exposes no torque pathway.
+- **Per-step history or transient effects** — the state passed to the model is memoryless. Models with hysteresis, added-mass, or vortex shedding need to carry their own state. Because the interface methods are `const`, that state has to live in a `mutable` member or be keyed externally by `currentTime`.
+- **Spatial or non-uniform wind fields** — the library's wind is a single horizontal vector applied above altitude `hWind` and zero below. A terrain-aware or fully 3D wind field would ideally be a proper atmospheric interface. A custom model can also synthesise one inside `computeAcceleration`: `position` is available on the state, so the model can override whatever wind vector it was handed.
+
+The library intentionally exposes the minimum state its reference model needs, rather than a speculative superset. If you hit one of these limits, please open an issue describing the use case — broadening the interface in-tree is better for everyone than maintaining a fork.
 
 ## See Also
 

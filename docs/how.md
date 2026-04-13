@@ -154,7 +154,7 @@ After `run()`, the final ball state is available via `getState()`:
 const BallState& finalState = sim.getState();
 // finalState.position — Vector3D in feet
 // finalState.velocity — Vector3D in ft/s
-// finalState.spinRate — surface speed r·ω (ft/s)
+// finalState.spinVector — Vector3D in rad/s (|spinVector| * ballRadius = r·ω, ft/s)
 // finalState.currentTime — seconds
 ```
 
