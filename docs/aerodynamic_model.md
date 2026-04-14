@@ -205,22 +205,18 @@ private:
 
 ## Using with FlightSimulator
 
-All three `FlightSimulator` constructors accept an optional model as the last parameter. Omitting it (or passing `nullptr`) uses `DefaultAerodynamicModel`.
+Both `FlightSimulator` constructors accept an optional model as the last parameter. Omitting it (or passing `nullptr`) uses `DefaultAerodynamicModel`.
 
 ```cpp
 GroundSurface ground;
-auto model = std::make_shared<MyModel>();
+auto terrain = std::make_shared<MyTerrain>();
+auto model   = std::make_shared<MyModel>();
 
 // Flat ground
-FlightSimulator sim1(ball, atmos, ground, model);
-
-// Dynamic ground provider
-GolfHoleProvider provider;
-FlightSimulator sim2(ball, atmos, provider, model);
+FlightSimulator sim1(launch, atmos, ground, model);
 
 // Custom terrain
-auto terrain = std::make_shared<SlopedTerrain>(5.0f, ground);
-FlightSimulator sim3(ball, atmos, ground, terrain, model);
+FlightSimulator sim2(launch, atmos, terrain, model);
 ```
 
 The model instance is shared between aerial and bounce phases internally. Models must be thread-safe if simulations run concurrently.
