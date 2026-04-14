@@ -2,7 +2,7 @@
  * @file multi_ground_simulation.cpp
  * @brief Example demonstrating dynamic ground type changes during trajectory.
  *
- * This example shows how to use the GroundProvider interface to model a golf hole
+ * This example shows how to use a custom TerrainInterface to model a golf hole
  * with different ground surfaces: fairway, rough, and an elevated green.
  *
  * The simulated hole layout:
@@ -12,7 +12,7 @@
  */
 
 #include "FlightSimulator.hpp"
-#include "GroundProvider.hpp"
+#include "terrain_interface.hpp"
 #include "physics_constants.hpp"
 
 #include <cmath>
@@ -20,26 +20,35 @@
 #include <vector>
 
 /**
- * @brief Custom ground provider for a golf hole with fairway, rough, and green.
+ * @brief Custom terrain for a golf hole with fairway, rough, and an elevated green.
  *
- * This class demonstrates how to implement position-dependent ground surfaces.
- * Ground properties change based on the ball's XY position during the simulation.
+ * Ground properties and height change based on ball XY position.
+ * The green is elevated 3 feet; all other surfaces are at ground level.
  */
-class GolfHoleGroundProvider : public GroundProvider
+class GolfHoleTerrain : public TerrainInterface
 {
 public:
-	GolfHoleGroundProvider() = default;
+	GolfHoleTerrain() = default;
 
-	GroundSurface getGroundAt(float x, float y) const override
+	float getHeight(float x, float y) const override
 	{
-		// Convert positions to yards for easier reasoning
-		const float lateralYards = x / physics_constants::YARDS_TO_FEET;
+		return getSurfaceProperties(x, y).height;
+	}
+
+	Vector3D getNormal([[maybe_unused]] float x, [[maybe_unused]] float y) const override
+	{
+		return {0.0F, 0.0F, 1.0F};
+	}
+
+	const GroundSurface &getSurfaceProperties(float x, float y) const override
+	{
+		const float lateralYards   = x / physics_constants::YARDS_TO_FEET;
 		const float downrangeYards = y / physics_constants::YARDS_TO_FEET;
 
 		// Green: 250-270 yards downrange, elevated 3 feet
 		if (downrangeYards >= 250.0F && downrangeYards <= 270.0F)
 		{
-			return GroundSurface{
+			static const GroundSurface kGreen{
 				3.0F,   // height: elevated 3 feet
 				0.35F,  // restitution: lower bounce on green
 				0.4F,   // frictionStatic: moderate
@@ -47,12 +56,13 @@ public:
 				0.95F,  // firmness: very firm
 				0.85F   // spinRetention: high (soft greens retain spin)
 			};
+			return kGreen;
 		}
 
 		// Rough: beyond ±20 yards from centerline
 		if (std::abs(lateralYards) > 20.0F)
 		{
-			return GroundSurface{
+			static const GroundSurface kRough{
 				0.0F,   // height: ground level
 				0.25F,  // restitution: softer bounce
 				0.6F,   // frictionStatic: higher impact friction
@@ -60,10 +70,11 @@ public:
 				0.4F,   // firmness: softer ground
 				0.55F   // spinRetention: lower (thick grass kills spin)
 			};
+			return kRough;
 		}
 
 		// Fairway: default area (centerline, before green)
-		return GroundSurface{
+		static const GroundSurface kFairway{
 			0.0F,   // height: ground level
 			0.4F,   // restitution: standard bounce
 			0.5F,   // frictionStatic: moderate
@@ -71,11 +82,7 @@ public:
 			0.8F,   // firmness: firm fairway
 			0.75F   // spinRetention: good spin retention
 		};
-	}
-
-	std::unique_ptr<GroundProvider> clone() const override
-	{
-		return std::make_unique<GolfHoleGroundProvider>();
+		return kFairway;
 	}
 };
 
@@ -83,39 +90,36 @@ int main()
 {
 	// Shot parameters: 160 mph ball speed, 11° launch angle, straight shot
 	const LaunchData ball{
-		.ballSpeedMph = 160.0F,
+		.ballSpeedMph   = 160.0F,
 		.launchAngleDeg = 11.0F,
-		.directionDeg = 0.0F,
-		.backspinRpm = 3000.0F,
-		.sidespinRpm = 0.0F,
+		.directionDeg   = 0.0F,
+		.backspinRpm    = 3000.0F,
+		.sidespinRpm    = 0.0F,
 	};
 	const AtmosphericData atmos{
-		.temp = 70.0F,
-		.elevation = 0.0F,
-		.vWind = 0.0F,
-		.phiWind = 0.0F,
-		.hWind = 0.0F,
+		.temp        = 70.0F,
+		.elevation   = 0.0F,
+		.vWind       = 0.0F,
+		.phiWind     = 0.0F,
+		.hWind       = 0.0F,
 		.relHumidity = 50.0F,
-		.pressure = 29.92F,
+		.pressure    = 29.92F,
 	};
 
-	// Create custom ground provider for our golf hole
-	GolfHoleGroundProvider groundProvider;
-
-	FlightSimulator sim(ball, atmos, groundProvider);
+	FlightSimulator sim(ball, atmos, std::make_shared<GolfHoleTerrain>());
 
 	// Run simulation and collect trajectory points
 	auto states = sim.runAndGetTrajectory();
 
 	std::vector<Vector3D> trajectory;
-	for (const auto& s : states)
+	for (const auto &s : states)
 		trajectory.push_back(s.position);
 
 	// Print summary
-	const BallState &finalState = sim.getState();
-	const float finalLateralYards = finalState.position[0] / physics_constants::YARDS_TO_FEET;
-	const float finalDownrangeYards = finalState.position[1] / physics_constants::YARDS_TO_FEET;
-	const float finalHeight = finalState.position[2];
+	const BallState &finalState        = sim.getState();
+	const float finalLateralYards      = finalState.position[0] / physics_constants::YARDS_TO_FEET;
+	const float finalDownrangeYards    = finalState.position[1] / physics_constants::YARDS_TO_FEET;
+	const float finalHeight            = finalState.position[2];
 
 	printf("=== Multi-Ground Trajectory Simulation ===\n\n");
 
@@ -132,17 +136,11 @@ int main()
 	// Determine final surface type
 	const char *finalSurface;
 	if (finalDownrangeYards >= 250.0F && finalDownrangeYards <= 270.0F)
-	{
 		finalSurface = "Green (elevated)";
-	}
 	else if (std::abs(finalLateralYards) > 20.0F)
-	{
 		finalSurface = "Rough";
-	}
 	else
-	{
 		finalSurface = "Fairway";
-	}
 
 	printf("Final Surface: %s\n\n", finalSurface);
 

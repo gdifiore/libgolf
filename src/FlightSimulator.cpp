@@ -34,27 +34,11 @@ FlightSimulator::FlightSimulator(
 FlightSimulator::FlightSimulator(
 	const LaunchData &launch,
 	const AtmosphericData &atmos,
-	const GroundProvider &groundProvider,
-	std::shared_ptr<AerodynamicModel> model)
-	: currentPhase(Phase::Aerial),
-	  physicsVars_(launch, atmos),
-	  terrainStorage_(std::make_shared<TerrainProviderAdapter>(groundProvider)),
-	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
-	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
-{
-	initializeFromLaunch(launch);
-}
-
-FlightSimulator::FlightSimulator(
-	const LaunchData &launch,
-	const AtmosphericData &atmos,
-	const GroundSurface &ground,
 	std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> model)
 	: currentPhase(Phase::Aerial),
 	  physicsVars_(launch, atmos),
-	  terrainStorage_(terrain ? terrain : std::make_shared<FlatTerrain>(ground)),
+	  terrainStorage_(terrain),
 	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)

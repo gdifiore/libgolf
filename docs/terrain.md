@@ -2,27 +2,7 @@
 
 ## Overview
 
-The terrain system provides a flexible interface for simulating golf ball interactions with varying ground conditions. The `TerrainInterface` abstraction allows for custom terrain implementations including flat surfaces, slopes, heightmaps, and procedurally generated landscapes.
-
-## Choosing Between TerrainInterface and GroundProvider
-
-The library provides two interfaces for customizing ground behavior. Choose based on whether you need elevation changes:
-
-### TerrainInterface
-
-Use when you need 3D terrain:
-- Elevation changes (hills, slopes, elevated greens)
-- Varying surface normals for realistic slope physics
-- Direct control over height, normal vector, and surface properties at any position
-
-### GroundProvider
-
-Use for flat terrain with varying materials:
-- Different surface properties at different positions (fairway, rough, green)
-- Simpler implementation - only surface properties, no geometric calculations
-- Backward compatibility with existing code
-
-Note: `GroundProvider` is internally wrapped in a `TerrainProviderAdapter` that assumes flat terrain. The height comes from the surface properties, and the normal is always vertical. For sloped terrain, use `TerrainInterface`.
+`TerrainInterface` controls ground geometry and surface properties throughout the simulation. Implement it to model elevation changes, slopes, and position-dependent surfaces like fairways, roughs, and greens. For uniform flat ground, pass a `GroundSurface` directly — the simulator wraps it in `FlatTerrain` automatically.
 
 ## Quick Start
 
@@ -35,7 +15,7 @@ For flat terrain (backward compatible with existing code):
 GroundSurface ground{0.0F, 0.4F, 0.5F, 0.2F, 0.8F, 0.75F};
 
 auto terrain = std::make_shared<FlatTerrain>(ground);
-FlightSimulator sim(ball, atmos, ground, terrain);
+FlightSimulator sim(ball, atmos, terrain);
 ```
 
 When a terrain is provided, the flight simulator queries terrain properties at each position during the simulation.
@@ -147,7 +127,7 @@ Usage:
 ```c++
 GroundSurface fairway{0.0F, 0.4F, 0.5F, 0.15F, 0.8F, 0.75F};
 auto terrain = std::make_shared<SlopedTerrain>(5.0F, fairway);  // 5-degree slope
-FlightSimulator sim(ball, atmos, fairway, terrain);
+FlightSimulator sim(ball, atmos, terrain);
 ```
 
 ## Ground Surface Properties
@@ -330,32 +310,21 @@ private:
 };
 ```
 
-## Migration from Previous Versions
+## Flat Ground Shorthand
 
-### Backward Compatibility
-
-The terrain system maintains full backward compatibility. Existing code using only `GroundSurface` continues to work:
+Code that passes a `GroundSurface` directly still works — `FlatTerrain` is created internally:
 
 ```c++
-// Simple flat ground (no terrain)
-FlightSimulator sim(ball, atmos, ground);
+GroundSurface ground;
+FlightSimulator sim(ball, atmos, ground);  // equivalent to FlatTerrain(ground)
 ```
 
-Internally, a `FlatTerrain` is created automatically from the `GroundSurface` parameter.
-
-### Updating to Terrain Interface
-
-To utilize custom terrain:
+To switch to custom terrain, implement `TerrainInterface` and pass it instead:
 
 ```c++
-// Create terrain implementation
-auto terrain = std::make_shared<YourTerrainImpl>(ground);
-
-// Pass to simulator
-FlightSimulator sim(ball, atmos, ground, terrain);
+auto terrain = std::make_shared<YourTerrainImpl>();
+FlightSimulator sim(ball, atmos, terrain);
 ```
-
-The `GroundSurface` parameter serves as a fallback for backward compatibility but is superseded by terrain queries when custom terrain is provided.
 
 ## See Also
 

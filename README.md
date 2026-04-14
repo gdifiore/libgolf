@@ -1,5 +1,5 @@
 # libgolf
-`libgolf` is a C++ library designed to simulate golf ball trajectories based on initial conditions like velocity, atmospheric data, and more. It provides easy-to-use functions to visualize or calculate the ball's flight path and landing point (now including bounces, rolling, and dynamic ground surfaces!).
+`libgolf` is a C++ library that simulates golf ball trajectories from initial conditions: velocity, spin, and atmospheric data. It computes full flight paths including aerial phase, bounce, and roll.
 
 The in-air math here is based on [work done](http://baseball.physics.illinois.edu/trajectory-calculator-golf.html) by Prof. Alan M. Nathan at the  University of Illinois Urbana-Champaign.
 
@@ -30,8 +30,7 @@ chmod +x build.sh
 ## Documentation
 
 - [Getting Started](/docs/how.md) - Basic usage and examples
-- [Ground Providers](/docs/ground_providers.md) - Dynamic ground surfaces (fairways, roughs, greens)
-- [Terrain System](/docs/terrain.md) - 3D terrain with elevation and slopes
+- [Terrain System](/docs/terrain.md) - Custom terrain with elevation, slopes, and varying surfaces
 - [Aerodynamic Models](/docs/aerodynamic_model.md) - Custom drag, lift, and spin-decay models
 
 ### Quick Example
@@ -64,4 +63,4 @@ LandingResult result = sim.getLandingResult();
 printf("Distance: %.1f yards\n", result.distance);
 ```
 
-For dynamic ground surfaces (fairway/rough/green), see the [Ground Providers Guide](/docs/ground_providers.md).
+For terrain with slopes or position-dependent surfaces, see the [Terrain System](/docs/terrain.md).

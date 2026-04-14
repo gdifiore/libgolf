@@ -4,7 +4,6 @@
 #include "BallState.hpp"
 #include "FlightPhase.hpp"
 #include "ShotPhysicsContext.hpp"
-#include "GroundProvider.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
 #include "ground_surface.hpp"
@@ -55,34 +54,19 @@ public:
 	                std::shared_ptr<AerodynamicModel> model = nullptr);
 
 	/**
-	 * @brief Constructs a flight simulator with a custom ground provider.
+	 * @brief Constructs a flight simulator with a custom terrain.
 	 *
-	 * Allows position-dependent ground properties (fairway, rough, green, etc.).
+	 * Allows full 3D terrain with height, slope, and position-dependent surface
+	 * properties. Implement TerrainInterface to model fairways, roughs, greens,
+	 * elevated surfaces, slopes, or any other terrain configuration.
 	 *
 	 * @param launch Launch monitor data for the shot
 	 * @param atmos Atmospheric conditions
-	 * @param groundProvider Ground provider for position-dependent surface properties
+	 * @param terrain Custom terrain implementation (must not be null)
 	 * @param model Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
-	                const GroundProvider &groundProvider,
-	                std::shared_ptr<AerodynamicModel> model = nullptr);
-
-	/**
-	 * @brief Constructs a flight simulator with a custom terrain interface.
-	 *
-	 * Allows full 3D terrain with height, slope, and surface properties.
-	 *
-	 * @param launch Launch monitor data for the shot
-	 * @param atmos Atmospheric conditions
-	 * @param ground Ground surface properties (used as fallback)
-	 * @param terrain Custom terrain implementation for height and normal queries
-	 * @param model Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
-	 */
-	FlightSimulator(const LaunchData &launch,
-	                const AtmosphericData &atmos,
-	                const GroundSurface &ground,
 	                std::shared_ptr<TerrainInterface> terrain,
 	                std::shared_ptr<AerodynamicModel> model = nullptr);
 
