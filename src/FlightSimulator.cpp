@@ -11,7 +11,6 @@
 #include "physics_constants.hpp"
 
 #include <cmath>
-#include <stdexcept>
 
 // ---------------------------------------------------------------------------
 // Constructors
@@ -44,11 +43,6 @@ FlightSimulator::FlightSimulator(
 	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, model),
 	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
 {
-	// Null check: phase constructors also validate, but fail early here for clarity
-	if (!terrain)
-	{
-		throw std::invalid_argument("FlightSimulator: terrain must not be null");
-	}
 	initializeFromLaunch(launch);
 }
 

@@ -1,5 +1,5 @@
 /**
- * @file test_ground_provider.cpp
+ * @file test_dynamic_terrain.cpp
  * @brief Integration tests for FlightSimulator with dynamic terrain.
  *
  * These tests exercise position-dependent terrain implemented via TerrainInterface,

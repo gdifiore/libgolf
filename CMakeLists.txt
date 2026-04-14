@@ -30,7 +30,6 @@ set(SOURCES
    ${PROJECT_SRC_DIR}/FlightPhase.cpp
    ${PROJECT_SRC_DIR}/FlightSimulator.cpp
    ${PROJECT_SRC_DIR}/ground_physics.cpp
-   ${PROJECT_SRC_DIR}/terrain_interface.cpp
 )
 
 set(HEADERS
@@ -98,7 +97,7 @@ if(NOT EMSCRIPTEN)
         ${PROJECT_TEST_DIR}/test_bounce_phase.cpp
         ${PROJECT_TEST_DIR}/test_roll_phase.cpp
         ${PROJECT_TEST_DIR}/test_flight_simulator.cpp
-        ${PROJECT_TEST_DIR}/test_ground_provider.cpp
+        ${PROJECT_TEST_DIR}/test_dynamic_terrain.cpp
         ${PROJECT_TEST_DIR}/test_terrain_interface.cpp
         ${PROJECT_TEST_DIR}/test_ground_physics.cpp
         ${PROJECT_SRC_DIR}/ShotPhysicsContext.cpp
