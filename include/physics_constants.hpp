@@ -208,16 +208,7 @@ namespace physics_constants
     constexpr float RE_VELOCITY_DIVISOR = 100.0F;
 
     // ========================================================================
-    // SPIN FACTOR THRESHOLD
-    // ========================================================================
-
-    /// Spin factor threshold for lift coefficient calculation
-    /// For S <= 0.3: Cl = coeff1*S + coeff2*S²
-    /// For S > 0.3:  Cl = 0.305 (constant)
-    constexpr float SPIN_FACTOR_THRESHOLD = 0.3F;
-
-    // ========================================================================
-    // AERODYNAMIC COEFFICIENTS
+    // AERODYNAMIC COEFFICIENTS — DRAG
     // ========================================================================
     // Reference: Washington State University study by Bin Lyu, et al.
 
@@ -232,17 +223,55 @@ namespace physics_constants
     /// Used when Re >= 1.0e5
     constexpr float CD_HIGH = 0.200F;
 
-    /// Default lift coefficient for high spin factor
-    /// Used when S > 0.3
-    constexpr float CL_DEFAULT = 0.305F;
+    // ========================================================================
+    // AERODYNAMIC COEFFICIENTS — LIFT (Re-binned)
+    // ========================================================================
+    // Reynolds-dependent Cl(S) curves, fit to Bearman/Harvey wind-tunnel data
+    // for dimpled spheres. Library applies them in Re_x_e5 units (Re/1e5):
+    //
+    //   Re_x_e5 <= 0.3 :       Cl = 0   (no measurable lift below ~30k)
+    //   0.3 < Re_x_e5 < 0.5 :  smoothstep ramp toward Cl_50k
+    //   0.5 <= Re_x_e5 <= 0.7: lerp between adjacent bins {50k, 60k, 65k, 70k}
+    //   Re_x_e5 > 0.7 :        Hill saturation Cl = ClMax · S·g / (1 + S·g)
+    //
+    // The bins replace the legacy single-quadratic Cl(S) — that overestimated
+    // lift on slow shots (chip / short iron, Re ~50k) where the real curve
+    // peaks early then drops sharply.
 
-    /// Linear coefficient for lift calculation
-    /// Used in: Cl = COEFF1*S + COEFF2*S² for S <= 0.3
-    constexpr float LIFT_COEFF1 = 1.990F;
+    /// Reynolds-bin sentinels (Re_x_e5 = Re / 1e5).
+    constexpr float RE_BIN_NO_LIFT_X_E5 = 0.3F;  ///< below: Cl = 0
+    constexpr float RE_BIN_LOW_X_E5     = 0.5F;  ///< Re = 50,000
+    constexpr float RE_BIN_MID_LOW_X_E5 = 0.6F;  ///< Re = 60,000
+    constexpr float RE_BIN_MID_HIGH_X_E5 = 0.65F; ///< Re = 65,000
+    constexpr float RE_BIN_HIGH_X_E5    = 0.7F;  ///< Re = 70,000
 
-    /// Quadratic coefficient for lift calculation
-    /// Used in: Cl = COEFF1*S + COEFF2*S² for S <= 0.3
-    constexpr float LIFT_COEFF2 = -3.250F;
+    /// Cl(S) cubic at Re = 50,000 (fits Bearman 50k bin).
+    constexpr float CL_RE50K_A0 =  0.0472121F;
+    constexpr float CL_RE50K_A1 =  2.84795F;
+    constexpr float CL_RE50K_A2 = -23.4342F;
+    constexpr float CL_RE50K_A3 =  45.4849F;
+
+    /// Cl(S) quadratic at Re = 60,000.
+    constexpr float CL_RE60K_A0 =  0.320524F;
+    constexpr float CL_RE60K_A1 = -4.7032F;
+    constexpr float CL_RE60K_A2 = 14.0613F;
+
+    /// Cl(S) quadratic at Re = 65,000.
+    constexpr float CL_RE65K_A0 =  0.266667F;
+    constexpr float CL_RE65K_A1 = -4.0F;
+    constexpr float CL_RE65K_A2 = 13.3333F;
+
+    /// Cl(S) quadratic at Re = 70,000.
+    constexpr float CL_RE70K_A0 =  0.0496189F;
+    constexpr float CL_RE70K_A1 =  0.00211396F;
+    constexpr float CL_RE70K_A2 =  2.34201F;
+
+    /// Maximum lift coefficient (cap on bin output and Hill saturation).
+    /// Bearman dimpled-sphere upper bound.
+    constexpr float CL_MAX = 0.268F;
+
+    /// Spin gain in the high-Re Hill saturation Cl = ClMax·S·g / (1 + S·g).
+    constexpr float HIGH_RE_SPIN_GAIN = 16.0F;
 
     // ========================================================================
     // SIMULATION PARAMETERS

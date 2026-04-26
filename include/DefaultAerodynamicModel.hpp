@@ -21,9 +21,12 @@
  *   RE_THRESHOLD_LOW < Re < RE_THRESHOLD_HIGH: linear + CD_SPIN * S
  *   Re >= RE_THRESHOLD_HIGH:                 Cd = CD_HIGH + CD_SPIN * S
  *
- * Lift model (quadratic with constant cap at high spin factor):
- *   S <= SPIN_FACTOR_THRESHOLD: Cl = LIFT_COEFF1*S + LIFT_COEFF2*S²
- *   S >  SPIN_FACTOR_THRESHOLD: Cl = CL_DEFAULT
+ * Lift model (Reynolds-binned, units Re_x_e5 = Re/1e5):
+ *   Re <= 0.3:       Cl = 0
+ *   0.3 < Re < 0.5:  smoothstep ramp toward Cl_50k(S)
+ *   0.5 <= Re <= 0.7: linear interp between adjacent {50k,60k,65k,70k} bins
+ *   Re > 0.7:        Hill saturation Cl = CL_MAX·S·g / (1 + S·g)
+ * All branches clamped to [0, CL_MAX]. Bins are Bearman dimpled-sphere fits.
  *
  * Spin decay:
  *   tau = 1 / (TAU_COEFF * |v| / r)
@@ -62,7 +65,7 @@ public:
 		const double spinFactor = omegaMag * static_cast<double>(state.ballRadius) / vw;
 
 		const double Cd = computeCd(Re_x_e5, spinFactor);
-		const double Cl = computeCl(spinFactor);
+		const double Cl = computeCl(Re_x_e5, spinFactor);
 
 		// Drag: -C0 * Cd * vw * vRel
 		const double dragScale = -static_cast<double>(state.c0) * Cd * vw;
@@ -117,17 +120,94 @@ public:
 		}
 	}
 
-	double computeCl(double spinFactor) const
+	double computeCl(double Re_x_e5, double spinFactor) const
 	{
-		if (spinFactor <= static_cast<double>(physics_constants::SPIN_FACTOR_THRESHOLD))
+		const double S = std::max(0.0, spinFactor);
+		if (S <= 0.0)
 		{
-			return static_cast<double>(physics_constants::LIFT_COEFF1) * spinFactor +
-				   static_cast<double>(physics_constants::LIFT_COEFF2) * spinFactor * spinFactor;
+			return 0.0;
+		}
+
+		const double clMax = static_cast<double>(physics_constants::CL_MAX);
+		const double reNoLift = static_cast<double>(physics_constants::RE_BIN_NO_LIFT_X_E5);
+		const double reLow = static_cast<double>(physics_constants::RE_BIN_LOW_X_E5);
+		const double reMidLow = static_cast<double>(physics_constants::RE_BIN_MID_LOW_X_E5);
+		const double reMidHigh = static_cast<double>(physics_constants::RE_BIN_MID_HIGH_X_E5);
+		const double reHigh = static_cast<double>(physics_constants::RE_BIN_HIGH_X_E5);
+
+		if (Re_x_e5 <= reNoLift)
+		{
+			return 0.0;
+		}
+
+		if (Re_x_e5 < reLow)
+		{
+			const double t = smoothStep01((Re_x_e5 - reNoLift) / (reLow - reNoLift));
+			return std::clamp(clRe50k(S) * t, 0.0, clMax);
+		}
+
+		if (Re_x_e5 >= reHigh)
+		{
+			const double g = static_cast<double>(physics_constants::HIGH_RE_SPIN_GAIN);
+			return std::clamp(clMax * S * g / (1.0 + S * g), 0.0, clMax);
+		}
+
+		// Bin lerp across {50k, 60k, 65k, 70k}.
+		double reA, reB, clA, clB;
+		if (Re_x_e5 < reMidLow)
+		{
+			reA = reLow; reB = reMidLow;
+			clA = clRe50k(S); clB = clRe60k(S);
+		}
+		else if (Re_x_e5 < reMidHigh)
+		{
+			reA = reMidLow; reB = reMidHigh;
+			clA = clRe60k(S); clB = clRe65k(S);
 		}
 		else
 		{
-			return static_cast<double>(physics_constants::CL_DEFAULT);
+			reA = reMidHigh; reB = reHigh;
+			clA = clRe65k(S); clB = clRe70k(S);
 		}
+		const double w = (Re_x_e5 - reA) / (reB - reA);
+		const double cl = clA + (clB - clA) * w;
+		return std::clamp(cl, 0.0, clMax);
+	}
+
+private:
+	static double smoothStep01(double x)
+	{
+		const double t = std::clamp(x, 0.0, 1.0);
+		return t * t * (3.0 - 2.0 * t);
+	}
+
+	static double clRe50k(double S)
+	{
+		return static_cast<double>(physics_constants::CL_RE50K_A0) +
+			   static_cast<double>(physics_constants::CL_RE50K_A1) * S +
+			   static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
+			   static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
+	}
+
+	static double clRe60k(double S)
+	{
+		return static_cast<double>(physics_constants::CL_RE60K_A0) +
+			   static_cast<double>(physics_constants::CL_RE60K_A1) * S +
+			   static_cast<double>(physics_constants::CL_RE60K_A2) * S * S;
+	}
+
+	static double clRe65k(double S)
+	{
+		return static_cast<double>(physics_constants::CL_RE65K_A0) +
+			   static_cast<double>(physics_constants::CL_RE65K_A1) * S +
+			   static_cast<double>(physics_constants::CL_RE65K_A2) * S * S;
+	}
+
+	static double clRe70k(double S)
+	{
+		return static_cast<double>(physics_constants::CL_RE70K_A0) +
+			   static_cast<double>(physics_constants::CL_RE70K_A1) * S +
+			   static_cast<double>(physics_constants::CL_RE70K_A2) * S * S;
 	}
 };
 
