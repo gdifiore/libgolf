@@ -1,0 +1,9 @@
+shot_id,club,ball_speed_mph,launch_angle_deg,direction_deg,backspin_rpm,sidespin_rpm,temp_f,elevation_ft,wind_mph,wind_dir_deg,humidity_pct,pressure_inhg,carry_yd,total_yd,apex_yd,side_yd,source
+pga_driver,driver,171.5,10.4,0.0,2545,0,70,0,0,0,50,29.92,275,295,32,0,PGA Tour 2023 TrackMan averages
+pga_3wood,3wood,162.0,9.3,0.0,3663,0,70,0,0,0,50,29.92,243,260,30,0,PGA Tour 2023 TrackMan averages
+pga_5iron,5iron,135.0,14.8,0.0,5280,0,70,0,0,0,50,29.92,194,205,31,0,PGA Tour 2023 TrackMan averages
+pga_7iron,7iron,123.0,16.3,0.0,7124,0,70,0,0,0,50,29.92,172,179,32,0,PGA Tour 2023 TrackMan averages
+pga_pw,pw,102.0,24.2,0.0,9304,0,70,0,0,0,50,29.92,136,140,29,0,PGA Tour 2023 TrackMan averages
+lpga_driver,driver,140.0,13.2,0.0,2611,0,70,0,0,0,50,29.92,218,238,27,0,LPGA Tour 2023 TrackMan averages
+lpga_7iron,7iron,99.5,17.1,0.0,6417,0,70,0,0,0,50,29.92,141,148,24,0,LPGA Tour 2023 TrackMan averages
+lpga_pw,pw,82.0,24.6,0.0,8525,0,70,0,0,0,50,29.92,111,115,21,0,LPGA Tour 2023 TrackMan averages
