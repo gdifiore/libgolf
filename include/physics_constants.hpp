@@ -274,6 +274,13 @@ namespace physics_constants
     /// Below this, ball transitions from bounce to roll phase
     constexpr float MIN_BOUNCE_VELOCITY = 1.0F;
 
+    /// Minimum impact speed (ft/s) for Penner spin-back tangential model.
+    /// Below this, simple friction retention is used regardless of impact
+    /// angle — prevents non-physical spin-back on low-energy chip shots.
+    /// 20 m/s ≈ 65.617 ft/s. Reference: Penner (2003) regime where the
+    /// rigid-body slip / no-slip transition matches measured wedge bounces.
+    constexpr float MIN_PENNER_BOUNCE_SPEED_FT_PER_S = 20.0F * METERS_TO_FEET;
+
     /// Ground contact threshold for phase detection (ft)
     /// Ball is considered "on ground" when within this distance
     constexpr float GROUND_CONTACT_THRESHOLD = 0.1F;

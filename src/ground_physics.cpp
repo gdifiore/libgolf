@@ -47,35 +47,67 @@ namespace GroundPhysics
             -surface.restitution * velocityNormal[2]
         };
 
-        // Apply friction to tangent component
-        // Friction reduces tangent velocity based on surface properties
+        // Friction retention factor for tangential motion.
+        // Used both as the simple-retention multiplier (shallow / low-energy
+        // bounces) and as the `retention` term in the Penner formula below.
         float frictionFactor = 1.0F - surface.frictionStatic * (1.0F - surface.firmness);
-        // Clamp to [0, 1] to prevent non-physical behavior with extreme parameters
         frictionFactor = std::max(0.0F, std::min(1.0F, frictionFactor));
-        Vector3D velocityTangentAfter = {
-            velocityTangent[0] * frictionFactor,
-            velocityTangent[1] * frictionFactor,
-            velocityTangent[2] * frictionFactor
-        };
 
-        // Apply Penner model: spin affects tangent velocity during contact
-        // v_tangent_new = v_tangent * friction - (2 * r * omega) / 7
-        // For backspin, this reduces forward velocity (ball "checks")
-        // Reference: Penner, A.R. "The physics of golf" (2003)
         float tangentMagnitude = std::sqrt(
-            velocityTangentAfter[0] * velocityTangentAfter[0] +
-            velocityTangentAfter[1] * velocityTangentAfter[1] +
-            velocityTangentAfter[2] * velocityTangentAfter[2]
+            velocityTangent[0] * velocityTangent[0] +
+            velocityTangent[1] * velocityTangent[1] +
+            velocityTangent[2] * velocityTangent[2]
         );
 
-        if (tangentMagnitude > physics_constants::MIN_VELOCITY_THRESHOLD)
+        // Impact angle measured from the surface plane (not the normal).
+        // For a unit normal and v · n < 0 (ball moving into surface):
+        //   sin(impactAngle) = -v · n / |v|
+        float impactSpeed = std::sqrt(
+            velocity[0] * velocity[0] +
+            velocity[1] * velocity[1] +
+            velocity[2] * velocity[2]
+        );
+        float impactAngle = 0.0F;
+        if (impactSpeed > physics_constants::MIN_VELOCITY_THRESHOLD)
         {
-            float spinContribution = (2.0F * physics_constants::STD_BALL_RADIUS_FT * spinRate) / 7.0F;
-            // Reduce tangent velocity magnitude, but don't reverse direction
-            float reductionFactor = std::max(0.0F, 1.0F - spinContribution / tangentMagnitude);
-            velocityTangentAfter[0] *= reductionFactor;
-            velocityTangentAfter[1] *= reductionFactor;
-            velocityTangentAfter[2] *= reductionFactor;
+            float sinAngle = std::max(-1.0F, std::min(1.0F, -velocityDotNormal / impactSpeed));
+            impactAngle = std::asin(sinAngle);
+        }
+
+        bool steepImpact = impactAngle >= surface.criticalAngle;
+        bool energeticImpact = impactSpeed >= physics_constants::MIN_PENNER_BOUNCE_SPEED_FT_PER_S;
+
+        Vector3D velocityTangentAfter;
+
+        if (steepImpact && energeticImpact && tangentMagnitude > physics_constants::MIN_VELOCITY_THRESHOLD)
+        {
+            // Penner tangential model (Penner 2003, eq. for steep wedge bounce):
+            //   v_t' = retention * |v| * sin(θ - θ_crit) - 2 R ω / 7
+            // Allowed to go negative, which reverses tangent direction
+            // (real wedge check / spin-back).
+            float spinbackTerm =
+                (2.0F * physics_constants::STD_BALL_RADIUS_FT * spinRate) / 7.0F;
+            float newTangentSpeed =
+                frictionFactor * impactSpeed *
+                    std::sin(impactAngle - surface.criticalAngle) -
+                spinbackTerm;
+
+            float scale = newTangentSpeed / tangentMagnitude;
+            velocityTangentAfter = {
+                velocityTangent[0] * scale,
+                velocityTangent[1] * scale,
+                velocityTangent[2] * scale
+            };
+        }
+        else
+        {
+            // Shallow or low-energy impact: simple friction retention.
+            // No spin coupling — chips and drives cannot spin back.
+            velocityTangentAfter = {
+                velocityTangent[0] * frictionFactor,
+                velocityTangent[1] * frictionFactor,
+                velocityTangent[2] * frictionFactor
+            };
         }
 
         // Combine components to get final velocity
