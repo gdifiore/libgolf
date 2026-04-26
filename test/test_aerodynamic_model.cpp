@@ -4,6 +4,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <cmath>
 #include <memory>
 
@@ -77,33 +78,74 @@ TEST_F(DefaultModelTest, CdAboveHighReThreshold)
 
 // --- computeCl ---------------------------------------------------------------
 
-TEST_F(DefaultModelTest, ClZeroSpin)
+TEST_F(DefaultModelTest, ClZeroSpinZero)
 {
-	EXPECT_NEAR(model.computeCl(0.0), 0.0, 1e-6);
+	// Any Re, S=0 → Cl=0
+	EXPECT_NEAR(model.computeCl(0.6, 0.0), 0.0, 1e-6);
+	EXPECT_NEAR(model.computeCl(1.5, 0.0), 0.0, 1e-6);
 }
 
-TEST_F(DefaultModelTest, ClLowSpin)
+TEST_F(DefaultModelTest, ClBelowNoLiftRe)
 {
-	// S = 0.1: Cl = LIFT_COEFF1*0.1 + LIFT_COEFF2*0.01
-	double expected = static_cast<double>(physics_constants::LIFT_COEFF1) * 0.1 +
-	                  static_cast<double>(physics_constants::LIFT_COEFF2) * 0.01;
-	EXPECT_NEAR(model.computeCl(0.1), expected, 1e-5);
+	// Re_x_e5 <= 0.3 → Cl = 0 regardless of spin
+	EXPECT_NEAR(model.computeCl(0.2, 0.15), 0.0, 1e-6);
+	EXPECT_NEAR(model.computeCl(0.3, 0.25), 0.0, 1e-6);
 }
 
-TEST_F(DefaultModelTest, ClAtSpinThresholdUsesQuadratic)
+TEST_F(DefaultModelTest, ClLowReRamp)
 {
-	// S == SPIN_FACTOR_THRESHOLD (0.3): <= branch, quadratic still applies
-	double s = static_cast<double>(physics_constants::SPIN_FACTOR_THRESHOLD);
-	double expected = static_cast<double>(physics_constants::LIFT_COEFF1) * s +
-	                  static_cast<double>(physics_constants::LIFT_COEFF2) * s * s;
-	EXPECT_NEAR(model.computeCl(s), expected, 1e-5);
+	// 0.3 < Re < 0.5: smoothstep ramp toward Cl_50k. At Re=0.4, t=smoothstep(0.5)=0.5.
+	const double S = 0.10;
+	const double cl50 = static_cast<double>(physics_constants::CL_RE50K_A0) +
+	                    static_cast<double>(physics_constants::CL_RE50K_A1) * S +
+	                    static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
+	                    static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
+	double expected = std::clamp(cl50 * 0.5, 0.0, static_cast<double>(physics_constants::CL_MAX));
+	EXPECT_NEAR(model.computeCl(0.4, S), expected, 1e-5);
 }
 
-TEST_F(DefaultModelTest, ClAboveThresholdClamped)
+TEST_F(DefaultModelTest, ClAt50kBinExact)
 {
-	// S > SPIN_FACTOR_THRESHOLD → CL_DEFAULT
-	EXPECT_NEAR(model.computeCl(0.5), physics_constants::CL_DEFAULT, 1e-6);
-	EXPECT_NEAR(model.computeCl(1.0), physics_constants::CL_DEFAULT, 1e-6);
+	// At Re_x_e5 = 0.5 use the 50k cubic exactly.
+	const double S = 0.12;
+	double expected = static_cast<double>(physics_constants::CL_RE50K_A0) +
+	                  static_cast<double>(physics_constants::CL_RE50K_A1) * S +
+	                  static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
+	                  static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
+	expected = std::clamp(expected, 0.0, static_cast<double>(physics_constants::CL_MAX));
+	EXPECT_NEAR(model.computeCl(0.5, S), expected, 1e-5);
+}
+
+TEST_F(DefaultModelTest, ClBetweenBinsLerp)
+{
+	// At Re_x_e5 = 0.55 (midway 50k–60k), expect equal blend of clRe50k and clRe60k.
+	const double S = 0.18;
+	double cl50 = static_cast<double>(physics_constants::CL_RE50K_A0) +
+	              static_cast<double>(physics_constants::CL_RE50K_A1) * S +
+	              static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
+	              static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
+	double cl60 = static_cast<double>(physics_constants::CL_RE60K_A0) +
+	              static_cast<double>(physics_constants::CL_RE60K_A1) * S +
+	              static_cast<double>(physics_constants::CL_RE60K_A2) * S * S;
+	double expected = std::clamp(0.5 * (cl50 + cl60), 0.0, static_cast<double>(physics_constants::CL_MAX));
+	EXPECT_NEAR(model.computeCl(0.55, S), expected, 1e-5);
+}
+
+TEST_F(DefaultModelTest, ClHighReHillSaturation)
+{
+	// Re_x_e5 >= 0.7 uses Hill saturation Cl = CL_MAX·S·g / (1 + S·g)
+	const double S = 0.20;
+	const double g = static_cast<double>(physics_constants::HIGH_RE_SPIN_GAIN);
+	const double clMax = static_cast<double>(physics_constants::CL_MAX);
+	double expected = std::clamp(clMax * S * g / (1.0 + S * g), 0.0, clMax);
+	EXPECT_NEAR(model.computeCl(1.5, S), expected, 1e-6);
+	EXPECT_NEAR(model.computeCl(0.7, S), expected, 1e-6);
+}
+
+TEST_F(DefaultModelTest, ClClampedToMax)
+{
+	// Hill saturation asymptote → CL_MAX as S → ∞.
+	EXPECT_LE(model.computeCl(2.0, 5.0), static_cast<double>(physics_constants::CL_MAX) + 1e-6);
 }
 
 // ============================================================================

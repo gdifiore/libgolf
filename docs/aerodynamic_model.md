@@ -81,11 +81,14 @@ RE_THRESHOLD_LOW < Re < RE_THRESHOLD_HIGH (1.0): linear + CD_SPIN * S
 Re >= RE_THRESHOLD_HIGH (1.0):                 Cd = CD_HIGH (0.200) + CD_SPIN * S
 ```
 
-**Lift** (quadratic with constant cap):
+**Lift** (Reynolds-binned, units `Re_x_e5 = Re/1e5`):
 ```
-S <= SPIN_FACTOR_THRESHOLD (0.3): Cl = 1.990*S - 3.250*S²
-S >  SPIN_FACTOR_THRESHOLD (0.3): Cl = CL_DEFAULT (0.305)
+Re <= 0.3:        Cl = 0
+0.3 < Re < 0.5:   smoothstep ramp from 0 toward Cl_50k(S)
+0.5 <= Re <= 0.7: linear interp between adjacent {50k,60k,65k,70k} polynomial bins
+Re > 0.7:         Hill saturation Cl = CL_MAX·S·g / (1 + S·g)   (g = HIGH_RE_SPIN_GAIN)
 ```
+All branches are clamped to `[0, CL_MAX]`. Bin polynomials are Bearman dimpled-sphere fits.
 
 **Spin decay:**
 ```
