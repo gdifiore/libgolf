@@ -41,6 +41,7 @@ clang-tidy.sh
 .clang-tidy
 points.txt
 TODO
+tools/calibration/history/
 *.html
 examples/visualize_trajectory.cpp
 issues

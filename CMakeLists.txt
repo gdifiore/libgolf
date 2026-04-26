@@ -118,6 +118,10 @@ if(NOT EMSCRIPTEN)
     add_executable(multi_ground_simulation examples/multi_ground_simulation.cpp)
     target_link_libraries(multi_ground_simulation ${PROJECT_NAME})
 
+    # Calibration shot runner (tools/calibration/run.py drives this)
+    add_executable(calibration_sim_runner tools/calibration/sim_runner.cpp)
+    target_link_libraries(calibration_sim_runner ${PROJECT_NAME})
+
     # Discover tests
     include(GoogleTest)
     gtest_discover_tests(libgolf_tests)

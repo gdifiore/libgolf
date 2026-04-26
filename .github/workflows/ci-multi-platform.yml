@@ -85,3 +85,9 @@ jobs:
         path: |
           build/libgolf.a
           build/include/version.hpp
+
+    - name: Calibration harness smoke test
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
+      run: |
+        cmake --build build --target calibration_sim_runner
+        python3 tools/calibration/run.py --fast --no-snapshot
