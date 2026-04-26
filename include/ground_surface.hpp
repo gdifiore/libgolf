@@ -1,6 +1,8 @@
 #ifndef GROUND_SURFACE_HPP
 #define GROUND_SURFACE_HPP
 
+#include "physics_constants.hpp"
+
 /**
  * @brief Represents the physical properties of the ground surface.
  *
@@ -78,6 +80,19 @@ struct GroundSurface
 	float spinRetention = 0.75F;
 
 	/**
+	 * @brief Critical impact angle for Penner spin-back model (radians).
+	 *
+	 * Measured from the surface plane (not the normal). Below this angle the
+	 * ball cannot check or spin back regardless of spin — the simple friction
+	 * retention path is used. At and above this angle the Penner tangential
+	 * model engages, which can reverse tangential motion when spin is large.
+	 *
+	 * Default 15° matches Penner (2003) for a typical fairway / green lie.
+	 * Range: ~10° (firm fairway) to ~20° (soft, receptive green).
+	 */
+	float criticalAngle = 15.0F * physics_constants::DEG_TO_RAD;
+
+	/**
 	 * @brief Default constructor with typical fairway values.
 	 */
 	GroundSurface() = default;
@@ -85,9 +100,12 @@ struct GroundSurface
 	/**
 	 * @brief Constructs a GroundSurface with specified properties.
 	 */
-	GroundSurface(float h, float rest, float fStatic, float fDynamic, float firm, float spinRet = 0.75F)
+	GroundSurface(float h, float rest, float fStatic, float fDynamic, float firm,
+	              float spinRet = 0.75F,
+	              float critAngleRad = 15.0F * physics_constants::DEG_TO_RAD)
 		: height(h), restitution(rest), frictionStatic(fStatic),
-		  frictionDynamic(fDynamic), firmness(firm), spinRetention(spinRet) {}
+		  frictionDynamic(fDynamic), firmness(firm), spinRetention(spinRet),
+		  criticalAngle(critAngleRad) {}
 };
 
 #endif // GROUND_SURFACE_HPP

@@ -260,11 +260,14 @@ public:
 
 TEST(CustomAerodynamicModelTest, CustomModelIsUsedByFlightSimulator)
 {
+	// Shallow launch keeps impact angle below the Penner critical angle
+	// (~15° from surface) so bounce physics behave identically for both
+	// runs — isolating the drag-vs-no-drag comparison in carry distance.
 	const LaunchData launch{
 	    .ballSpeedMph   = 100.0f,
-	    .launchAngleDeg = 30.0f,
+	    .launchAngleDeg = 12.0f,
 	    .directionDeg   = 0.0f,
-	    .backspinRpm    = 3000.0f,
+	    .backspinRpm    = 2500.0f,
 	    .sidespinRpm    = 0.0f,
 	};
 	const AtmosphericData atmos{
