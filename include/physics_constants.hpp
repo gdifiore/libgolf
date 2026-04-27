@@ -266,9 +266,18 @@ namespace physics_constants
     constexpr float CL_RE70K_A1 =  0.00211396F;
     constexpr float CL_RE70K_A2 =  2.34201F;
 
-    /// Maximum lift coefficient (cap on bin output and Hill saturation).
-    /// Bearman dimpled-sphere upper bound.
-    constexpr float CL_MAX = 0.268F;
+    /// Spin-factor-dependent maximum lift coefficient.
+    /// Cap on bin output and Hill saturation. The Bearman dimpled-sphere data
+    /// shows a higher asymptote at extreme spin (S → 0.5) than at moderate
+    /// spin (S ≤ 0.35). A flat cap clipped wedge / short-iron lift.
+    /// ClMax(S) is a piecewise-linear lerp:
+    ///   S ≤ CL_MAX_SR_LERP_LOW  : ClMax = CL_MAX_BASE   (0.268)
+    ///   S ≥ CL_MAX_SR_LERP_HIGH : ClMax = CL_MAX_HIGH_SR (0.320)
+    ///   between                 : linear interpolation
+    constexpr float CL_MAX_BASE       = 0.268F;
+    constexpr float CL_MAX_HIGH_SR    = 0.320F;
+    constexpr float CL_MAX_SR_LERP_LOW  = 0.35F;
+    constexpr float CL_MAX_SR_LERP_HIGH = 0.50F;
 
     /// Spin gain in the high-Re Hill saturation Cl = ClMax·S·g / (1 + S·g).
     constexpr float HIGH_RE_SPIN_GAIN = 16.0F;
@@ -309,6 +318,54 @@ namespace physics_constants
     /// 20 m/s ≈ 65.617 ft/s. Reference: Penner (2003) regime where the
     /// rigid-body slip / no-slip transition matches measured wedge bounces.
     constexpr float MIN_PENNER_BOUNCE_SPEED_FT_PER_S = 20.0F * METERS_TO_FEET;
+
+    // ========================================================================
+    // BOUNCE COR — SPIN/VELOCITY MODULATION
+    // ========================================================================
+    // Effective COR = surface.restitution * (1 - reduction), where
+    //   reduction = maxReduction(rpm) * velocityScale(speedNormal_m/s).
+    // High spin causes the ball to bite into turf rather than spring off
+    // (flop / wedge bite). The velocity scale prevents low-energy chip
+    // shots from getting an unwarranted COR penalty just from carried spin.
+    // Reference: openfairway BounceCalculator.cs:215-250.
+
+    /// Spin RPM at/below which there is no COR reduction. The reduction
+    /// ramps linearly from 0 here to BOUNCE_COR_SPIN_LOW_MAX_REDUCTION at
+    /// BOUNCE_COR_SPIN_KNEE_RPM.
+    constexpr float BOUNCE_COR_SPIN_KNEE_RPM = 1500.0F;
+
+    /// Above the knee, additional spin extends the reduction up to
+    /// BOUNCE_COR_SPIN_HIGH_MAX_REDUCTION at BOUNCE_COR_SPIN_KNEE_RPM +
+    /// BOUNCE_COR_SPIN_HIGH_BAND_RPM (default: 3000 rpm).
+    constexpr float BOUNCE_COR_SPIN_HIGH_BAND_RPM = 1500.0F;
+
+    /// Reduction at the knee (low-spin asymptote).
+    constexpr float BOUNCE_COR_SPIN_LOW_MAX_REDUCTION = 0.30F;
+
+    /// Reduction at saturation (high-spin asymptote).
+    constexpr float BOUNCE_COR_SPIN_HIGH_MAX_REDUCTION = 0.70F;
+
+    /// Normal-component impact speed (m/s) below which the velocity scale
+    /// ramps from 0 to BOUNCE_COR_VEL_MID_SCALE.
+    constexpr float BOUNCE_COR_VEL_LOW_MS = 12.0F;
+
+    /// Velocity scale at BOUNCE_COR_VEL_LOW_MS — partial COR penalty.
+    constexpr float BOUNCE_COR_VEL_MID_SCALE = 0.50F;
+
+    /// At/above this normal speed the full COR penalty applies.
+    constexpr float BOUNCE_COR_VEL_HIGH_MS = 25.0F;
+
+    // ========================================================================
+    // BOUNCE RETENTION (PENNER BRANCH) — SPIN-COUPLED
+    // ========================================================================
+    // The `retention` multiplier in v_t' = retention * |v| * sin(θ - θ_crit)
+    // is reduced as spin grows: higher spin loses more forward push to bite,
+    // tightening wedge total-distance. Reference: openfairway
+    // 0.55 * clamp(1 - rpm/8000, 0.4, 1.0).
+
+    constexpr float BOUNCE_RETENTION_BASE = 0.55F;
+    constexpr float BOUNCE_RETENTION_RPM_NORM = 8000.0F;
+    constexpr float BOUNCE_RETENTION_FLOOR = 0.40F;
 
     /// Ground contact threshold for phase detection (ft)
     /// Ball is considered "on ground" when within this distance

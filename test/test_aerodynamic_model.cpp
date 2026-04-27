@@ -100,7 +100,8 @@ TEST_F(DefaultModelTest, ClLowReRamp)
 	                    static_cast<double>(physics_constants::CL_RE50K_A1) * S +
 	                    static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
 	                    static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
-	double expected = std::clamp(cl50 * 0.5, 0.0, static_cast<double>(physics_constants::CL_MAX));
+	// S=0.10 < CL_MAX_SR_LERP_LOW (0.35) → ClMax = CL_MAX_BASE.
+	double expected = std::clamp(cl50 * 0.5, 0.0, static_cast<double>(physics_constants::CL_MAX_BASE));
 	EXPECT_NEAR(model.computeCl(0.4, S), expected, 1e-5);
 }
 
@@ -112,7 +113,8 @@ TEST_F(DefaultModelTest, ClAt50kBinExact)
 	                  static_cast<double>(physics_constants::CL_RE50K_A1) * S +
 	                  static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
 	                  static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
-	expected = std::clamp(expected, 0.0, static_cast<double>(physics_constants::CL_MAX));
+	// S=0.12 < lerp band → ClMax = CL_MAX_BASE.
+	expected = std::clamp(expected, 0.0, static_cast<double>(physics_constants::CL_MAX_BASE));
 	EXPECT_NEAR(model.computeCl(0.5, S), expected, 1e-5);
 }
 
@@ -127,16 +129,18 @@ TEST_F(DefaultModelTest, ClBetweenBinsLerp)
 	double cl60 = static_cast<double>(physics_constants::CL_RE60K_A0) +
 	              static_cast<double>(physics_constants::CL_RE60K_A1) * S +
 	              static_cast<double>(physics_constants::CL_RE60K_A2) * S * S;
-	double expected = std::clamp(0.5 * (cl50 + cl60), 0.0, static_cast<double>(physics_constants::CL_MAX));
+	// S=0.18 < lerp band → ClMax = CL_MAX_BASE.
+	double expected = std::clamp(0.5 * (cl50 + cl60), 0.0, static_cast<double>(physics_constants::CL_MAX_BASE));
 	EXPECT_NEAR(model.computeCl(0.55, S), expected, 1e-5);
 }
 
 TEST_F(DefaultModelTest, ClHighReHillSaturation)
 {
-	// Re_x_e5 >= 0.7 uses Hill saturation Cl = CL_MAX·S·g / (1 + S·g)
+	// Re_x_e5 >= 0.7 uses Hill saturation Cl = ClMax(S)·S·g / (1 + S·g).
+	// S=0.20 sits below the ClMax(S) lerp band → ClMax = CL_MAX_BASE.
 	const double S = 0.20;
 	const double g = static_cast<double>(physics_constants::HIGH_RE_SPIN_GAIN);
-	const double clMax = static_cast<double>(physics_constants::CL_MAX);
+	const double clMax = static_cast<double>(physics_constants::CL_MAX_BASE);
 	double expected = std::clamp(clMax * S * g / (1.0 + S * g), 0.0, clMax);
 	EXPECT_NEAR(model.computeCl(1.5, S), expected, 1e-6);
 	EXPECT_NEAR(model.computeCl(0.7, S), expected, 1e-6);
@@ -144,8 +148,19 @@ TEST_F(DefaultModelTest, ClHighReHillSaturation)
 
 TEST_F(DefaultModelTest, ClClampedToMax)
 {
-	// Hill saturation asymptote → CL_MAX as S → ∞.
-	EXPECT_LE(model.computeCl(2.0, 5.0), static_cast<double>(physics_constants::CL_MAX) + 1e-6);
+	// Hill saturation asymptote → ClMax(S) as S → ∞. At S=5 the cap is the
+	// high-spin asymptote CL_MAX_HIGH_SR.
+	EXPECT_LE(model.computeCl(2.0, 5.0),
+	          static_cast<double>(physics_constants::CL_MAX_HIGH_SR) + 1e-6);
+}
+
+TEST_F(DefaultModelTest, ClMaxLerpsAtHighSpinFactor)
+{
+	// At S well above CL_MAX_SR_LERP_HIGH (0.50), the Hill cap = CL_MAX_HIGH_SR
+	// (0.32) > CL_MAX_BASE (0.268). Verifies the dynamic ClMax is wired in.
+	const double clHigh = model.computeCl(2.0, 1.0);
+	EXPECT_GT(clHigh, static_cast<double>(physics_constants::CL_MAX_BASE));
+	EXPECT_LE(clHigh, static_cast<double>(physics_constants::CL_MAX_HIGH_SR) + 1e-6);
 }
 
 // ============================================================================

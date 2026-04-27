@@ -25,8 +25,10 @@
  *   Re <= 0.3:       Cl = 0
  *   0.3 < Re < 0.5:  smoothstep ramp toward Cl_50k(S)
  *   0.5 <= Re <= 0.7: linear interp between adjacent {50k,60k,65k,70k} bins
- *   Re > 0.7:        Hill saturation Cl = CL_MAX·S·g / (1 + S·g)
- * All branches clamped to [0, CL_MAX]. Bins are Bearman dimpled-sphere fits.
+ *   Re > 0.7:        Hill saturation Cl = ClMax(S)·S·g / (1 + S·g)
+ * All branches clamped to [0, ClMax(S)]. Bins are Bearman dimpled-sphere fits.
+ * ClMax(S) lerps 0.268 → 0.32 across spin factor 0.35 → 0.50 — the asymptote
+ * is not flat in the high-spin regime.
  *
  * Spin decay:
  *   tau = 1 / (TAU_COEFF * |v| / r)
@@ -128,7 +130,7 @@ public:
 			return 0.0;
 		}
 
-		const double clMax = static_cast<double>(physics_constants::CL_MAX);
+		const double clMax = clMaxForSpinFactor(S);
 		const double reNoLift = static_cast<double>(physics_constants::RE_BIN_NO_LIFT_X_E5);
 		const double reLow = static_cast<double>(physics_constants::RE_BIN_LOW_X_E5);
 		const double reMidLow = static_cast<double>(physics_constants::RE_BIN_MID_LOW_X_E5);
@@ -179,6 +181,20 @@ private:
 	{
 		const double t = std::clamp(x, 0.0, 1.0);
 		return t * t * (3.0 - 2.0 * t);
+	}
+
+	// ClMax lerps from CL_MAX_BASE up to CL_MAX_HIGH_SR across the spin-factor
+	// band [CL_MAX_SR_LERP_LOW, CL_MAX_SR_LERP_HIGH]. Saturates outside.
+	static double clMaxForSpinFactor(double S)
+	{
+		const double base = static_cast<double>(physics_constants::CL_MAX_BASE);
+		const double high = static_cast<double>(physics_constants::CL_MAX_HIGH_SR);
+		const double sLow = static_cast<double>(physics_constants::CL_MAX_SR_LERP_LOW);
+		const double sHigh = static_cast<double>(physics_constants::CL_MAX_SR_LERP_HIGH);
+		if (S <= sLow) return base;
+		if (S >= sHigh) return high;
+		const double t = (S - sLow) / (sHigh - sLow);
+		return base + (high - base) * t;
 	}
 
 	static double clRe50k(double S)
