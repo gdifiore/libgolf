@@ -79,12 +79,16 @@ TEST(GroundPhysicsTest, HighSpinReducesTangentVelocityMoreThanLowSpin)
     auto resultLow = GroundPhysics::calculateBounce(velocity, normal, lowSpin, surface);
     auto resultHigh = GroundPhysics::calculateBounce(velocity, normal, highSpin, surface);
 
-    // High spin → smaller forward tangent (Penner spinback term subtracts more)
+    // High spin → smaller forward tangent. Two effects compound:
+    //   1. Penner spinback term subtracts 2R(ω_high - ω_low)/7 ≈ 5.0 ft/s.
+    //   2. Spin-coupled retention curve scales the forward sin(θ-θ_crit) term
+    //      down at higher spin, adding a few more ft/s of separation.
     EXPECT_LT(resultHigh.newVelocity[1], resultLow.newVelocity[1]);
 
-    // Difference = 2R(ωhigh - ωlow)/7 = 2 * 0.07 * 250 / 7 = 5.0 ft/s
+    // Combined difference is ~6–7 ft/s — looser bound than pure-spinback case.
     float velocityDifference = resultLow.newVelocity[1] - resultHigh.newVelocity[1];
-    EXPECT_NEAR(velocityDifference, 5.0F, 0.5F);
+    EXPECT_GT(velocityDifference, 5.0F);
+    EXPECT_LT(velocityDifference, 9.0F);
 }
 
 // Zero spin steep+fast impact: only the sin(θ-θ_crit) retention term acts;
@@ -180,6 +184,65 @@ TEST(GroundPhysicsTest, HigherCriticalAngleSuppressesSpinback)
     // Soft surface bypasses Penner (simple retention = unchanged) → full tangent.
     EXPECT_LT(resultFirm.newVelocity[1], resultSoft.newVelocity[1]);
     EXPECT_NEAR(resultSoft.newVelocity[1], 70.0F, 0.01F);
+}
+
+// Flop shot: high spin + high normal-impact speed → big COR reduction.
+// Captures the "stick into turf" behavior of a wedge dropping nearly straight
+// down with heavy backspin. Compared against a low-spin reference at the same
+// kinematics.
+TEST(GroundPhysicsTest, FlopShotHighSpinReducesNormalRebound)
+{
+    // Steep, fast: vz=-80 ft/s ≈ 24.4 m/s normal speed → above 25 m/s knee
+    // is borderline; stay slightly below to exercise the lerp band.
+    Vector3D velocity{0.0F, 5.0F, -80.0F};
+    Vector3D normal{0.0F, 0.0F, 1.0F};
+
+    GroundSurface surface;
+    surface.restitution = 0.5F;
+    surface.frictionStatic = 0.0F;
+    surface.firmness = 1.0F;
+    surface.spinRetention = 1.0F;
+
+    // ~3500 rpm backspin, well into the high-spin band.
+    float highSpin = 366.0F;  // rad/s
+    float lowSpin = 50.0F;    // rad/s ≈ 477 rpm
+
+    auto resultHigh = GroundPhysics::calculateBounce(velocity, normal, highSpin, surface);
+    auto resultLow  = GroundPhysics::calculateBounce(velocity, normal, lowSpin,  surface);
+
+    // High-spin rebound is materially softer than low-spin reference.
+    EXPECT_LT(resultHigh.newVelocity[2], resultLow.newVelocity[2]);
+
+    // High-spin rebound is reduced by ~50–70% off the no-reduction COR
+    // (0.5 * 80 = 40 ft/s). Expect well under 25 ft/s.
+    EXPECT_LT(resultHigh.newVelocity[2], 25.0F);
+    EXPECT_GT(resultHigh.newVelocity[2], 0.0F);  // still bounces
+
+    // Low-spin rebound stays close to the unreduced COR product.
+    EXPECT_GT(resultLow.newVelocity[2], 30.0F);
+}
+
+// Low-energy chip with high carried spin: COR reduction must be small even
+// though spin is high, because velocity scale clamps near zero.
+TEST(GroundPhysicsTest, LowSpeedHighSpinKeepsCorNearBase)
+{
+    // Slow, mostly-vertical drop: ~3.0 m/s normal speed → velScale ≈ 0.13.
+    Vector3D velocity{0.0F, 0.0F, -10.0F};
+    Vector3D normal{0.0F, 0.0F, 1.0F};
+
+    GroundSurface surface;
+    surface.restitution = 0.5F;
+    surface.frictionStatic = 0.0F;
+    surface.firmness = 1.0F;
+    surface.spinRetention = 1.0F;
+
+    float highSpin = 400.0F;  // rad/s ≈ 3820 rpm
+
+    auto result = GroundPhysics::calculateBounce(velocity, normal, highSpin, surface);
+
+    // Effective COR within ~12% of base 0.5 → newVz ≥ 0.44 * 10 = 4.4.
+    EXPECT_GT(result.newVelocity[2], 4.4F);
+    EXPECT_LT(result.newVelocity[2], 5.0F);
 }
 
 // Test bounce on 45-degree slope

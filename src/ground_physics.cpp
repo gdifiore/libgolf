@@ -39,17 +39,66 @@ namespace GroundPhysics
             velocity[2] - velocityNormal[2]
         };
 
-        // Apply coefficient of restitution to normal component
+        // Effective COR — modulated by spin × normal-impact-speed.
+        // High spin causes the ball to bite into turf rather than spring off.
+        // The velocity scale prevents low-energy chip shots from getting an
+        // unwarranted COR penalty just from carried spin. Reference:
+        // openfairway BounceCalculator.cs:215-250.
+        float spinRpm =
+            std::abs(spinRate) / physics_constants::RPM_TO_RAD_PER_S;
+        float speedNormalMs =
+            std::abs(velocityDotNormal) * physics_constants::FEET_TO_METERS;
+
+        float velScale;
+        if (speedNormalMs < physics_constants::BOUNCE_COR_VEL_LOW_MS)
+        {
+            velScale = physics_constants::BOUNCE_COR_VEL_MID_SCALE *
+                       (speedNormalMs / physics_constants::BOUNCE_COR_VEL_LOW_MS);
+        }
+        else if (speedNormalMs < physics_constants::BOUNCE_COR_VEL_HIGH_MS)
+        {
+            float t = (speedNormalMs - physics_constants::BOUNCE_COR_VEL_LOW_MS) /
+                      (physics_constants::BOUNCE_COR_VEL_HIGH_MS -
+                       physics_constants::BOUNCE_COR_VEL_LOW_MS);
+            velScale = physics_constants::BOUNCE_COR_VEL_MID_SCALE +
+                       (1.0F - physics_constants::BOUNCE_COR_VEL_MID_SCALE) * t;
+        }
+        else
+        {
+            velScale = 1.0F;
+        }
+
+        float maxReduction;
+        if (spinRpm < physics_constants::BOUNCE_COR_SPIN_KNEE_RPM)
+        {
+            maxReduction =
+                (spinRpm / physics_constants::BOUNCE_COR_SPIN_KNEE_RPM) *
+                physics_constants::BOUNCE_COR_SPIN_LOW_MAX_REDUCTION;
+        }
+        else
+        {
+            float excess = spinRpm - physics_constants::BOUNCE_COR_SPIN_KNEE_RPM;
+            float t = std::min(
+                excess / physics_constants::BOUNCE_COR_SPIN_HIGH_BAND_RPM, 1.0F);
+            maxReduction =
+                physics_constants::BOUNCE_COR_SPIN_LOW_MAX_REDUCTION +
+                (physics_constants::BOUNCE_COR_SPIN_HIGH_MAX_REDUCTION -
+                 physics_constants::BOUNCE_COR_SPIN_LOW_MAX_REDUCTION) *
+                    t;
+        }
+
+        float effectiveCor = surface.restitution * (1.0F - maxReduction * velScale);
+
+        // Apply effective COR to normal component
         // v'_normal = -COR * v_normal (reversed direction)
         Vector3D velocityNormalAfter = {
-            -surface.restitution * velocityNormal[0],
-            -surface.restitution * velocityNormal[1],
-            -surface.restitution * velocityNormal[2]
+            -effectiveCor * velocityNormal[0],
+            -effectiveCor * velocityNormal[1],
+            -effectiveCor * velocityNormal[2]
         };
 
-        // Friction retention factor for tangential motion.
-        // Used both as the simple-retention multiplier (shallow / low-energy
-        // bounces) and as the `retention` term in the Penner formula below.
+        // Friction retention factor for tangential motion (simple-retention
+        // path; the Penner branch uses a spin-coupled retention curve below).
         float frictionFactor = 1.0F - surface.frictionStatic * (1.0F - surface.firmness);
         frictionFactor = std::max(0.0F, std::min(1.0F, frictionFactor));
 
@@ -85,10 +134,20 @@ namespace GroundPhysics
             //   v_t' = retention * |v| * sin(θ - θ_crit) - 2 R ω / 7
             // Allowed to go negative, which reverses tangent direction
             // (real wedge check / spin-back).
+            //
+            // Retention is spin-coupled: at high spin the ball loses more
+            // forward push to bite, tightening wedge total-distance. Curve
+            // matches openfairway: 0.55 * clamp(1 - rpm/8000, 0.4, 1.0).
+            float retention =
+                physics_constants::BOUNCE_RETENTION_BASE *
+                std::max(physics_constants::BOUNCE_RETENTION_FLOOR,
+                         std::min(1.0F,
+                                  1.0F - spinRpm /
+                                             physics_constants::BOUNCE_RETENTION_RPM_NORM));
             float spinbackTerm =
                 (2.0F * physics_constants::STD_BALL_RADIUS_FT * spinRate) / 7.0F;
             float newTangentSpeed =
-                frictionFactor * impactSpeed *
+                retention * impactSpeed *
                     std::sin(impactAngle - surface.criticalAngle) -
                 spinbackTerm;
 
