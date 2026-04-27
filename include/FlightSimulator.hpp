@@ -2,6 +2,7 @@
 #define FLIGHT_SIMULATOR_HPP
 
 #include "BallState.hpp"
+#include "BounceModel.hpp"
 #include "FlightPhase.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
@@ -46,12 +47,14 @@ public:
 	 * @param launch Launch monitor data for the shot
 	 * @param atmos Atmospheric conditions
 	 * @param ground Ground surface properties (uniform everywhere)
-	 * @param model Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
+	 * @param aeroModel Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
+	 * @param bounceModel Bounce model (nullptr uses DefaultBounceModel)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
 	                const GroundSurface &ground,
-	                std::shared_ptr<AerodynamicModel> model = nullptr);
+	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
+	                std::shared_ptr<BounceModel> bounceModel = nullptr);
 
 	/**
 	 * @brief Constructs a flight simulator with a custom terrain.
@@ -63,12 +66,14 @@ public:
 	 * @param launch Launch monitor data for the shot
 	 * @param atmos Atmospheric conditions
 	 * @param terrain Custom terrain implementation (must not be null)
-	 * @param model Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
+	 * @param aeroModel Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
+	 * @param bounceModel Bounce model (nullptr uses DefaultBounceModel)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
 	                std::shared_ptr<TerrainInterface> terrain,
-	                std::shared_ptr<AerodynamicModel> model = nullptr);
+	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
+	                std::shared_ptr<BounceModel> bounceModel = nullptr);
 
 	/**
 	 * @brief Runs the simulation to completion.

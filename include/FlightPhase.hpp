@@ -3,6 +3,7 @@
 
 #include "AerodynamicModel.hpp"
 #include "BallState.hpp"
+#include "BounceModel.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
@@ -125,13 +126,15 @@ public:
 	            const LaunchData &launch,
 	            const AtmosphericData &atmos,
 	            std::shared_ptr<TerrainInterface> terrain,
-	            std::shared_ptr<AerodynamicModel> model = nullptr);
+	            std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
+	            std::shared_ptr<BounceModel> bounceModel = nullptr);
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;
 
 private:
 	std::shared_ptr<TerrainInterface> terrain;
+	std::shared_ptr<BounceModel> bounceModel;
 	AerialPhase aerialPhase; // Used for aerodynamic calculations between bounces
 };
 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(golf VERSION 4.1.0 LANGUAGES CXX)
+project(golf VERSION 4.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -100,6 +100,8 @@ if(NOT EMSCRIPTEN)
         ${PROJECT_TEST_DIR}/test_dynamic_terrain.cpp
         ${PROJECT_TEST_DIR}/test_terrain_interface.cpp
         ${PROJECT_TEST_DIR}/test_ground_physics.cpp
+        ${PROJECT_TEST_DIR}/test_bounce_model.cpp
+        ${PROJECT_TEST_DIR}/test_default_bounce_model.cpp
         ${PROJECT_SRC_DIR}/ShotPhysicsContext.cpp
         ${PROJECT_SRC_DIR}/math_utils.cpp
     )

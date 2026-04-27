@@ -11,6 +11,7 @@
 
 #include "FlightPhase.hpp"
 #include "DefaultAerodynamicModel.hpp"
+#include "DefaultBounceModel.hpp"
 #include "atmospheric_data.hpp"
 #include "math_utils.hpp"
 #include "launch_data.hpp"
@@ -200,9 +201,12 @@ AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) cons
 BouncePhase::BouncePhase(
 	ShotPhysicsContext &physicsVars, const LaunchData &launch,
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
-	std::shared_ptr<AerodynamicModel> model)
+	std::shared_ptr<AerodynamicModel> aeroModel,
+	std::shared_ptr<BounceModel> bounceModel)
 	: terrain(terrain),
-	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(model))
+	  bounceModel(bounceModel ? std::move(bounceModel)
+	                          : std::make_shared<DefaultBounceModel>()),
+	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(aeroModel))
 {
 	if (!terrain)
 	{
@@ -222,19 +226,15 @@ void BouncePhase::calculateStep(BallState &state, float dt)
 
 	if (state.position[2] <= terrainHeight && velocityDotNormal < 0.0F)
 	{
-		// calculateBounce expects surface speed (r·ω, ft/s) for the Penner spin model.
-		const float spinMag         = math_utils::magnitude(state.spinVector);
-		const float spinSurfaceSpeed = spinMag * physics_constants::STD_BALL_RADIUS_FT;
-		auto result = GroundPhysics::calculateBounce(state.velocity, surfaceNormal, spinSurfaceSpeed, surface);
+		BounceState bounceState{
+			state.velocity,
+			surfaceNormal,
+			state.spinVector,
+			physics_constants::STD_BALL_RADIUS_FT
+		};
+		BounceResult result = bounceModel->resolveBounce(bounceState, surface);
 		state.velocity = result.newVelocity;
-		// Apply the retention factor back to the spin vector to preserve axis direction.
-		if (spinSurfaceSpeed > physics_constants::MIN_VELOCITY_THRESHOLD)
-		{
-			const float scale = result.newSpinRate / spinSurfaceSpeed;
-			state.spinVector[0] *= scale;
-			state.spinVector[1] *= scale;
-			state.spinVector[2] *= scale;
-		}
+		state.spinVector = result.newSpinVector;
 		state.position[2] = terrainHeight;
 	}
 

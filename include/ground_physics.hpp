@@ -1,11 +1,12 @@
 /**
  * @file ground_physics.hpp
  * @author Gabriel DiFiore
- * @brief Ground interaction physics for golf ball bouncing and rolling.
+ * @brief Ground interaction physics for rolling and bounce/roll transition.
  *
- * This module provides physics calculations for ball-ground interactions,
- * including slope-aware bouncing, rolling, and spin effects. The calculations
- * use the surface normal to properly handle sloped terrain.
+ * Bounce physics lives behind the BounceModel interface (see BounceModel.hpp,
+ * DefaultBounceModel.hpp). This header retains rolling and the bounce-to-roll
+ * transition heuristic, both of which are still free functions used by the
+ * library's RollPhase and BouncePhase.
  *
  * @copyright Copyright (c) 2024, Gabriel DiFiore
  */
@@ -18,35 +19,6 @@
 
 namespace GroundPhysics
 {
-    /**
-     * Result of a bounce calculation.
-     */
-    struct BounceResult
-    {
-        Vector3D newVelocity;  ///< Velocity after bounce
-        float newSpinRate;     ///< Spin rate after bounce (rad/s)
-    };
-
-    /**
-     * Calculates the bounce physics when the ball impacts the ground.
-     *
-     * This function decomposes the velocity into components normal and tangent
-     * to the surface, applies the coefficient of restitution to the normal
-     * component, and applies friction to the tangent component.
-     *
-     * @param velocity The velocity before bounce (ft/s).
-     * @param surfaceNormal The unit normal vector of the surface (pointing upward).
-     * @param spinRate The spin rate before bounce (rad/s).
-     * @param surface The ground surface properties (restitution, friction, etc.).
-     * @return The bounce result containing new velocity and spin rate.
-     */
-    [[nodiscard]] auto calculateBounce(
-        const Vector3D& velocity,
-        const Vector3D& surfaceNormal,
-        float spinRate,
-        const GroundSurface& surface
-    ) -> BounceResult;
-
     /**
      * Calculates the acceleration for a rolling ball on a slope.
      *
