@@ -379,18 +379,6 @@ namespace physics_constants
     /// Surfaces with cos(θ) > this value (~2.5 degrees) use simplified physics
     constexpr float FLAT_SURFACE_THRESHOLD = 0.999F;
 
-    /// Stopping velocity threshold for roll phase (ft/s)
-    /// Below this, ball is considered stopped and simulation completes
-    constexpr float STOPPING_VELOCITY = 0.1F;
-
-    // ========================================================================
-    // SPIN DECAY DURING ROLLING
-    // ========================================================================
-
-    /// Spin decay rate during rolling phase (rad/s per second)
-    /// Ground friction causes faster spin decay than in air
-    constexpr float ROLL_SPIN_DECAY_RATE = 2.0F;
-
 } // namespace physics_constants
 
 #endif // PHYSICS_CONSTANTS_HPP

@@ -227,7 +227,7 @@ TEST(TerrainInterfaceTest, BallRollsDownSlope)
     ShotPhysicsContext physicsVars(ball, atmos);
 
     // Create roll phase
-    RollPhase roll(physicsVars, ball, atmos, terrain);
+    RollPhase roll(terrain);
 
     // Ball rolling slowly on slope
     BallState state;

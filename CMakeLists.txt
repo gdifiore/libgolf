@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(golf VERSION 4.2.0 LANGUAGES CXX)
+project(golf VERSION 4.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -45,6 +45,8 @@ set(HEADERS
    ${PROJECT_INCLUDE_DIR}/terrain_interface.hpp
    ${PROJECT_INCLUDE_DIR}/ground_physics.hpp
    ${PROJECT_INCLUDE_DIR}/physics_constants.hpp
+   ${PROJECT_INCLUDE_DIR}/RollModel.hpp
+   ${PROJECT_INCLUDE_DIR}/DefaultRollModel.hpp
 )
 
 # Create the static library
@@ -102,6 +104,8 @@ if(NOT EMSCRIPTEN)
         ${PROJECT_TEST_DIR}/test_ground_physics.cpp
         ${PROJECT_TEST_DIR}/test_bounce_model.cpp
         ${PROJECT_TEST_DIR}/test_default_bounce_model.cpp
+        ${PROJECT_TEST_DIR}/test_roll_model.cpp
+        ${PROJECT_TEST_DIR}/test_default_roll_model.cpp
         ${PROJECT_SRC_DIR}/ShotPhysicsContext.cpp
         ${PROJECT_SRC_DIR}/math_utils.cpp
     )
