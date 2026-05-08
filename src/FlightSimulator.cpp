@@ -21,13 +21,14 @@ FlightSimulator::FlightSimulator(
 	const AtmosphericData &atmos,
 	const GroundSurface &ground,
 	std::shared_ptr<AerodynamicModel> aeroModel,
-	std::shared_ptr<BounceModel> bounceModel)
+	std::shared_ptr<BounceModel> bounceModel,
+	std::shared_ptr<RollModel> rollModel)
 	: currentPhase(Phase::Aerial),
 	  physicsVars_(launch, atmos),
 	  terrainStorage_(std::make_shared<FlatTerrain>(ground)),
 	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel),
 	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, bounceModel),
-	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
+	  rollPhase(terrainStorage_, rollModel)
 {
 	initializeFromLaunch(launch);
 }
@@ -37,13 +38,14 @@ FlightSimulator::FlightSimulator(
 	const AtmosphericData &atmos,
 	std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> aeroModel,
-	std::shared_ptr<BounceModel> bounceModel)
+	std::shared_ptr<BounceModel> bounceModel,
+	std::shared_ptr<RollModel> rollModel)
 	: currentPhase(Phase::Aerial),
 	  physicsVars_(launch, atmos),
 	  terrainStorage_(terrain),
 	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel),
 	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, bounceModel),
-	  rollPhase(physicsVars_, launch, atmos, terrainStorage_)
+	  rollPhase(terrainStorage_, rollModel)
 {
 	initializeFromLaunch(launch);
 }

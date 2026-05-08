@@ -4,6 +4,7 @@
 #include "AerodynamicModel.hpp"
 #include "BallState.hpp"
 #include "BounceModel.hpp"
+#include "RollModel.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
@@ -148,16 +149,16 @@ private:
 class RollPhase : public FlightPhase
 {
 public:
-	RollPhase(ShotPhysicsContext &physicsVars,
-	          const LaunchData &launch,
-	          const AtmosphericData &atmos,
-	          std::shared_ptr<TerrainInterface> terrain);
+	RollPhase(std::shared_ptr<TerrainInterface> terrain,
+	          std::shared_ptr<RollModel> model = nullptr);
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;
 
 private:
 	std::shared_ptr<TerrainInterface> terrain;
+	std::shared_ptr<RollModel> model;
+	bool atRest = false;
 };
 
 #endif // FLIGHTPHASE_HPP

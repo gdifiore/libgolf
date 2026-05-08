@@ -25,6 +25,8 @@ chmod +x build.sh
 - Dynamic ground surfaces - fairways, roughs, greens, elevation changes
 - 3D terrain system with slopes and varying surface normals
 - Pluggable aerodynamic model — implement custom Cd/Cl/spin-decay behaviour
+- Pluggable bounce model — replace COR/friction/spin physics on impact
+- Pluggable roll model — replace friction law, integrator, and stop criterion
 - Efficient step-by-step numerical integration
 
 ## Documentation
@@ -32,6 +34,8 @@ chmod +x build.sh
 - [Getting Started](/docs/how.md) - Basic usage and examples
 - [Terrain System](/docs/terrain.md) - Custom terrain with elevation, slopes, and varying surfaces
 - [Aerodynamic Models](/docs/aerodynamic_model.md) - Custom drag, lift, and spin-decay models
+- [Bounce Models](/docs/bounce_model.md) - Custom ball-ground bounce physics
+- [Roll Models](/docs/roll_model.md) - Custom rolling friction and stopping criteria
 
 ### Quick Example
 

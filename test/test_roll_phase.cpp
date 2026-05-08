@@ -41,7 +41,7 @@ protected:
 TEST_F(RollPhaseTest, DeceleratesFromRollingFriction)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	// Ball rolling on ground at 10 ft/s
 	BallState state;
@@ -63,7 +63,7 @@ TEST_F(RollPhaseTest, DeceleratesFromRollingFriction)
 TEST_F(RollPhaseTest, KeepsBallOnGround)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	BallState state;
 	state.position = {0.0F, 0.0F, 5.0F}; // Start above ground
@@ -81,7 +81,7 @@ TEST_F(RollPhaseTest, KeepsBallOnGround)
 TEST_F(RollPhaseTest, UpdatesPositionBasedOnVelocity)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	BallState state;
 	state.position = {0.0F, 0.0F, 0.0F};
@@ -101,7 +101,7 @@ TEST_F(RollPhaseTest, UpdatesPositionBasedOnVelocity)
 TEST_F(RollPhaseTest, PreservesDirectionWhileSlowing)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	// Ball rolling at 45 degrees
 	BallState state;
@@ -123,7 +123,7 @@ TEST_F(RollPhaseTest, PreservesDirectionWhileSlowing)
 TEST_F(RollPhaseTest, StopsWhenVelocityTooLow)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	// Ball rolling very slowly
 	BallState state;
@@ -154,7 +154,7 @@ TEST_F(RollPhaseTest, StopsWhenVelocityTooLow)
 TEST_F(RollPhaseTest, DoesNotReverseDirection)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	// Ball rolling slowly forward
 	BallState state;
@@ -177,12 +177,12 @@ TEST_F(RollPhaseTest, HigherFrictionSlowsFaster)
 	// Low friction surface (fairway)
 	ground.frictionDynamic = 0.15F;
 	auto terrainLow = std::make_shared<FlatTerrain>(ground);
-	RollPhase rollLow(physicsVars, ball, atmos, terrainLow);
+	RollPhase rollLow(terrainLow);
 
 	// High friction surface (rough)
 	ground.frictionDynamic = 0.5F;
 	auto terrainHigh = std::make_shared<FlatTerrain>(ground);
-	RollPhase rollHigh(physicsVars, ball, atmos, terrainHigh);
+	RollPhase rollHigh(terrainHigh);
 
 	// Same initial state
 	BallState stateLow, stateHigh;
@@ -207,7 +207,7 @@ TEST_F(RollPhaseTest, NonZeroGroundHeight)
 	terrain = std::make_shared<FlatTerrain>(ground);  // Recreate with updated ground
 
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	BallState state;
 	state.position = {0.0F, 0.0F, 0.0F}; // Start at z=0
@@ -224,7 +224,7 @@ TEST_F(RollPhaseTest, NonZeroGroundHeight)
 TEST_F(RollPhaseTest, EventuallyStops)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	BallState state;
 	state.position = {0.0F, 0.0F, 0.0F};
@@ -252,7 +252,7 @@ TEST_F(RollPhaseTest, EventuallyStops)
 TEST_F(RollPhaseTest, HandlesNegativeSpinRate)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	// Ball rolling with backspin (negative spin rate)
 	BallState state;
@@ -276,7 +276,7 @@ TEST_F(RollPhaseTest, HandlesNegativeSpinRate)
 TEST_F(RollPhaseTest, SpinDecaysToZeroFromNegative)
 {
 	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, terrain);
+	RollPhase roll(terrain);
 
 	// Ball rolling slowly with small backspin
 	BallState state;
@@ -334,8 +334,7 @@ TEST_F(RollPhaseTest, BallCanStartRollingFromNearZeroVelocityOnSlope)
 
 	auto slopedTerrain = std::make_shared<TestSlopedTerrain>(ground);
 
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(physicsVars, ball, atmos, slopedTerrain);
+	RollPhase roll(slopedTerrain);
 
 	// Ball starting with very small velocity (just above MIN_VELOCITY_THRESHOLD)
 	// This tests that the velocity reversal fix allows the ball to accelerate

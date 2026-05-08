@@ -2,7 +2,11 @@
 #define LIBGOLF_HPP
 
 #include "AerodynamicModel.hpp"
+#include "BounceModel.hpp"
 #include "DefaultAerodynamicModel.hpp"
+#include "DefaultBounceModel.hpp"
+#include "DefaultRollModel.hpp"
+#include "RollModel.hpp"
 #include "FlightSimulator.hpp"
 #include "FlightPhase.hpp"
 #include "ShotPhysicsContext.hpp"

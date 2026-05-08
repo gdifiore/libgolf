@@ -12,6 +12,7 @@
 #include "FlightPhase.hpp"
 #include "DefaultAerodynamicModel.hpp"
 #include "DefaultBounceModel.hpp"
+#include "DefaultRollModel.hpp"
 #include "atmospheric_data.hpp"
 #include "math_utils.hpp"
 #include "launch_data.hpp"
@@ -271,11 +272,10 @@ bool BouncePhase::isPhaseComplete(const BallState &state) const
 // ============================================================================
 
 RollPhase::RollPhase(
-	[[maybe_unused]] ShotPhysicsContext &physicsVars,
-	[[maybe_unused]] const LaunchData &launch,
-	[[maybe_unused]] const AtmosphericData &atmos,
-	std::shared_ptr<TerrainInterface> terrain)
-	: terrain(terrain)
+	std::shared_ptr<TerrainInterface> terrain,
+	std::shared_ptr<RollModel> model)
+	: terrain(terrain),
+	  model(model ? std::move(model) : std::make_shared<DefaultRollModel>())
 {
 	if (!terrain)
 	{
@@ -285,56 +285,35 @@ RollPhase::RollPhase(
 
 void RollPhase::calculateStep(BallState &state, float dt)
 {
-	Vector3D surfaceNormal = terrain->getNormal(state.position[0], state.position[1]);
+	const Vector3D surfaceNormal = terrain->getNormal(state.position[0], state.position[1]);
 	const GroundSurface &surface = terrain->getSurfaceProperties(state.position[0], state.position[1]);
 
-	float oldVelX = state.velocity[0];
-	float oldVelY = state.velocity[1];
+	const RollState rollState{
+		state.position,
+		state.velocity,
+		state.spinVector,
+		surfaceNormal,
+		physics_constants::STD_BALL_RADIUS_FT,
+		dt
+	};
 
-	state.acceleration = GroundPhysics::calculateRollAcceleration(state.velocity, surfaceNormal, 0.0F, surface);
+	const RollResult result = model->step(rollState, surface);
 
-	state.velocity[0] += state.acceleration[0] * dt;
-	state.velocity[1] += state.acceleration[1] * dt;
-	state.velocity[2] += state.acceleration[2] * dt;
+	state.position = result.newPosition;
+	state.velocity = result.newVelocity;
+	state.spinVector = result.newSpinVector;
 
-	if (std::abs(oldVelX) > physics_constants::STOPPING_VELOCITY && oldVelX * state.velocity[0] < 0.0F)
-	{
-		state.velocity[0] = 0.0F;
-	}
-	if (std::abs(oldVelY) > physics_constants::STOPPING_VELOCITY && oldVelY * state.velocity[1] < 0.0F)
-	{
-		state.velocity[1] = 0.0F;
-	}
-
-	state.position[0] += state.velocity[0] * dt;
-	state.position[1] += state.velocity[1] * dt;
-
-	float terrainHeight = terrain->getHeight(state.position[0], state.position[1]);
+	// Library owns terrain clamping — the model has no terrain access.
+	const float terrainHeight = terrain->getHeight(state.position[0], state.position[1]);
 	state.position[2] = terrainHeight;
 	state.velocity[2] = 0.0F;
 
-	// Linear spin decay: rolling friction applies approximately constant torque.
-	// Magnitude decreases by a fixed amount per second; axis direction is preserved.
-	const float spinMag   = math_utils::magnitude(state.spinVector);
-	const float spinDecay = physics_constants::ROLL_SPIN_DECAY_RATE * dt;
-	if (spinMag > spinDecay)
-	{
-		const float scale = (spinMag - spinDecay) / spinMag;
-		state.spinVector[0] *= scale;
-		state.spinVector[1] *= scale;
-		state.spinVector[2] *= scale;
-	}
-	else
-	{
-		state.spinVector = {0.0F, 0.0F, 0.0F};
-	}
-
 	state.currentTime += dt;
+	atRest = result.atRest;
 }
 
 bool RollPhase::isPhaseComplete(const BallState &state) const
 {
-	float vHorizontal = std::sqrt(state.velocity[0] * state.velocity[0] +
-	                              state.velocity[1] * state.velocity[1]);
-	return vHorizontal < physics_constants::STOPPING_VELOCITY;
+	(void)state;
+	return atRest;
 }
