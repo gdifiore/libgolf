@@ -36,6 +36,14 @@ chmod +x build.sh
 - [Aerodynamic Models](/docs/aerodynamic_model.md) - Custom drag, lift, and spin-decay models
 - [Bounce Models](/docs/bounce_model.md) - Custom ball-ground bounce physics
 - [Roll Models](/docs/roll_model.md) - Custom rolling friction and stopping criteria
+- [WebAssembly Build](/docs/wasm.md) - Compile to wasm and use libgolf from JavaScript
+
+### Web Visualizer
+
+A 3D ball-flight visualizer powered by the wasm build is hosted on GitHub Pages:
+**[gdifiore.github.io/libgolf](https://gdifiore.github.io/libgolf/)**.
+
+Source: [`examples/web/index.html`](/examples/web/index.html). To run locally, see [docs/wasm.md](/docs/wasm.md).
 
 ### Quick Example
 

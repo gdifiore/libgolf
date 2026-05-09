@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>libgolf — Ball Flight Visualizer</title>
+  <meta name="description" content="Interactive 3D ball flight visualizer powered by libgolf, a C++ golf physics library compiled to WebAssembly." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+
+  <script type="importmap">
+  {"imports": {"three": "https://unpkg.com/three@0.165.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"}}
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-w: 300px;
+      --statsbar-h: 60px;
+      /* Tournament Green palette — clubhouse / Sunday-afternoon */
+      --accent:  #d4a24c;          /* brass */
+      --accent2: #f0c971;          /* warm gold */
+      --accent3: #b48235;          /* dark brass */
+      --forest-deep: #0a1f15;
+      --forest:      #0f2a1d;
+      --turf:        #1a3a28;
+      --bg-sidebar: rgba(15, 42, 29, 0.92);
+      --bg-stat:    rgba(10, 31, 21, 0.88);
+      --border:        rgba(244, 236, 214, 0.10);
+      --border-strong: rgba(244, 236, 214, 0.20);
+      --text:  #f4ecd6;            /* cream */
+      --muted: #b8a980;            /* warm tan */
+      --track-bg: rgba(244, 236, 214, 0.10);
+      --chip-bg:        rgba(244, 236, 214, 0.05);
+      --chip-bg-active: rgba(212, 162, 76, 0.18);
+      --font: 'DM Sans', system-ui, sans-serif;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--forest-deep);
+      font-family: var(--font);
+      color: var(--text);
+    }
+
+    /* ── Loading overlay ── */
+    #loading-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: var(--forest-deep);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px;
+      transition: opacity 0.5s ease;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .loader-logo {
+      font-size: 28px; font-weight: 600; letter-spacing: -0.5px;
+      color: #fff;
+    }
+    .loader-logo span { color: var(--accent); }
+
+    .loader-bar-wrap {
+      width: 200px; height: 3px;
+      background: rgba(244,236,214,0.10);
+      border-radius: 99px; overflow: hidden;
+    }
+    .loader-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 99px;
+      animation: loadpulse 1.4s ease-in-out infinite;
+    }
+    @keyframes loadpulse {
+      0%   { width: 0%;   margin-left: 0%; }
+      50%  { width: 60%;  margin-left: 20%; }
+      100% { width: 0%;   margin-left: 100%; }
+    }
+    .loader-text {
+      font-size: 13px; color: var(--muted); font-weight: 300;
+    }
+
+    /* ── Layout ── */
+    #app {
+      display: flex;
+      width: 100%; height: 100%;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-w);
+      height: 100%;
+      background: var(--bg-sidebar);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-track { background: transparent; }
+    #sidebar::-webkit-scrollbar-thumb { background: rgba(244,236,214,0.18); border-radius: 4px; }
+
+    .sidebar-header {
+      padding: 22px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h1 {
+      font-size: 20px; font-weight: 600; letter-spacing: -0.3px;
+    }
+    .sidebar-header h1 span { color: var(--accent); }
+    .sidebar-header p {
+      font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 300;
+    }
+    .sidebar-header a.repo-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      margin-top: 8px;
+      font-size: 11px; color: var(--muted); text-decoration: none;
+      font-weight: 400;
+      transition: color 0.15s ease;
+    }
+    .sidebar-header a.repo-link:hover { color: var(--accent2); }
+    .sidebar-header a.repo-link svg { width: 12px; height: 12px; }
+
+    .sidebar-section {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-section:last-child { border-bottom: none; }
+
+    /* Native <details> sections */
+    details.sidebar-section { padding: 0; }
+    details.sidebar-section > summary {
+      list-style: none;
+      padding: 14px 20px;
+      cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      user-select: none;
+    }
+    details.sidebar-section > summary::-webkit-details-marker { display: none; }
+    details.sidebar-section > summary::after {
+      content: '+';
+      color: var(--muted);
+      font-size: 14px; font-weight: 300;
+      transition: transform 0.2s ease;
+    }
+    details.sidebar-section[open] > summary::after { content: '–'; }
+    details.sidebar-section .details-body {
+      padding: 0 20px 14px;
+    }
+
+    .section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 14px;
+    }
+    details.sidebar-section > summary .section-label { margin-bottom: 0; }
+
+    /* Preset chip row */
+    .chip-row {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 14px;
+    }
+    .chip {
+      padding: 5px 10px;
+      background: var(--chip-bg);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 11px; font-weight: 500;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+    .chip:hover { background: rgba(244,236,214,0.08); }
+    .chip.active {
+      background: var(--chip-bg-active);
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+
+    .control-row { margin-bottom: 16px; }
+    .control-row:last-child { margin-bottom: 0; }
+
+    .control-header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 7px;
+    }
+    .control-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .control-value {
+      font-size: 13px; font-weight: 600;
+      color: var(--accent2);
+      font-variant-numeric: tabular-nums;
+      min-width: 64px; text-align: right;
+    }
+    .unit { font-size: 10px; font-weight: 400; color: var(--muted); }
+
+    /* custom range */
+    input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px;
+      border-radius: 99px;
+      background: var(--track-bg);
+      outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%; background: #fff;
+      box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0,0,0,0.5);
+      transition: transform 0.12s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:active { transform: scale(1.25); }
+    input[type=range]::-moz-range-thumb {
+      width: 14px; height: 14px;
+      border-radius: 50%; border: none;
+      background: #fff;
+      box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0,0,0,0.5);
+    }
+
+    /* ── Canvas area ── */
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #three-canvas {
+      display: block;
+      width: 100%; height: 100%;
+    }
+
+    /* Mobile sidebar toggle */
+    #sidebar-toggle {
+      display: none;
+      position: absolute;
+      top: 12px; left: 12px;
+      z-index: 20;
+      width: 36px; height: 36px;
+      background: rgba(10, 31, 21, 0.85);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+    }
+
+    /* ── Stats bar ── */
+    #statsbar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: var(--statsbar-h);
+      background: var(--bg-stat);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 20px;
+      gap: 0;
+    }
+
+    .stat-block {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      position: relative;
+      min-width: 0;
+    }
+    .stat-block + .stat-block::before {
+      content: '';
+      position: absolute; left: 0; top: 22%; bottom: 22%;
+      width: 1px;
+      background: var(--border);
+    }
+    .stat-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .stat-value {
+      font-size: 17px; font-weight: 600; letter-spacing: -0.3px;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-unit { font-size: 11px; color: var(--muted); font-weight: 300; margin-left: 2px; }
+
+    /* ── Run button ── */
+    #run-btn {
+      display: block;
+      width: calc(100% - 40px);
+      margin: 14px 20px 18px;
+      padding: 11px 0;
+      background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
+      color: var(--forest-deep);
+      font-family: var(--font);
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 0.3px;
+      border: none; border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.15s ease, transform 0.12s ease;
+    }
+    #run-btn:hover { opacity: 0.92; }
+    #run-btn:active { transform: scale(0.98); }
+
+    /* ── Error toast ── */
+    #error-toast {
+      position: fixed;
+      bottom: calc(var(--statsbar-h) + 12px);
+      left: calc(var(--sidebar-w) + 16px);
+      background: rgba(220, 38, 38, 0.92);
+      color: #fff;
+      font-size: 13px; font-weight: 500;
+      padding: 10px 16px;
+      border-radius: 8px;
+      max-width: 360px;
+      display: none;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 720px) {
+      :root { --sidebar-w: 280px; }
+      #sidebar {
+        position: absolute;
+        left: 0; top: 0;
+        height: 100%;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 6px 0 24px rgba(0,0,0,0.4);
+      }
+      #sidebar.open { transform: translateX(0); }
+      #sidebar-toggle { display: block; }
+      #error-toast { left: 16px; right: 16px; max-width: none; }
+      .stat-value { font-size: 15px; }
+      .stat-block:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="loader-logo">lib<span>golf</span></div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">Initializing physics engine…</div>
+</div>
+
+<!-- Main app -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <h1>lib<span>golf</span></h1>
+      <p>Ball Flight Visualizer</p>
+      <a class="repo-link" href="https://github.com/gdifiore/libgolf" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+        github.com/gdifiore/libgolf
+      </a>
+    </div>
+
+    <!-- Club presets -->
+    <div class="sidebar-section">
+      <div class="section-label">Club Preset</div>
+      <div class="chip-row" id="club-presets">
+        <button class="chip" data-club="driver">Driver</button>
+        <button class="chip" data-club="6iron">6 Iron</button>
+        <button class="chip" data-club="9iron">9 Iron</button>
+        <button class="chip" data-club="wedge">Wedge</button>
+      </div>
+    </div>
+
+    <!-- Ball -->
+    <div class="sidebar-section">
+      <div class="section-label">Ball</div>
+
+      <div class="control-row">
+        <div class="control-header">
+          <span class="control-name">Ball Speed</span>
+          <span class="control-value" id="val-speed">160 <span class="unit">mph</span></span>
+        </div>
+        <input type="range" id="sl-speed" min="60" max="200" step="1" value="160" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-header">
+          <span class="control-name">Launch Angle</span>
+          <span class="control-value" id="val-launch">12 <span class="unit">°</span></span>
+        </div>
+        <input type="range" id="sl-launch" min="2" max="45" step="0.5" value="12" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-header">
+          <span class="control-name">Backspin</span>
+          <span class="control-value" id="val-backspin">3000 <span class="unit">rpm</span></span>
+        </div>
+        <input type="range" id="sl-backspin" min="500" max="12000" step="50" value="3000" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-header">
+          <span class="control-name">Sidespin</span>
+          <span class="control-value" id="val-sidespin">0 <span class="unit">rpm</span></span>
+        </div>
+        <input type="range" id="sl-sidespin" min="-3000" max="3000" step="50" value="0" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-header">
+          <span class="control-name">Direction</span>
+          <span class="control-value" id="val-direction">0 <span class="unit">°</span></span>
+        </div>
+        <input type="range" id="sl-direction" min="-30" max="30" step="0.5" value="0" />
+      </div>
+    </div>
+
+    <!-- Atmosphere -->
+    <details class="sidebar-section">
+      <summary><span class="section-label">Atmosphere</span></summary>
+      <div class="details-body">
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name">Wind Speed</span>
+            <span class="control-value" id="val-windspeed">0 <span class="unit">mph</span></span>
+          </div>
+          <input type="range" id="sl-windspeed" min="0" max="40" step="0.5" value="0" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name" title="0 = cross from L · 90 = headwind · 180 = tailwind · 270 = cross from R">Wind Direction</span>
+            <span class="control-value" id="val-winddir">90 <span class="unit">°</span></span>
+          </div>
+          <input type="range" id="sl-winddir" min="0" max="360" step="1" value="90" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name">Temperature</span>
+            <span class="control-value" id="val-temp">70 <span class="unit">°F</span></span>
+          </div>
+          <input type="range" id="sl-temp" min="20" max="110" step="1" value="70" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name">Elevation</span>
+            <span class="control-value" id="val-elev">0 <span class="unit">ft</span></span>
+          </div>
+          <input type="range" id="sl-elev" min="0" max="10000" step="100" value="0" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name">Humidity</span>
+            <span class="control-value" id="val-humid">50 <span class="unit">%</span></span>
+          </div>
+          <input type="range" id="sl-humid" min="0" max="100" step="1" value="50" />
+        </div>
+      </div>
+    </details>
+
+    <!-- Surface -->
+    <details class="sidebar-section">
+      <summary><span class="section-label">Surface</span></summary>
+      <div class="details-body">
+        <div class="chip-row" id="surface-presets">
+          <button class="chip active" data-surface="fairway">Fairway</button>
+          <button class="chip" data-surface="rough">Rough</button>
+          <button class="chip" data-surface="green">Green</button>
+          <button class="chip" data-surface="hardpan">Hardpan</button>
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name">Restitution</span>
+            <span class="control-value" id="val-rest">0.45</span>
+          </div>
+          <input type="range" id="sl-rest" min="0.05" max="0.85" step="0.01" value="0.45" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name">Roll Friction</span>
+            <span class="control-value" id="val-fdyn">0.20</span>
+          </div>
+          <input type="range" id="sl-fdyn" min="0.05" max="0.80" step="0.01" value="0.20" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-header">
+            <span class="control-name">Firmness</span>
+            <span class="control-value" id="val-firm">0.85</span>
+          </div>
+          <input type="range" id="sl-firm" min="0.05" max="1.20" step="0.01" value="0.85" />
+        </div>
+      </div>
+    </details>
+
+    <button id="run-btn">Re-simulate</button>
+  </aside>
+
+  <!-- 3D viewport -->
+  <div id="canvas-wrap">
+    <button id="sidebar-toggle" aria-label="Toggle controls">☰</button>
+    <canvas id="three-canvas"></canvas>
+
+    <!-- Stats bar -->
+    <div id="statsbar">
+      <div class="stat-block">
+        <div class="stat-label">Carry</div>
+        <div class="stat-value" id="stat-carry">—<span class="stat-unit">yd</span></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">Total</div>
+        <div class="stat-value" id="stat-total">—<span class="stat-unit">yd</span></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">Apex</div>
+        <div class="stat-value" id="stat-apex">—<span class="stat-unit">yd</span></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">Offline</div>
+        <div class="stat-value" id="stat-offline">—<span class="stat-unit">yd</span></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">Hang</div>
+        <div class="stat-value" id="stat-tof">—<span class="stat-unit">s</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="error-toast"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const $ = id => document.getElementById(id);
+
+function showError(msg) {
+  const t = $('error-toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.display = 'none'; }, 5000);
+}
+
+// ─── Slider bindings ──────────────────────────────────────────────────────────
+
+const sliders = {
+  speed:     { el: $('sl-speed'),     val: $('val-speed'),     unit: 'mph' },
+  launch:    { el: $('sl-launch'),    val: $('val-launch'),    unit: '°' },
+  backspin:  { el: $('sl-backspin'),  val: $('val-backspin'),  unit: 'rpm' },
+  sidespin:  { el: $('sl-sidespin'),  val: $('val-sidespin'),  unit: 'rpm' },
+  direction: { el: $('sl-direction'), val: $('val-direction'), unit: '°' },
+  windspeed: { el: $('sl-windspeed'), val: $('val-windspeed'), unit: 'mph' },
+  winddir:   { el: $('sl-winddir'),   val: $('val-winddir'),   unit: '°' },
+  temp:      { el: $('sl-temp'),      val: $('val-temp'),      unit: '°F' },
+  elev:      { el: $('sl-elev'),      val: $('val-elev'),      unit: 'ft' },
+  humid:     { el: $('sl-humid'),     val: $('val-humid'),     unit: '%' },
+  rest:      { el: $('sl-rest'),      val: $('val-rest'),      unit: '' },
+  fdyn:      { el: $('sl-fdyn'),      val: $('val-fdyn'),      unit: '' },
+  firm:      { el: $('sl-firm'),      val: $('val-firm'),      unit: '' },
+};
+
+let debounceTimer = null;
+function fmtSlider(s) {
+  const v = s.el.value;
+  return s.unit
+    ? `${v} <span class="unit">${s.unit}</span>`
+    : parseFloat(v).toFixed(2);
+}
+
+Object.values(sliders).forEach(s => {
+  s.el.addEventListener('input', () => {
+    s.val.innerHTML = fmtSlider(s);
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(runSim, 120);
+  });
+});
+
+$('run-btn').addEventListener('click', runSim);
+
+const CLUB_PRESETS = {
+  driver:  { speed: 160, launch: 12, backspin: 2600, sidespin: 0 },
+  '6iron': { speed: 130, launch: 18, backspin: 5500, sidespin: 0 },
+  '9iron': { speed: 105, launch: 26, backspin: 8200, sidespin: 0 },
+  wedge:   { speed:  80, launch: 32, backspin: 9500, sidespin: 0 },
+};
+
+document.querySelectorAll('#club-presets .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const c = CLUB_PRESETS[chip.dataset.club];
+    sliders.speed.el.value    = c.speed;
+    sliders.launch.el.value   = c.launch;
+    sliders.backspin.el.value = c.backspin;
+    sliders.sidespin.el.value = c.sidespin;
+    [sliders.speed, sliders.launch, sliders.backspin, sliders.sidespin].forEach(s => {
+      s.val.innerHTML = fmtSlider(s);
+    });
+    document.querySelectorAll('#club-presets .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    runSim();
+  });
+});
+
+const SURFACE_PRESETS = {
+  fairway: { rest: 0.45, fdyn: 0.20, firm: 0.85 },
+  rough:   { rest: 0.25, fdyn: 0.55, firm: 0.40 },
+  green:   { rest: 0.35, fdyn: 0.12, firm: 0.75 },
+  hardpan: { rest: 0.65, fdyn: 0.18, firm: 1.10 },
+};
+
+document.querySelectorAll('#surface-presets .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const s = SURFACE_PRESETS[chip.dataset.surface];
+    sliders.rest.el.value = s.rest;
+    sliders.fdyn.el.value = s.fdyn;
+    sliders.firm.el.value = s.firm;
+    [sliders.rest, sliders.fdyn, sliders.firm].forEach(sl => {
+      sl.val.innerHTML = fmtSlider(sl);
+    });
+    document.querySelectorAll('#surface-presets .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    runSim();
+  });
+});
+
+$('sidebar-toggle').addEventListener('click', () => {
+  $('sidebar').classList.toggle('open');
+});
+
+function getLaunch() {
+  return {
+    ballSpeedMph:   parseFloat(sliders.speed.el.value),
+    launchAngleDeg: parseFloat(sliders.launch.el.value),
+    directionDeg:   parseFloat(sliders.direction.el.value),
+    backspinRpm:    parseFloat(sliders.backspin.el.value),
+    sidespinRpm:    parseFloat(sliders.sidespin.el.value),
+    startX: 0, startY: 0, startZ: 0,
+  };
+}
+function getAtmos() {
+  return {
+    temp:        parseFloat(sliders.temp.el.value),
+    elevation:   parseFloat(sliders.elev.el.value),
+    vWind:       parseFloat(sliders.windspeed.el.value),
+    phiWind:     parseFloat(sliders.winddir.el.value),
+    hWind:       0,
+    relHumidity: parseFloat(sliders.humid.el.value),
+    pressure:    29.92,
+  };
+}
+function getGround() {
+  const fdyn = parseFloat(sliders.fdyn.el.value);
+  return {
+    height:          0,
+    restitution:     parseFloat(sliders.rest.el.value),
+    frictionStatic:  Math.min(1.0, fdyn + 0.30),
+    frictionDynamic: fdyn,
+    firmness:        parseFloat(sliders.firm.el.value),
+    spinRetention:   0.75,
+    criticalAngle:   15.0 * Math.PI / 180.0,
+  };
+}
+
+// ─── Three.js scene ───────────────────────────────────────────────────────────
+
+const canvas = $('three-canvas');
+const canvasWrap = $('canvas-wrap');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+// Clear-morning tournament sky: pale cream horizon → soft blue zenith
+scene.background = new THREE.Color(0xc8d6dc);
+scene.fog = new THREE.FogExp2(0xc8d6dc, 0.0035);
+
+{
+  const skyGeo = new THREE.SphereGeometry(1200, 16, 8);
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    vertexShader: `
+      varying vec3 vPos;
+      void main() {
+        vPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vPos;
+      void main() {
+        float t = clamp((vPos.y + 100.0) / 400.0, 0.0, 1.0);
+        vec3 horizon = vec3(0.82, 0.87, 0.88);  /* pale sky cream */
+        vec3 zenith  = vec3(0.36, 0.55, 0.66);  /* muted clear blue */
+        gl_FragColor = vec4(mix(horizon, zenith, t), 1.0);
+      }
+    `,
+  });
+  scene.add(new THREE.Mesh(skyGeo, skyMat));
+}
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 3000);
+camera.position.set(-20, 30, 30);
+camera.lookAt(0, 0, -80);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.minDistance = 10;
+controls.maxDistance = 800;
+controls.maxPolarAngle = Math.PI * 0.48;
+controls.target.set(0, 0, -80);
+
+scene.add(new THREE.AmbientLight(0xfff2d4, 0.65));
+
+// Warm low-angle sun, like late-afternoon at Augusta
+const sunLight = new THREE.DirectionalLight(0xffe0a8, 1.7);
+sunLight.position.set(80, 90, 60);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.near = 1;
+sunLight.shadow.camera.far = 600;
+sunLight.shadow.camera.left = -300;
+sunLight.shadow.camera.right = 300;
+sunLight.shadow.camera.top = 300;
+sunLight.shadow.camera.bottom = -300;
+sunLight.shadow.bias = -0.0002;
+scene.add(sunLight);
+
+// ── Fairway ──────────────────────────────────────────────────────────────────
+
+const FAIRWAY_W = 300;
+const FAIRWAY_L = 600;
+
+const fairwayGeo = new THREE.PlaneGeometry(FAIRWAY_W, FAIRWAY_L, 40, 120);
+fairwayGeo.rotateX(-Math.PI / 2);
+
+const fairwayColors = [];
+const fairwayPosAttr = fairwayGeo.attributes.position;
+for (let i = 0; i < fairwayPosAttr.count; i++) {
+  const x = fairwayPosAttr.getX(i);
+  const z = fairwayPosAttr.getZ(i);
+  const n = (Math.sin(x * 0.4 + z * 0.15) * 0.5 + Math.cos(x * 0.2 - z * 0.3) * 0.5);
+  // Deeper tournament-turf: slight stripe banding via sin(z * 0.06)
+  const stripe = Math.sin(z * 0.065) * 0.04;
+  const r = 0.10 + n * 0.04;
+  const g = 0.40 + n * 0.08 + stripe;
+  const b = 0.18 + n * 0.03;
+  fairwayColors.push(r, g, b);
+}
+fairwayGeo.setAttribute('color', new THREE.Float32BufferAttribute(fairwayColors, 3));
+
+const fairwayMat = new THREE.MeshLambertMaterial({ vertexColors: true, color: 0xffffff });
+const fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
+fairway.receiveShadow = true;
+fairway.position.set(0, -0.01, -(FAIRWAY_L / 2));
+scene.add(fairway);
+
+// ── Grid + labels ─────────────────────────────────────────────────────────────
+
+const gridGroup = new THREE.Group();
+scene.add(gridGroup);
+
+function buildGrid(maxYards) {
+  gridGroup.clear();
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xf4ecd6, transparent: true, opacity: 0.20 });
+  const half = FAIRWAY_W / 2;
+  for (let y = 50; y <= maxYards + 50; y += 50) {
+    const z = -y;
+    const geom = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-half, 0.02, z),
+      new THREE.Vector3( half, 0.02, z),
+    ]);
+    gridGroup.add(new THREE.Line(geom, lineMat));
+  }
+}
+buildGrid(550);
+
+const labelGroup = new THREE.Group();
+scene.add(labelGroup);
+
+function makeDistLabel(yardage) {
+  const w = 128, h = 40;
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+  ctx.font = 'bold 22px DM Sans, sans-serif';
+  ctx.fillStyle = 'rgba(244, 236, 214, 0.72)';  /* cream */
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`${yardage}yd`, w / 2, h / 2);
+  const tex = new THREE.CanvasTexture(cv);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(10, 3.2, 1);
+  sprite.position.set(-(FAIRWAY_W / 2) + 5, 1.0, -yardage);
+  return sprite;
+}
+function buildLabels(maxYards) {
+  labelGroup.clear();
+  for (let y = 50; y <= maxYards + 50; y += 50) {
+    labelGroup.add(makeDistLabel(y));
+  }
+}
+buildLabels(550);
+
+// ── Tee marker ────────────────────────────────────────────────────────────────
+
+const teeGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.08, 24);
+const teeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+const teeMesh = new THREE.Mesh(teeGeo, teeMat);
+teeMesh.position.set(0, 0.04, 0);
+scene.add(teeMesh);
+
+// ── Trajectory objects ────────────────────────────────────────────────────────
+
+let aerialMesh = null;
+let groundMesh = null;
+let carryMarker = null;
+let landingMarker = null;
+let landingLight = null;
+
+function disposeMesh(m) {
+  if (!m) return;
+  scene.remove(m);
+  m.geometry?.dispose();
+  m.material?.dispose();
+}
+function clearTrajectory() {
+  disposeMesh(aerialMesh); aerialMesh = null;
+  disposeMesh(groundMesh); groundMesh = null;
+  disposeMesh(carryMarker); carryMarker = null;
+  disposeMesh(landingMarker); landingMarker = null;
+  if (landingLight) { scene.remove(landingLight); landingLight = null; }
+}
+
+function buildTube(points3, colorStart, colorEnd, radius, emissive) {
+  if (points3.length < 2) return null;
+  const curve = new THREE.CatmullRomCurve3(points3);
+  const numSeg = Math.max(points3.length * 4, 60);
+  const geo = new THREE.TubeGeometry(curve, numSeg, radius, 8, false);
+  const posAttr = geo.attributes.position;
+  const colors = new Float32Array(posAttr.count * 3);
+  const cs = new THREE.Color(colorStart);
+  const ce = new THREE.Color(colorEnd);
+  for (let i = 0; i < posAttr.count; i++) {
+    const t = i / Math.max(1, posAttr.count - 1);
+    const c = new THREE.Color().lerpColors(cs, ce, t);
+    colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.3,
+    metalness: 0.1,
+    emissive: new THREE.Color(emissive),
+    emissiveIntensity: 0.08,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.castShadow = true;
+  scene.add(mesh);
+  return mesh;
+}
+
+function buildTrajectory(points3, carryIdx) {
+  if (points3.length < 2) return;
+
+  const cIdx = Math.min(Math.max(carryIdx, 1), points3.length - 1);
+  const aerial = points3.slice(0, cIdx + 1);
+  if (aerial.length >= 2) {
+    // cream → warm gold → brass
+    aerialMesh = buildTube(aerial, 0xf4ecd6, 0xd4a24c, 0.28, 0xd4a24c);
+  }
+
+  // Only draw a ground segment when there are extra points after carry
+  if (points3.length - cIdx > 2) {
+    const ground = points3.slice(cIdx);
+    // brass → dark walnut
+    groundMesh = buildTube(ground, 0xb48235, 0x4a2e16, 0.16, 0x3a2410);
+  }
+
+  // Carry marker — warm gold
+  const carryPos = points3[cIdx].clone();
+  carryPos.y = Math.max(carryPos.y, 0.15);
+  carryMarker = new THREE.Mesh(
+    new THREE.SphereGeometry(0.42, 16, 16),
+    new THREE.MeshStandardMaterial({
+      color: 0xf0c971, emissive: 0xd4a24c, emissiveIntensity: 0.7, roughness: 0.35,
+    })
+  );
+  carryMarker.position.copy(carryPos);
+  scene.add(carryMarker);
+
+  // Landing marker — brass glow, warm point light
+  const landPos = points3[points3.length - 1].clone();
+  landPos.y = Math.max(landPos.y, 0.25);
+  landingMarker = new THREE.Mesh(
+    new THREE.SphereGeometry(0.6, 20, 20),
+    new THREE.MeshStandardMaterial({
+      color: 0xd4a24c, emissive: 0xb48235, emissiveIntensity: 1.1, roughness: 0.25,
+    })
+  );
+  landingMarker.position.copy(landPos);
+  scene.add(landingMarker);
+
+  landingLight = new THREE.PointLight(0xf0c971, 4, 18);
+  landingLight.position.copy(landPos);
+  scene.add(landingLight);
+}
+
+// ─── Camera framing ───────────────────────────────────────────────────────────
+
+function frameTrajectory(points3) {
+  if (!points3 || points3.length === 0) return;
+
+  const box = new THREE.Box3();
+  points3.forEach(p => box.expandByPoint(p));
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fovRad = camera.fov * Math.PI / 180;
+  const dist = (maxDim / 2) / Math.tan(fovRad / 2) * 1.6;
+
+  const landing = points3[points3.length - 1];
+  const targetPos = new THREE.Vector3(
+    center.x + size.x * 0.1 - 12,
+    center.y + dist * 0.38,
+    landing.z * 0.12 + 18
+  );
+  animateCamera(targetPos, center);
+}
+
+function animateCamera(targetPos, targetLook) {
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+  const dur = 900;
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    camera.position.lerpVectors(startPos, targetPos, ease);
+    controls.target.lerpVectors(startTarget, targetLook, ease);
+    controls.update();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
+function fmt(v, d=1) { return isFinite(v) ? v.toFixed(d) : '—'; }
+
+function updateStats(r) {
+  $('stat-carry').innerHTML  = `${fmt(r.carryYards)}<span class="stat-unit">yd</span>`;
+  $('stat-total').innerHTML  = `${fmt(r.totalYards)}<span class="stat-unit">yd</span>`;
+  $('stat-apex').innerHTML   = `${fmt(r.apexYards)}<span class="stat-unit">yd</span>`;
+  const off = r.offlineYards;
+  const tag = off > 0.1 ? ' <small style="color:#d4a24c;font-size:10px">R</small>'
+            : off < -0.1 ? ' <small style="color:#7da89a;font-size:10px">L</small>' : '';
+  $('stat-offline').innerHTML = `${fmt(Math.abs(off))}<span class="stat-unit">yd</span>${tag}`;
+  $('stat-tof').innerHTML = `${fmt(r.timeOfFlight, 2)}<span class="stat-unit">s</span>`;
+}
+
+// ─── Wasm ─────────────────────────────────────────────────────────────────────
+
+let libgolf = null;
+
+async function initWasm() {
+  try {
+    const { default: createLibGolf } = await import('./libgolf_wasm.js');
+    libgolf = await createLibGolf();
+    hideLoading();
+    runSim();
+  } catch (err) {
+    console.error('Wasm load error:', err);
+    $('loading-overlay').querySelector('.loader-text').textContent = 'Failed to load physics engine.';
+    showError('Could not load libgolf_wasm.js — make sure it is served alongside index.html.');
+  }
+}
+
+function hideLoading() {
+  const ov = $('loading-overlay');
+  ov.classList.add('hidden');
+  setTimeout(() => { ov.style.display = 'none'; }, 600);
+}
+
+function runSim() {
+  if (!libgolf) return;
+
+  let result = null;
+  try {
+    result = libgolf.runShot(getLaunch(), getAtmos(), getGround());
+  } catch (err) {
+    showError('Simulation error: ' + (err.message || err));
+    return;
+  }
+
+  const traj = result.trajectory;
+  const size = traj.size();
+  if (size < 6) {
+    traj.delete();
+    showError('Simulation returned insufficient data.');
+    return;
+  }
+
+  const points3 = [];
+  for (let i = 0; i < size; i += 3) {
+    const px = traj.get(i);
+    const py = traj.get(i + 1);
+    const pz = traj.get(i + 2);
+    // Three.js mapping: x=lateral, y=height(up), z=-downrange
+    points3.push(new THREE.Vector3(px, pz, -py));
+  }
+  traj.delete();
+
+  const r = {
+    carryYards:   result.carryYards,
+    totalYards:   result.totalYards,
+    apexYards:    result.apexYards,
+    offlineYards: result.offlineYards,
+    timeOfFlight: result.timeOfFlight,
+  };
+  const carryIdx = result.carryIndex;
+
+  const maxLabel = Math.ceil(Math.max(r.totalYards, r.carryYards) / 50) * 50 + 50;
+  buildGrid(maxLabel);
+  buildLabels(maxLabel);
+
+  clearTrajectory();
+  buildTrajectory(points3, carryIdx);
+  updateStats(r);
+  frameTrajectory(points3);
+}
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+
+function onResize() {
+  const w = canvasWrap.clientWidth;
+  const h = canvasWrap.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', onResize);
+onResize();
+
+// ─── Render loop ──────────────────────────────────────────────────────────────
+
+let pulseT = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  pulseT += 0.04;
+  if (landingLight) landingLight.intensity = 3.5 + Math.sin(pulseT * 2.8) * 1.0;
+  if (landingMarker) landingMarker.scale.setScalar(1 + Math.sin(pulseT * 2.8) * 0.08);
+  if (carryMarker) carryMarker.scale.setScalar(1 + Math.sin(pulseT * 2.4 + 1) * 0.05);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+initWasm();
+</script>
+</body>
+</html>

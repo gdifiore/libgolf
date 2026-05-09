@@ -1,0 +1,63 @@
+name: Deploy Visualizer to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/web/**'
+      - 'wasm/**'
+      - 'src/**'
+      - 'include/**'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build wasm + assemble site
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Configure CMake (wasm preset)
+        run: cmake --preset wasm
+
+      - name: Build wasm
+        run: cmake --build --preset wasm
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp examples/web/index.html _site/
+          cp build-wasm/libgolf_wasm.js _site/
+          cp build-wasm/libgolf_wasm.wasm _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
