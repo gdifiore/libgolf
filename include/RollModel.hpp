@@ -4,6 +4,8 @@
 #include "ground_surface.hpp"
 #include "math_utils.hpp"
 
+class TerrainInterface;
+
 /**
  * @brief Physical state snapshot passed to the roll model on each step.
  *
@@ -24,6 +26,18 @@ struct RollState
 	Vector3D surfaceNormal;  ///< Unit normal of the surface at the ball position
 	float    ballRadius;     ///< Ball radius (ft)
 	float    dt;             ///< Time step duration (s)
+
+	/**
+	 * @brief Optional terrain handle for sub-step re-sampling.
+	 *
+	 * `surfaceNormal` is a single snapshot at the pre-step position. A
+	 * model that wants to re-query the surface mid-step (e.g. a putting
+	 * model crossing a slope inflection within one tick) can use this
+	 * pointer. May be null when `RollState` is constructed outside the
+	 * simulator (tests, isolated benchmarks). The default model ignores
+	 * it.
+	 */
+	const TerrainInterface* terrain = nullptr;
 };
 
 /**

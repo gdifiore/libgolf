@@ -18,14 +18,17 @@ The model also owns the stop decision through `RollResult::atRest`. A custom mod
 
 ```cpp
 struct RollState {
-    Vector3D position;       // Pre-step position (ft)
-    Vector3D velocity;       // Pre-step velocity (ft/s)
-    Vector3D spinVector;     // Pre-step spin (rad/s)
-    Vector3D surfaceNormal;  // Unit normal at ball position
-    float    ballRadius;     // Ball radius (ft)
-    float    dt;             // Time step (s)
+    Vector3D position;          // Pre-step position (ft)
+    Vector3D velocity;          // Pre-step velocity (ft/s)
+    Vector3D spinVector;        // Pre-step spin (rad/s)
+    Vector3D surfaceNormal;     // Unit normal at ball position (pre-step)
+    float    ballRadius;        // Ball radius (ft)
+    float    dt;                // Time step (s)
+    const TerrainInterface* terrain = nullptr;  // Optional, for sub-step re-sampling
 };
 ```
+
+`surfaceNormal` is a snapshot at the pre-step position. Models that need finer-grained terrain awareness (e.g. a putting model crossing a slope inflection within one tick) can dereference `terrain` to query height, normal, and surface properties at any (x, y). The default model ignores it. The pointer is null when `RollState` is constructed outside the simulator (e.g. in unit tests).
 
 ## RollResult
 
@@ -38,7 +41,7 @@ struct RollResult {
 };
 ```
 
-The library overwrites `newPosition[2]` with the terrain height after the call — the model has no terrain handle and cannot evaluate height itself. Set the X/Y components; Z is advisory.
+The library overwrites `newPosition[2]` with the terrain height after the call. Set the X/Y components; Z is advisory. A model that wants intermediate height values mid-step can read them from `RollState::terrain`, but the post-step Z is always re-clamped by the library.
 
 ## Interface
 

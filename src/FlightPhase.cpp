@@ -308,7 +308,8 @@ void RollPhase::calculateStep(BallState &state, float dt)
 		state.spinVector,
 		surfaceNormal,
 		physics_constants::STD_BALL_RADIUS_FT,
-		dt
+		dt,
+		terrain.get()
 	};
 
 	const RollResult result = model->step(rollState, surface);
@@ -317,7 +318,8 @@ void RollPhase::calculateStep(BallState &state, float dt)
 	state.velocity = result.newVelocity;
 	state.spinVector = result.newSpinVector;
 
-	// Library owns terrain clamping — the model has no terrain access.
+	// Library still owns final terrain clamping even though the model can
+	// peek at terrain mid-step via `RollState::terrain`.
 	const float terrainHeight = terrain->getHeight(state.position[0], state.position[1]);
 	state.position[2] = terrainHeight;
 	state.velocity[2] = 0.0F;
