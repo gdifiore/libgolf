@@ -79,8 +79,8 @@ public:
 	 * @param surface Surface properties at the ball position
 	 * @return        Post-step position, velocity, spin, and atRest flag
 	 */
-	virtual RollResult step(const RollState &state,
-	                        const GroundSurface &surface) const = 0;
+	[[nodiscard]] virtual RollResult step(const RollState &state,
+	                                      const GroundSurface &surface) const = 0;
 
 protected:
 	RollModel() = default;

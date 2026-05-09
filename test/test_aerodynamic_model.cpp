@@ -174,11 +174,11 @@ TEST_F(DefaultModelTest, TauAtTypicalSpeed)
 	    .velocity     = {0.0F, 100.0F, 0.0F},
 	    .windVelocity = {0.0F, 0.0F, 0.0F},
 	    .spinVector   = {0.0F, 0.0F, 0.0F},
-	    .c0           = 0.005682F,
-	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = 123600.0F,
 	    .position     = {0.0F, 0.0F, 0.0F},
 	    .currentTime  = 0.0F,
+	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
+	    .c0           = 0.005682F,
+	    .re100        = 123600.0F,
 	};
 	double r        = static_cast<double>(physics_constants::STD_BALL_RADIUS_FT);
 	double expected = r / (static_cast<double>(DefaultAerodynamicModel::TAU_COEFF) * 100.0);
@@ -192,21 +192,21 @@ TEST_F(DefaultModelTest, TauScalesInverselyWithSpeed)
 	    .velocity     = {0.0F, 50.0F, 0.0F},
 	    .windVelocity = {0.0F, 0.0F, 0.0F},
 	    .spinVector   = {0.0F, 0.0F, 0.0F},
-	    .c0           = 0.005682F,
-	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = 123600.0F,
 	    .position     = {0.0F, 0.0F, 0.0F},
 	    .currentTime  = 0.0F,
+	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
+	    .c0           = 0.005682F,
+	    .re100        = 123600.0F,
 	};
 	AerodynamicState fast{
 	    .velocity     = {0.0F, 100.0F, 0.0F},
 	    .windVelocity = {0.0F, 0.0F, 0.0F},
 	    .spinVector   = {0.0F, 0.0F, 0.0F},
-	    .c0           = 0.005682F,
-	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = 123600.0F,
 	    .position     = {0.0F, 0.0F, 0.0F},
 	    .currentTime  = 0.0F,
+	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
+	    .c0           = 0.005682F,
+	    .re100        = 123600.0F,
 	};
 	EXPECT_NEAR(model.computeSpinDecayTau(slow),
 	            model.computeSpinDecayTau(fast) * 2.0, 0.1);
@@ -222,11 +222,11 @@ TEST_F(DefaultModelTest, ZeroVelocityReturnsZeroAcceleration)
 	    .velocity     = {0.0F, 0.0F, 0.0F},
 	    .windVelocity = {0.0F, 0.0F, 0.0F},
 	    .spinVector   = {314.16F, 0.0F, 0.0F},
-	    .c0           = 0.005682F,
-	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = 123600.0F,
 	    .position     = {0.0F, 0.0F, 0.0F},
 	    .currentTime  = 0.0F,
+	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
+	    .c0           = 0.005682F,
+	    .re100        = 123600.0F,
 	};
 	auto a = model.computeAcceleration(state);
 	EXPECT_NEAR(a[0], 0.0F, 1e-6F);
@@ -241,11 +241,11 @@ TEST_F(DefaultModelTest, DragOpposesBallMotion)
 	    .velocity     = {0.0F, 100.0F, 0.0F},
 	    .windVelocity = {0.0F, 0.0F, 0.0F},
 	    .spinVector   = {0.0F, 0.0F, 0.0F},
-	    .c0           = 0.005682F,
-	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = 123600.0F,
 	    .position     = {0.0F, 0.0F, 0.0F},
 	    .currentTime  = 0.0F,
+	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
+	    .c0           = 0.005682F,
+	    .re100        = 123600.0F,
 	};
 	auto a = model.computeAcceleration(state);
 	EXPECT_NEAR(a[0], 0.0F, 1e-4F);
@@ -261,11 +261,11 @@ TEST_F(DefaultModelTest, BackspinProducesUpwardMagnusForce)
 	    .velocity     = {0.0F, 100.0F, 0.0F},
 	    .windVelocity = {0.0F, 0.0F, 0.0F},
 	    .spinVector   = {314.16F, 0.0F, 0.0F},  // ~3000 rpm
-	    .c0           = 0.005682F,
-	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = 123600.0F,
 	    .position     = {0.0F, 0.0F, 0.0F},
 	    .currentTime  = 0.0F,
+	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
+	    .c0           = 0.005682F,
+	    .re100        = 123600.0F,
 	};
 	auto a = model.computeAcceleration(state);
 	EXPECT_LT(a[1], 0.0F);   // drag still opposes forward motion
@@ -280,11 +280,11 @@ TEST_F(DefaultModelTest, TailwindReducesEffectiveDrag)
 	    .velocity     = {0.0F, 100.0F, 0.0F},
 	    .windVelocity = {0.0F, 0.0F, 0.0F},
 	    .spinVector   = {0.0F, 0.0F, 0.0F},
-	    .c0           = 0.005682F,
-	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = 123600.0F,
 	    .position     = {0.0F, 0.0F, 0.0F},
 	    .currentTime  = 0.0F,
+	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
+	    .c0           = 0.005682F,
+	    .re100        = 123600.0F,
 	};
 	AerodynamicState tailWind = noWind;
 	tailWind.windVelocity     = {0.0F, 30.0F, 0.0F};  // same direction
@@ -309,9 +309,9 @@ public:
 	{
 		return {0.0F, 0.0F, 0.0F};
 	}
-	double computeSpinDecayTau(const AerodynamicState &) const override
+	float computeSpinDecayTau(const AerodynamicState &) const override
 	{
-		return 1e9;
+		return 1e9F;
 	}
 };
 
@@ -366,11 +366,11 @@ TEST(CustomAerodynamicModelTest, CustomModelIsUsedByFlightSimulator)
 class ConstantTauModel : public AerodynamicModel
 {
 public:
-	explicit ConstantTauModel(double tau) : tau_(tau) {}
+	explicit ConstantTauModel(float tau) : tau_(tau) {}
 	Vector3D computeAcceleration(const AerodynamicState &) const override { return {}; }
-	double computeSpinDecayTau(const AerodynamicState &) const override { return tau_; }
+	float computeSpinDecayTau(const AerodynamicState &) const override { return tau_; }
 private:
-	double tau_;
+	float tau_;
 };
 
 TEST(SpinDecayIntegrationTest, SpinDecaysAtExpectedExponentialRate)
@@ -378,7 +378,7 @@ TEST(SpinDecayIntegrationTest, SpinDecaysAtExpectedExponentialRate)
 	// With tau = 1.0 s and dt = 0.01 s, after 100 steps (1.0 s of flight)
 	// the expected remaining spin fraction is exp(-1.0) ≈ 0.368.
 	// A no-op model returning tau=1e9 would give ≈1.000 — clearly distinguishable.
-	constexpr double kTau = 1.0;
+	constexpr float kTau = 1.0F;
 	constexpr float  kDt  = 0.01F;
 	constexpr int    kSteps = 100; // = 1.0 s
 
@@ -416,8 +416,7 @@ TEST(SpinDecayIntegrationTest, SpinDecaysAtExpectedExponentialRate)
 
 	float spinT = math_utils::magnitude(trajectory[kSteps].spinVector);
 
-	float expectedFraction = std::exp(-static_cast<float>(kSteps) * kDt /
-	                                  static_cast<float>(kTau));
+	float expectedFraction = std::exp(-static_cast<float>(kSteps) * kDt / kTau);
 	float actualFraction   = spinT / spin0;
 
 	EXPECT_NEAR(actualFraction, expectedFraction, 0.02F);
@@ -441,7 +440,7 @@ public:
 		seen = true;
 		return {0.0F, 0.0F, 0.0F};
 	}
-	double computeSpinDecayTau(const AerodynamicState &) const override { return 1e9; }
+	float computeSpinDecayTau(const AerodynamicState &) const override { return 1e9F; }
 };
 
 TEST(AerodynamicStateRawAtmosphereTest, RawFieldsPopulatedFromContext)

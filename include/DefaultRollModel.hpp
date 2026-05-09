@@ -2,6 +2,7 @@
 #define DEFAULT_ROLL_MODEL_HPP
 
 #include "RollModel.hpp"
+#include "math_utils.hpp"
 #include "physics_constants.hpp"
 
 #include <cmath>
@@ -33,8 +34,8 @@ public:
 	/// Ground friction decays spin faster than air drag.
 	static constexpr float SPIN_DECAY_RATE = 2.0F;
 
-	RollResult step(const RollState &state,
-	                const GroundSurface &surface) const override
+	[[nodiscard]] RollResult step(const RollState &state,
+	                              const GroundSurface &surface) const override
 	{
 		const float dt = state.dt;
 
@@ -43,11 +44,7 @@ public:
 		const float oldVelX = state.velocity[0];
 		const float oldVelY = state.velocity[1];
 
-		Vector3D newVel = {
-			state.velocity[0] + accel[0] * dt,
-			state.velocity[1] + accel[1] * dt,
-			state.velocity[2] + accel[2] * dt
-		};
+		Vector3D newVel = state.velocity + accel * dt;
 
 		// Sign-flip stop: if friction reversed velocity in this step, clamp
 		// to zero. Only kicks in when the previous-step speed was already
@@ -71,20 +68,12 @@ public:
 
 		// Linear spin decay: rolling friction approximates constant torque.
 		// Magnitude drops by a fixed amount per second; axis is preserved.
-		const float spinMag = std::sqrt(
-			state.spinVector[0] * state.spinVector[0] +
-			state.spinVector[1] * state.spinVector[1] +
-			state.spinVector[2] * state.spinVector[2]);
+		const float spinMag = math_utils::magnitude(state.spinVector);
 		const float decay = SPIN_DECAY_RATE * dt;
 		Vector3D newSpin{};
 		if (spinMag > decay)
 		{
-			const float scale = (spinMag - decay) / spinMag;
-			newSpin = {
-				state.spinVector[0] * scale,
-				state.spinVector[1] * scale,
-				state.spinVector[2] * scale
-			};
+			newSpin = state.spinVector * ((spinMag - decay) / spinMag);
 		}
 		else
 		{
@@ -128,21 +117,8 @@ private:
 		const Vector3D gravity = {0.0F, 0.0F, -physics_constants::GRAVITY_FT_PER_S2};
 
 		const float gravityDotNormal = math_utils::dot(gravity, surfaceNormal);
-		const Vector3D gravityNormal = {
-			surfaceNormal[0] * gravityDotNormal,
-			surfaceNormal[1] * gravityDotNormal,
-			surfaceNormal[2] * gravityDotNormal
-		};
-
-		const Vector3D gravityTangent = {
-			gravity[0] - gravityNormal[0],
-			gravity[1] - gravityNormal[1],
-			gravity[2] - gravityNormal[2]
-		};
-
-		acceleration[0] = gravityTangent[0];
-		acceleration[1] = gravityTangent[1];
-		acceleration[2] = gravityTangent[2];
+		const Vector3D gravityNormal = surfaceNormal * gravityDotNormal;
+		acceleration = gravity - gravityNormal;
 
 		const float normalForce = std::abs(gravityDotNormal);
 		const float frictionDeceleration = surface.frictionDynamic * normalForce;
