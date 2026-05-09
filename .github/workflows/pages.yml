@@ -1,9 +1,10 @@
-name: Deploy Visualizer to GitHub Pages
+name: Deploy GitHub Pages site
 
 on:
   push:
     branches: [main]
     paths:
+      - 'README.md'
       - 'examples/web/**'
       - 'wasm/**'
       - 'src/**'
@@ -24,11 +25,23 @@ concurrency:
 
 jobs:
   build:
-    name: Build wasm + assemble site
+    name: Build Jekyll site + wasm demo
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # Render README.md (and any other markdown) into _site/ via the default
+      # GitHub Pages Jekyll setup. This preserves the auto-generated README
+      # site that "Deploy from a branch" used to produce.
+      - name: Build Jekyll site
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
 
       - name: Set up Emscripten
         uses: mymindstorm/setup-emsdk@v14
@@ -39,12 +52,12 @@ jobs:
       - name: Build wasm
         run: cmake --build --preset wasm
 
-      - name: Assemble site
+      - name: Stage demo at /demo/
         run: |
-          mkdir -p _site
-          cp examples/web/index.html _site/
-          cp build-wasm/libgolf_wasm.js _site/
-          cp build-wasm/libgolf_wasm.wasm _site/
+          mkdir -p _site/demo
+          cp examples/web/index.html _site/demo/
+          cp build-wasm/libgolf_wasm.js _site/demo/
+          cp build-wasm/libgolf_wasm.wasm _site/demo/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

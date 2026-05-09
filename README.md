@@ -41,7 +41,7 @@ chmod +x build.sh
 ### Web Visualizer
 
 A 3D ball-flight visualizer powered by the wasm build is hosted on GitHub Pages:
-**[gdifiore.github.io/libgolf](https://gdifiore.github.io/libgolf/)**.
+**[gdifiore.github.io/libgolf/demo/](https://gdifiore.github.io/libgolf/demo/)**.
 
 Source: [`examples/web/index.html`](/examples/web/index.html). To run locally, see [docs/wasm.md](/docs/wasm.md).
 
