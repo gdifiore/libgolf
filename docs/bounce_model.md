@@ -71,21 +71,43 @@ Reference: Penner, A.R. *The physics of golf* (Reports on Progress in Physics, 2
 
 ## Injecting a custom model
 
+A minimal subclass with fixed COR and no spin coupling. Builds and runs from the standard CMake build (`build/custom_bounce_model`); source at [`examples/custom_bounce_model.cpp`](../examples/custom_bounce_model.cpp).
+
 ```cpp
-class MyBounceModel : public BounceModel {
+class FixedCorBounceModel : public BounceModel
+{
 public:
-    BounceResult resolveBounce(const BounceState& s,
-                               const GroundSurface& surface) const override {
-        // your physics here
+    FixedCorBounceModel(float cor, float tangentialRetention)
+        : cor_(cor), tang_(tangentialRetention) {}
+
+    BounceResult resolveBounce(const BounceState &s,
+                               const GroundSurface & /*surface*/) const override
+    {
+        const Vector3D vn = math_utils::project(s.velocity, s.surfaceNormal);
+        const Vector3D vt{s.velocity[0] - vn[0],
+                          s.velocity[1] - vn[1],
+                          s.velocity[2] - vn[2]};
+
+        const Vector3D vnPost{-cor_ * vn[0], -cor_ * vn[1], -cor_ * vn[2]};
+        const Vector3D vtPost{tang_ * vt[0], tang_ * vt[1], tang_ * vt[2]};
+
+        return {{vnPost[0] + vtPost[0],
+                 vnPost[1] + vtPost[1],
+                 vnPost[2] + vtPost[2]},
+                s.spinVector};
     }
+
+private:
+    float cor_;
+    float tang_;
 };
 
-auto model = std::make_shared<MyBounceModel>();
-FlightSimulator sim(launch, atmos, ground, /*aero*/ nullptr, model);
+auto bounce = std::make_shared<FixedCorBounceModel>(0.35F, 0.6F);
+FlightSimulator sim(launch, atmos, ground, /*aero*/ nullptr, bounce);
 sim.run();
 ```
 
-Both aerodynamic and bounce models are independent — pass `nullptr` to use the default for either.
+All three model slots on `FlightSimulator` are independent — pass `nullptr` for any slot to keep the default.
 
 ## Limitations
 
