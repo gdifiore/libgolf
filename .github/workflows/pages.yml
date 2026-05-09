@@ -53,7 +53,10 @@ jobs:
         run: cmake --build --preset wasm
 
       - name: Stage demo at /demo/
+        # jekyll-build-pages runs in a container as a different UID, so _site/
+        # is owned by that user. Reclaim ownership before writing into it.
         run: |
+          sudo chown -R "$USER:$USER" _site
           mkdir -p _site/demo
           cp examples/web/index.html _site/demo/
           cp build-wasm/libgolf_wasm.js _site/demo/
