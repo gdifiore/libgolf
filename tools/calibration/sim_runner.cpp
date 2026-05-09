@@ -10,6 +10,9 @@
 //
 // Output columns: shot_id, carry_yd, total_yd, apex_yd, side_yd,
 //   bearing_deg, time_s
+//
+// side_yd is lateral position (x) at the carry index — i.e. how far the ball
+// has drifted from the target line at first ground touch, before bounce/roll.
 
 #include "FlightSimulator.hpp"
 #include "atmospheric_data.hpp"
@@ -115,6 +118,12 @@ int main()
 		};
 		const GroundSurface ground;
 
+		// To validate a custom model, construct it here and pass it to FlightSimulator:
+		//   auto aero   = std::make_shared<MyAerodynamicModel>();
+		//   auto bounce = std::make_shared<MyBounceModel>();
+		//   auto roll   = std::make_shared<MyRollModel>();
+		//   FlightSimulator sim(launch, atmos, ground, aero, bounce, roll);
+		// Any slot left as nullptr falls back to the built-in default model.
 		FlightSimulator sim(launch, atmos, ground);
 		auto traj = sim.runAndGetTrajectory();
 
@@ -123,15 +132,21 @@ int main()
 		size_t carryIdx = 0;
 		bool airborneSeen = false;
 
+		// Carry detection: hysteresis on z. AIRBORNE_FT must be high enough to
+		// ignore the initial step's tee height; CARRY_GROUND_FT is the threshold
+		// below which we call the ball "down" again. Tune these if your launch
+		// data has unusual tee heights or your custom model bounces high.
+		constexpr float AIRBORNE_FT     = 0.5F;
+		constexpr float CARRY_GROUND_FT = 0.5F;
 		for (size_t i = 0; i < traj.size(); ++i)
 		{
 			const float z = traj[i].position[2];
 			apexFt = std::max(apexFt, z);
-			if (z > 0.5F)
+			if (z > AIRBORNE_FT)
 			{
 				airborneSeen = true;
 			}
-			else if (airborneSeen && carryIdx == 0)
+			else if (airborneSeen && carryIdx == 0 && z <= CARRY_GROUND_FT)
 			{
 				carryIdx = i; // first ground touch after going up
 			}
@@ -146,6 +161,12 @@ int main()
 		                                carryState.position[1] * carryState.position[1]) *
 		                      ydPerFt;
 
+		// side_yd is the lateral deflection at carry (first ground touch), not after
+		// roll. Aerodynamic tuners care about wind / spin-axis effects in the air;
+		// post-roll lateral is dominated by bounce + slope. Use lr.xF (final landing
+		// x in yards) if you need the post-roll quantity.
+		const float carrySideYd = carryState.position[0] * ydPerFt;
+
 		const LandingResult lr = sim.getLandingResult();
 		const float totalYd = std::sqrt(lr.xF * lr.xF + lr.yF * lr.yF);
 
@@ -154,7 +175,7 @@ int main()
 		            carryYd,
 		            totalYd,
 		            apexFt * ydPerFt,
-		            lr.xF,
+		            carrySideYd,
 		            lr.bearing,
 		            lr.timeOfFlight);
 	}

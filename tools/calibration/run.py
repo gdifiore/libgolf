@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
-"""Calibration harness for libgolf.
+"""Validation + regression harness for libgolf.
 
 Pipes a reference shot CSV into the C++ `calibration_sim_runner` binary,
 diffs simulated vs source-of-truth metrics, classifies each shot, and writes
 an iteration snapshot to tools/calibration/history/iteration_NNN.json.
 
+This is a measurement harness, not an optimizer. To validate a custom model,
+edit `sim_runner.cpp` to inject your own AerodynamicModel/BounceModel/RollModel
+and rebuild the `calibration_sim_runner` target.
+
 Usage:
     python tools/calibration/run.py
     python tools/calibration/run.py --csv test/data/shots_reference.csv
-    python tools/calibration/run.py --fast       # CI subset
+    python tools/calibration/run.py --fast              # CI subset
     python tools/calibration/run.py --no-snapshot
+    python tools/calibration/run.py --fail-on-severe    # CI gate
+    python tools/calibration/run.py --baseline baseline.json \
+                                    --regression-tolerance 1.0
 """
 from __future__ import annotations
 

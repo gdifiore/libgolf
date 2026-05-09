@@ -56,8 +56,8 @@ public:
     // Return spin decay time constant tau (seconds).
     // AerialPhase applies: spinVector *= exp(-dt / tau) (per component, so the
     // spin axis is preserved and magnitude decays exponentially).
-    // Return a very large value (e.g. 1e6) to effectively disable spin decay.
-    virtual double computeSpinDecayTau(const AerodynamicState& state) const = 0;
+    // Return a very large value (e.g. 1e6f) to effectively disable spin decay.
+    virtual float computeSpinDecayTau(const AerodynamicState& state) const = 0;
 };
 ```
 
@@ -93,9 +93,12 @@ Re >= RE_THRESHOLD_HIGH (1.0):                 Cd = CD_HIGH (0.200) + CD_SPIN * 
 Re <= 0.3:        Cl = 0
 0.3 < Re < 0.5:   smoothstep ramp from 0 toward Cl_50k(S)
 0.5 <= Re <= 0.7: linear interp between adjacent {50k,60k,65k,70k} polynomial bins
-Re > 0.7:         Hill saturation Cl = CL_MAX·S·g / (1 + S·g)   (g = HIGH_RE_SPIN_GAIN)
+Re > 0.7:         Hill saturation Cl = ClMax(S)·S·g / (1 + S·g)   (g = HIGH_RE_SPIN_GAIN)
 ```
-All branches are clamped to `[0, CL_MAX]`. Bin polynomials are Bearman dimpled-sphere fits.
+All branches are clamped to `[0, ClMax(S)]`, where `ClMax(S)` is a piecewise-linear
+lerp from `CL_MAX_BASE` (0.268) up to `CL_MAX_HIGH_SR` (0.320) across the spin-factor
+band `[CL_MAX_SR_LERP_LOW, CL_MAX_SR_LERP_HIGH]` (saturating outside) — the asymptote
+is not flat in the high-spin regime. Bin polynomials are Bearman dimpled-sphere fits.
 
 **Spin decay:**
 ```
@@ -129,9 +132,9 @@ public:
         return {scale * vRelX, scale * vRelY, scale * vRelZ};
     }
 
-    double computeSpinDecayTau(const AerodynamicState & /*s*/) const override
+    float computeSpinDecayTau(const AerodynamicState & /*s*/) const override
     {
-        return 1.0e6;
+        return 1.0e6F;
     }
 
 private:
@@ -193,11 +196,11 @@ public:
         return { dragX+magnusX, dragY+magnusY, dragZ+magnusZ };
     }
 
-    double computeSpinDecayTau(const AerodynamicState& s) const override {
-        double v = std::sqrt(s.velocity[0]*s.velocity[0] +
-                             s.velocity[1]*s.velocity[1] +
-                             s.velocity[2]*s.velocity[2]);
-        return 1.0 / (0.00002 * v / s.ballRadius);
+    float computeSpinDecayTau(const AerodynamicState& s) const override {
+        float v = std::sqrt(s.velocity[0]*s.velocity[0] +
+                            s.velocity[1]*s.velocity[1] +
+                            s.velocity[2]*s.velocity[2]);
+        return 1.0F / (0.00002F * v / s.ballRadius);
     }
 
 private:
@@ -258,7 +261,7 @@ The library intentionally exposes the minimum state its reference model needs, r
 
 - **Interface**: `include/AerodynamicModel.hpp`
 - **State struct**: `include/AerodynamicModel.hpp` (`AerodynamicState`)
-- **Default implementation**: `include/DefaultAerodynamicModel.hpp`
-- **Aerodynamic constants**: `include/physics_constants.hpp`
+- **Default implementation**: `include/DefaultAerodynamicModel.hpp` — model coefficients (Cd/Cl/spin-decay) live as `static constexpr` members on the class
+- **Universal physics constants** (gravity, ball geometry, unit conversions, atmosphere/SVP/Sutherland): `include/physics_constants.hpp`
 - **Integrator**: `src/FlightPhase.cpp` (`AerialPhase`)
 - **Ground customization**: [Terrain System](terrain.md)

@@ -212,11 +212,11 @@ public:
         return { scale * vRelX, scale * vRelY, scale * vRelZ };
     }
 
-    double computeSpinDecayTau(const AerodynamicState& s) const override {
-        double v = std::sqrt(s.velocity[0]*s.velocity[0] +
-                             s.velocity[1]*s.velocity[1] +
-                             s.velocity[2]*s.velocity[2]);
-        return 1.0 / (0.00002 * v / s.ballRadius);
+    float computeSpinDecayTau(const AerodynamicState& s) const override {
+        float v = std::sqrt(s.velocity[0]*s.velocity[0] +
+                            s.velocity[1]*s.velocity[1] +
+                            s.velocity[2]*s.velocity[2]);
+        return 1.0F / (0.00002F * v / s.ballRadius);
     }
 };
 
@@ -226,6 +226,28 @@ FlightSimulator sim(ball, atmos, ground, model);
 
 See [Aerodynamic Models](aerodynamic_model.md) for full details and worked examples.
 
+### Custom Bounce Model
+
+Replace ball-ground bounce physics by implementing `BounceModel`. Pass it as the fifth argument to `FlightSimulator`; pass `nullptr` for the aero slot to keep the default:
+
+```c++
+auto bounce = std::make_shared<MyBounceModel>();
+FlightSimulator sim(ball, atmos, ground, /*aero*/ nullptr, bounce);
+```
+
+See [Bounce Models](bounce_model.md) for the interface, the default algorithm, and a worked example.
+
+### Custom Roll Model
+
+Replace ball-on-ground roll physics (friction law, integrator, stop criterion) by implementing `RollModel`. Pass it as the sixth argument:
+
+```c++
+auto roll = std::make_shared<MyRollModel>();
+FlightSimulator sim(ball, atmos, ground, /*aero*/ nullptr, /*bounce*/ nullptr, roll);
+```
+
+See [Roll Models](roll_model.md) for the interface and a worked example.
+
 ### Example Programs
 
 The `examples/` directory contains complete working implementations:
@@ -233,3 +255,6 @@ The `examples/` directory contains complete working implementations:
 - **calculate_ball_landing.cpp**: Compute final landing position only
 - **calculate_ball_trajectory.cpp**: Collect full trajectory for visualization
 - **multi_ground_simulation.cpp**: Demonstrate dynamic ground types (fairway/rough/green)
+- **custom_aerodynamic_model.cpp**: Inject a custom `AerodynamicModel`
+- **custom_bounce_model.cpp**: Inject a custom `BounceModel`
+- **custom_roll_model.cpp**: Inject a custom `RollModel`

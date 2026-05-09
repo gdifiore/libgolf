@@ -115,4 +115,4 @@ All three model slots on `FlightSimulator` are independent — pass `nullptr` fo
 
 - The model is invoked on each detected impact, but the library decides *when* an impact has occurred (height vs. terrain plus a vertical velocity check). If you need a different impact criterion (e.g. embed-and-stop on soft sand), that lives in `BouncePhase`, not the model.
 - `BounceState` does not currently carry impact angle, rolling angle, or contact duration. Compute these from `velocity` and `surfaceNormal` inside the model if needed.
-- Roll physics is still a free function in `ground_physics`. A `RollModel` interface analogous to this one is plausible future work.
+- Roll physics is owned by a separate pluggable `RollModel` interface — see [Roll Models](roll_model.md).
