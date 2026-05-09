@@ -184,14 +184,19 @@ void AerialPhase::calculateAccel(BallState &state)
 AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) const
 {
 	return AerodynamicState{
-	    .velocity     = state.velocity,
-	    .windVelocity = {velocity3D_w[0], velocity3D_w[1], 0.0F}, // vertical wind not modelled
-	    .spinVector   = state.spinVector,
-	    .c0           = physicsVars.getC0(),
-	    .ballRadius   = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100        = physicsVars.getRe100(),
-	    .position     = state.position,
-	    .currentTime  = state.currentTime
+	    .velocity          = state.velocity,
+	    .windVelocity      = {velocity3D_w[0], velocity3D_w[1], 0.0F}, // vertical wind not modelled
+	    .spinVector        = state.spinVector,
+	    .c0                = physicsVars.getC0(),
+	    .ballRadius        = physics_constants::STD_BALL_RADIUS_FT,
+	    .re100             = physicsVars.getRe100(),
+	    .airDensityKgPerM3 = physicsVars.getRhoMetric(),
+	    .airViscosity      = physicsVars.getAirViscosity(),
+	    .tempKelvin        = physicsVars.getTempKelvin(),
+	    .pressureMmHg      = physicsVars.getBarometricPressure(),
+	    .relHumidity       = physicsVars.getRelHumidity(),
+	    .position          = state.position,
+	    .currentTime       = state.currentTime
 	};
 }
 

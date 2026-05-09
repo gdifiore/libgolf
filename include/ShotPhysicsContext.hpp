@@ -33,6 +33,9 @@ public:
 		return barometricPressure;
 	}
 	[[nodiscard]] auto getRe100() const -> float { return Re100; }
+	[[nodiscard]] auto getAirViscosity() const -> float { return airViscosity; }
+	[[nodiscard]] auto getTempKelvin() const -> float;
+	[[nodiscard]] auto getRelHumidity() const -> float { return atmos.relHumidity; }
 
 private:
 	void calculateAllVariables();
@@ -55,6 +58,7 @@ private:
 	float SVP;
 	float barometricPressure;
 	float Re100;
+	float airViscosity = 0.0F;
 
 	// Private calculation methods
 	void calculateRhoMetric();
@@ -67,6 +71,7 @@ private:
 	void calculateVw();
 	void calculateSVP();
 	void calculateBarometricPressure();
+	void calculateAirViscosity();
 	void calculateRe100();
 };
 

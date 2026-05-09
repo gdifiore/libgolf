@@ -6,35 +6,48 @@
 /**
  * @brief Physical state snapshot passed to the aerodynamic model each timestep.
  *
- * All quantities are in imperial units consistent with the rest of the library
- * (feet, seconds, ft/s). Fields fall into three groups:
+ * Imperial units for kinematic fields (feet, seconds, ft/s); SI units for
+ * raw atmosphere (kg/m³, Pa·s, K) since those are the natural outputs of
+ * Sutherland's law and the standard atmosphere model. Fields fall into four
+ * groups:
  *
  *   - Kinematic: `velocity`, `windVelocity`, `spinVector`, `position`, `currentTime`
  *   - Ball geometry: `ballRadius`
+ *   - Atmosphere (raw): `airDensityKgPerM3`, `airViscosity`, `tempKelvin`,
+ *                       `pressureMmHg`, `relHumidity`
  *   - Atmosphere (lumped): `c0`, `re100`
  *
- * The atmospheric fields `c0` and `re100` are pre-computed lumped constants —
- * an efficient encoding for models of the form `F = c0 * Cd(Re, S) * vw * vRel`.
- * Models that need raw air density, viscosity, temperature, or humidity cannot
- * recover those from this struct; see "Limitations" in docs/aerodynamic_model.md.
+ * The lumped fields `c0` and `re100` are precomputed convenience scalars for
+ * the default `F = c0 * Cd(Re, S) * vw * vRel` form. Models that need
+ * altitude-dependent density, Mach corrections, custom humidity coupling, or
+ * non-Reynolds-binned drag should consume the raw fields directly.
  *
  * Lumped atmospheric identities (applied by the default model):
  *   Re       = (v_mph / 100) * re100
  *   Re_x_e5  = Re / 1e5  =  (v_mph / 100) * re100 * 1e-5
+ *
+ * Both lumped fields are computed once at launch from the launch atmosphere
+ * and held static for the shot. Models needing altitude-varying lumped
+ * scalars must re-derive them per step from the raw fields.
  *
  * Spin factor (dimensionless surface-to-translational speed ratio):
  *   S = |spinVector| * ballRadius / |velocity - windVelocity|
  */
 struct AerodynamicState
 {
-	Vector3D velocity;     ///< Ball velocity (ft/s)
-	Vector3D windVelocity; ///< Effective wind velocity at ball height (ft/s; zero below hWind)
-	Vector3D spinVector;   ///< Current spin vector (rad/s); direction = launch spin axis, magnitude decays
-	float    c0;           ///< Lumped aerodynamic force coefficient (air density × ball cross-section / mass)
-	float    ballRadius;   ///< Ball radius (ft)
-	float    re100;        ///< Lumped Reynolds reference: Re at 100 mph under current atmospherics
-	Vector3D position;     ///< Ball position (ft; x=lateral, y=forward, z=height)
-	float    currentTime;  ///< Simulation time since launch (s)
+	Vector3D velocity;          ///< Ball velocity (ft/s)
+	Vector3D windVelocity;      ///< Effective wind velocity at ball height (ft/s; zero below hWind)
+	Vector3D spinVector;        ///< Current spin vector (rad/s); direction = launch spin axis, magnitude decays
+	float    c0;                ///< Lumped aerodynamic force coefficient (air density × ball cross-section / mass)
+	float    ballRadius;        ///< Ball radius (ft)
+	float    re100;             ///< Lumped Reynolds reference: Re at 100 mph under current atmospherics
+	float    airDensityKgPerM3 = 0.0F; ///< Raw air density at launch atmosphere (kg/m³)
+	float    airViscosity      = 0.0F; ///< Sutherland-law dynamic viscosity (Pa·s = kg/(m·s))
+	float    tempKelvin        = 0.0F; ///< Air temperature (K)
+	float    pressureMmHg      = 0.0F; ///< Barometric pressure (mmHg)
+	float    relHumidity       = 0.0F; ///< Relative humidity (0..100)
+	Vector3D position;          ///< Ball position (ft; x=lateral, y=forward, z=height)
+	float    currentTime;       ///< Simulation time since launch (s)
 };
 
 /**

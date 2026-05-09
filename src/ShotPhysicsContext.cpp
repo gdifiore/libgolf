@@ -55,7 +55,13 @@ void ShotPhysicsContext::calculateAllVariables()
     calculateV0();
     calculateW();
     calculateVw();
+    calculateAirViscosity();
     calculateRe100();
+}
+
+float ShotPhysicsContext::getTempKelvin() const
+{
+    return math_utils::convertCelsiusToKelvin(tempC);
 }
 
 void ShotPhysicsContext::calculateRhoMetric()
@@ -123,9 +129,18 @@ void ShotPhysicsContext::calculateBarometricPressure()
     barometricPressure = atmos.pressure * physics_constants::INHG_TO_MMHG;
 }
 
+void ShotPhysicsContext::calculateAirViscosity()
+{
+    // Sutherland's law: μ = C1 * T^1.5 / (T + S), in Pa·s (= kg/(m·s)).
+    const float tempK = math_utils::convertCelsiusToKelvin(tempC);
+    airViscosity = physics_constants::SUTHERLAND_VISCOSITY_COEFF * std::pow(tempK, 1.5F) /
+                   (tempK + physics_constants::SUTHERLAND_CONSTANT);
+}
+
 void ShotPhysicsContext::calculateRe100()
 {
-    Re100 = rhoMetric * physics_constants::RE100_VELOCITY_M_PER_S * (physics_constants::STD_BALL_CIRCUMFERENCE_IN / (physics_constants::PI * physics_constants::INCHES_PER_METER)) *
-            (math_utils::convertCelsiusToKelvin(tempC) + physics_constants::SUTHERLAND_CONSTANT) /
-            (physics_constants::SUTHERLAND_VISCOSITY_COEFF * std::pow(math_utils::convertCelsiusToKelvin(tempC), 1.5));
+    // Re = ρ · v · D / μ, evaluated at v = RE100_VELOCITY_M_PER_S.
+    const float diameterM = physics_constants::STD_BALL_CIRCUMFERENCE_IN /
+                            (physics_constants::PI * physics_constants::INCHES_PER_METER);
+    Re100 = rhoMetric * physics_constants::RE100_VELOCITY_M_PER_S * diameterM / airViscosity;
 }
