@@ -422,3 +422,74 @@ TEST(SpinDecayIntegrationTest, SpinDecaysAtExpectedExponentialRate)
 
 	EXPECT_NEAR(actualFraction, expectedFraction, 0.02F);
 }
+
+// ============================================================================
+// Raw atmosphere fields — populated on the AerodynamicState
+// ============================================================================
+
+// Captures the last AerodynamicState handed to the model so the test can
+// inspect what AerialPhase actually populated.
+class CapturingAeroModel : public AerodynamicModel
+{
+public:
+	mutable AerodynamicState lastState{};
+	mutable bool seen = false;
+
+	Vector3D computeAcceleration(const AerodynamicState &s) const override
+	{
+		lastState = s;
+		seen = true;
+		return {0.0F, 0.0F, 0.0F};
+	}
+	double computeSpinDecayTau(const AerodynamicState &) const override { return 1e9; }
+};
+
+TEST(AerodynamicStateRawAtmosphereTest, RawFieldsPopulatedFromContext)
+{
+	const LaunchData launch{
+	    .ballSpeedMph   = 100.0f,
+	    .launchAngleDeg = 12.0f,
+	    .directionDeg   = 0.0f,
+	    .backspinRpm    = 2500.0f,
+	    .sidespinRpm    = 0.0f,
+	};
+	const AtmosphericData atmos{
+	    .temp        = 70.0f,
+	    .elevation   = 0.0f,
+	    .vWind       = 0.0f,
+	    .phiWind     = 0.0f,
+	    .hWind       = 0.0f,
+	    .relHumidity = 55.0f,
+	    .pressure    = 29.92f,
+	};
+	GroundSurface ground;
+	ground.height          = 0.0F;
+	ground.restitution     = 0.4F;
+	ground.frictionStatic  = 0.5F;
+	ground.frictionDynamic = 0.2F;
+	ground.firmness        = 0.8F;
+
+	auto capture = std::make_shared<CapturingAeroModel>();
+	FlightSimulator sim(launch, atmos, ground, capture);
+	sim.run();
+
+	ASSERT_TRUE(capture->seen);
+	const auto &s = capture->lastState;
+
+	// Sea level air density ~1.225 kg/m³; allow generous band for humidity/temp deviation.
+	EXPECT_GT(s.airDensityKgPerM3, 1.0F);
+	EXPECT_LT(s.airDensityKgPerM3, 1.4F);
+
+	// Sutherland μ for air near room temp ≈ 1.8e-5 Pa·s.
+	EXPECT_GT(s.airViscosity, 1.5e-5F);
+	EXPECT_LT(s.airViscosity, 2.1e-5F);
+
+	// 70°F = 21.11°C ≈ 294.26 K.
+	EXPECT_NEAR(s.tempKelvin, 294.26F, 0.5F);
+
+	// 29.92 inHg → ~760 mmHg.
+	EXPECT_NEAR(s.pressureMmHg, 760.0F, 1.0F);
+
+	// Pass-through of atmos.relHumidity.
+	EXPECT_FLOAT_EQ(s.relHumidity, 55.0F);
+}

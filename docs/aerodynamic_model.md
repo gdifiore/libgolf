@@ -12,24 +12,31 @@ Both interface methods receive an `AerodynamicState` struct populated by `Aerial
 
 ```cpp
 struct AerodynamicState {
-    Vector3D velocity;     // Ball velocity (ft/s)
-    Vector3D windVelocity; // Wind at ball height (ft/s; zero below hWind threshold)
-    Vector3D spinVector;   // Current spin vector (rad/s); direction = launch axis, magnitude decays
-    float    c0;           // Lumped force coefficient (air density × cross-section / mass)
-    float    ballRadius;   // Ball radius (ft)
-    float    re100;        // Lumped Reynolds reference: Re at 100 mph under current atmospherics
-    Vector3D position;     // Ball position (ft; x=lateral, y=forward, z=height)
-    float    currentTime;  // Simulation time since launch (s)
+    Vector3D velocity;          // Ball velocity (ft/s)
+    Vector3D windVelocity;      // Wind at ball height (ft/s; zero below hWind threshold)
+    Vector3D spinVector;        // Current spin vector (rad/s); direction = launch axis, magnitude decays
+    float    c0;                // Lumped force coefficient (air density × cross-section / mass)
+    float    ballRadius;        // Ball radius (ft)
+    float    re100;             // Lumped Reynolds reference: Re at 100 mph under current atmospherics
+    float    airDensityKgPerM3; // Raw air density at launch atmosphere (kg/m³)
+    float    airViscosity;      // Sutherland-law dynamic viscosity (Pa·s = kg/(m·s))
+    float    tempKelvin;        // Air temperature (K)
+    float    pressureMmHg;      // Barometric pressure (mmHg)
+    float    relHumidity;       // Relative humidity (0..100)
+    Vector3D position;          // Ball position (ft; x=lateral, y=forward, z=height)
+    float    currentTime;       // Simulation time since launch (s)
 };
 ```
 
-The fields fall into three groups:
+The fields fall into four groups:
 
 **Kinematic state** — `velocity`, `windVelocity`, `spinVector`, `position`, and `currentTime` are snapshots of the ball and its surrounding wind at the current timestep. The default model uses only the first three; `position` and `currentTime` are there so models with altitude-, location-, or time-dependent behaviour can reach for them.
 
 **Ball geometry** — `ballRadius` is populated from `physics_constants::STD_BALL_RADIUS_FT`. The library does not currently support non-standard ball sizes; changing the constant is the only hook.
 
-**Lumped atmosphere** — `c0` and `re100` are precomputed by `ShotPhysicsContext` from temperature, pressure, and humidity. They're a compact encoding for lumped-parameter force laws, but they are lossy — raw air density, viscosity, and gas composition cannot be recovered from them. If your model needs the raw quantities, see [Limitations & Extension](#limitations--extension) below.
+**Lumped atmosphere** — `c0` and `re100` are precomputed by `ShotPhysicsContext` from temperature, pressure, and humidity. They're a compact encoding for lumped-parameter force laws of the form `F = c0 · Cd(Re, S) · vw · v_rel`. The default model consumes them directly; custom models that prefer the same form can too.
+
+**Raw atmosphere** — `airDensityKgPerM3`, `airViscosity`, `tempKelvin`, `pressureMmHg`, and `relHumidity` are the raw inputs from which `c0` and `re100` are derived. Models that need Mach corrections, custom humidity coupling, non-Reynolds-binned drag, or any quantity the lumped scalars elide should consume these directly. Both lumped and raw fields are computed once at launch from the launch atmosphere; if your model needs altitude-varying values it must re-derive them per step from the raw fields (or compute its own profile in `computeAcceleration`).
 
 One derived quantity shows up in most coefficient correlations: the **spin factor** `S`, a dimensionless ratio of the ball's surface speed to its wind-relative speed.
 
@@ -236,7 +243,7 @@ The model instance is shared between aerial and bounce phases internally. Models
 
 `AerodynamicState` captures what the simulator natively tracks, which is deliberately narrower than "everything an aerodynamic model could ever want." Some model families need information that the library does not carry, and adding it means changing the simulator itself rather than just subclassing `AerodynamicModel`. The common cases:
 
-- **Raw atmospheric quantities** — air density ρ, dynamic viscosity μ, temperature, humidity, pressure. `c0` and `re100` are lumped into `ShotPhysicsContext`; they bundle these quantities and cannot be inverted back to the raw values. Exposing the raw values means plumbing them through `ShotPhysicsContext` alongside the lumped ones.
+- **Altitude-varying atmosphere** — `airDensityKgPerM3`, `airViscosity`, `tempKelvin`, and `pressureMmHg` are populated from the launch atmosphere and held static for the shot. The default model treats this as accurate enough; for shots with hundreds of feet of elevation gain a custom model wanting altitude-dependent ρ or μ has to compute its own profile from `position[2]` rather than expect the simulator to update the raw fields per step.
 - **Ball orientation or attitude** — the simulator treats the ball as axisymmetric, so `BallState` has no quaternion or rotation matrix. Dimple-pattern-aware models, non-axisymmetric wake models, and full rigid-body rotational dynamics all require extending `BallState` and the integrator.
 - **Rigid-body inertia** — if your model wants to return a torque and evolve a full angular-momentum vector, it needs the ball's moment of inertia and an integrator that consumes it. The current `spinVector *= exp(-dt/τ)` assumes isotropic scalar decay and exposes no torque pathway.
 - **Per-step history or transient effects** — the state passed to the model is memoryless. Models with hysteresis, added-mass, or vortex shedding need to carry their own state. Because the interface methods are `const`, that state has to live in a `mutable` member or be keyed externally by `currentTime`.
