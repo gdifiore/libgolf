@@ -4,8 +4,8 @@
 #include "AerodynamicModel.hpp"
 #include "FlightSimulator.hpp"
 #include "ground_surface.hpp"
+#include "math_utils.hpp"
 
-#include <cmath>
 #include <cstdio>
 #include <memory>
 
@@ -16,21 +16,18 @@ public:
 
     Vector3D computeAcceleration(const AerodynamicState &s) const override
     {
-        const float vRelX = s.velocity[0] - s.windVelocity[0];
-        const float vRelY = s.velocity[1] - s.windVelocity[1];
-        const float vRelZ = s.velocity[2] - s.windVelocity[2];
-        const float vw = std::sqrt(vRelX * vRelX + vRelY * vRelY + vRelZ * vRelZ);
+        const Vector3D vRel = s.velocity - s.windVelocity;
+        const float vw = math_utils::magnitude(vRel);
 
         if (vw < 0.01F) return {0.0F, 0.0F, 0.0F};
 
         // F = -c0 * Cd * vw * vRel  (ignores Magnus / spin)
-        const float scale = -s.c0 * cd_ * vw;
-        return {scale * vRelX, scale * vRelY, scale * vRelZ};
+        return vRel * (-s.c0 * cd_ * vw);
     }
 
-    double computeSpinDecayTau(const AerodynamicState & /*s*/) const override
+    float computeSpinDecayTau(const AerodynamicState & /*s*/) const override
     {
-        return 1.0e6; // effectively no decay
+        return 1.0e6F; // effectively no decay
     }
 
 private:

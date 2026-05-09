@@ -2,6 +2,7 @@
 #define DEFAULT_BOUNCE_MODEL_HPP
 
 #include "BounceModel.hpp"
+#include "math_utils.hpp"
 #include "physics_constants.hpp"
 
 #include <algorithm>
@@ -95,39 +96,17 @@ public:
 	static constexpr float BOUNCE_RETENTION_RPM_NORM = 8000.0F;
 	static constexpr float BOUNCE_RETENTION_FLOOR = 0.40F;
 
-	BounceResult resolveBounce(const BounceState &state,
-	                           const GroundSurface &surface) const override
+	[[nodiscard]] BounceResult resolveBounce(const BounceState &state,
+	                                         const GroundSurface &surface) const override
 	{
-		const float vDotN =
-			state.velocity[0] * state.surfaceNormal[0] +
-			state.velocity[1] * state.surfaceNormal[1] +
-			state.velocity[2] * state.surfaceNormal[2];
+		const float vDotN = math_utils::dot(state.velocity, state.surfaceNormal);
 
-		const Vector3D vNormal = {
-			state.surfaceNormal[0] * vDotN,
-			state.surfaceNormal[1] * vDotN,
-			state.surfaceNormal[2] * vDotN
-		};
-		const Vector3D vTangent = {
-			state.velocity[0] - vNormal[0],
-			state.velocity[1] - vNormal[1],
-			state.velocity[2] - vNormal[2]
-		};
+		const Vector3D vNormal = state.surfaceNormal * vDotN;
+		const Vector3D vTangent = state.velocity - vNormal;
 
-		const float tangentMag = std::sqrt(
-			vTangent[0] * vTangent[0] +
-			vTangent[1] * vTangent[1] +
-			vTangent[2] * vTangent[2]);
-
-		const float impactSpeed = std::sqrt(
-			state.velocity[0] * state.velocity[0] +
-			state.velocity[1] * state.velocity[1] +
-			state.velocity[2] * state.velocity[2]);
-
-		const float omegaMag = std::sqrt(
-			state.spinVector[0] * state.spinVector[0] +
-			state.spinVector[1] * state.spinVector[1] +
-			state.spinVector[2] * state.spinVector[2]);
+		const float tangentMag = math_utils::magnitude(vTangent);
+		const float impactSpeed = math_utils::magnitude(state.velocity);
+		const float omegaMag = math_utils::magnitude(state.spinVector);
 
 		const float spinRpm = omegaMag / physics_constants::RPM_TO_RAD_PER_S;
 		const float speedNormalMs =
@@ -136,11 +115,7 @@ public:
 		const float effectiveCor = surface.restitution *
 			(1.0F - corMaxReduction(spinRpm) * corVelocityScale(speedNormalMs));
 
-		const Vector3D vNormalAfter = {
-			-effectiveCor * vNormal[0],
-			-effectiveCor * vNormal[1],
-			-effectiveCor * vNormal[2]
-		};
+		const Vector3D vNormalAfter = vNormal * -effectiveCor;
 
 		float impactAngle = 0.0F;
 		if (impactSpeed > physics_constants::MIN_VELOCITY_THRESHOLD)
@@ -161,20 +136,9 @@ public:
 			// Backspin scalar: positive when spin axis aligns with t̂ × n̂.
 			// For ball moving +Y, normal +Z: t̂ × n̂ = +X — matches golf
 			// convention (right-hand axis = backspin).
-			const Vector3D tHat = {
-				vTangent[0] / tangentMag,
-				vTangent[1] / tangentMag,
-				vTangent[2] / tangentMag
-			};
-			const Vector3D lateralAxis = {
-				tHat[1] * state.surfaceNormal[2] - tHat[2] * state.surfaceNormal[1],
-				tHat[2] * state.surfaceNormal[0] - tHat[0] * state.surfaceNormal[2],
-				tHat[0] * state.surfaceNormal[1] - tHat[1] * state.surfaceNormal[0]
-			};
-			const float backspinScalar =
-				state.spinVector[0] * lateralAxis[0] +
-				state.spinVector[1] * lateralAxis[1] +
-				state.spinVector[2] * lateralAxis[2];
+			const Vector3D tHat = vTangent * (1.0F / tangentMag);
+			const Vector3D lateralAxis = math_utils::cross(tHat, state.surfaceNormal);
+			const float backspinScalar = math_utils::dot(state.spinVector, lateralAxis);
 
 			const float retention =
 				BOUNCE_RETENTION_BASE *
@@ -186,36 +150,19 @@ public:
 				retention * impactSpeed * std::sin(impactAngle - surface.criticalAngle) -
 				spinbackTerm;
 
-			const float scale = newTangentSpeed / tangentMag;
-			vTangentAfter = {
-				vTangent[0] * scale,
-				vTangent[1] * scale,
-				vTangent[2] * scale
-			};
+			vTangentAfter = vTangent * (newTangentSpeed / tangentMag);
 		}
 		else
 		{
 			float frictionFactor = 1.0F - surface.frictionStatic * (1.0F - surface.firmness);
 			frictionFactor = std::clamp(frictionFactor, 0.0F, 1.0F);
-			vTangentAfter = {
-				vTangent[0] * frictionFactor,
-				vTangent[1] * frictionFactor,
-				vTangent[2] * frictionFactor
-			};
+			vTangentAfter = vTangent * frictionFactor;
 		}
 
-		BounceResult out;
-		out.newVelocity = {
-			vNormalAfter[0] + vTangentAfter[0],
-			vNormalAfter[1] + vTangentAfter[1],
-			vNormalAfter[2] + vTangentAfter[2]
+		return BounceResult{
+			vNormalAfter + vTangentAfter,
+			state.spinVector * surface.spinRetention
 		};
-		out.newSpinVector = {
-			state.spinVector[0] * surface.spinRetention,
-			state.spinVector[1] * surface.spinRetention,
-			state.spinVector[2] * surface.spinRetention
-		};
-		return out;
 	}
 
 private:

@@ -76,8 +76,8 @@ public:
 	 * @param surface Surface properties at the impact point
 	 * @return        Post-bounce velocity and spin vectors
 	 */
-	virtual BounceResult resolveBounce(const BounceState &state,
-	                                   const GroundSurface &surface) const = 0;
+	[[nodiscard]] virtual BounceResult resolveBounce(const BounceState &state,
+	                                                 const GroundSurface &surface) const = 0;
 
 protected:
 	BounceModel() = default;

@@ -2,6 +2,7 @@
 #define DEFAULT_AERODYNAMIC_MODEL_HPP
 
 #include "AerodynamicModel.hpp"
+#include "math_utils.hpp"
 #include "physics_constants.hpp"
 
 #include <algorithm>
@@ -149,7 +150,7 @@ public:
 	/// Spin gain in the high-Re Hill saturation Cl = ClMax·S·g / (1 + S·g).
 	static constexpr float HIGH_RE_SPIN_GAIN = 16.0F;
 
-	Vector3D computeAcceleration(const AerodynamicState &state) const override
+	[[nodiscard]] Vector3D computeAcceleration(const AerodynamicState &state) const override
 	{
 		// Wind-relative velocity
 		const float vRelX = state.velocity[0] - state.windVelocity[0];
@@ -196,17 +197,13 @@ public:
 		return {dragX + magnusX, dragY + magnusY, dragZ + magnusZ};
 	}
 
-	double computeSpinDecayTau(const AerodynamicState &state) const override
+	[[nodiscard]] float computeSpinDecayTau(const AerodynamicState &state) const override
 	{
-		const double vx = static_cast<double>(state.velocity[0]);
-		const double vy = static_cast<double>(state.velocity[1]);
-		const double vz = static_cast<double>(state.velocity[2]);
-		const double v = std::sqrt(vx * vx + vy * vy + vz * vz);
-		return 1.0 / (static_cast<double>(TAU_COEFF) *
-					  v / static_cast<double>(state.ballRadius));
+		const float v = math_utils::magnitude(state.velocity);
+		return 1.0F / (TAU_COEFF * v / state.ballRadius);
 	}
 
-	double computeCd(double Re_x_e5, double spinFactor) const
+	[[nodiscard]] double computeCd(double Re_x_e5, double spinFactor) const
 	{
 		const double cdLow  = static_cast<double>(CD_LOW);
 		const double cdHigh = static_cast<double>(CD_HIGH);
@@ -230,7 +227,7 @@ public:
 		}
 	}
 
-	double computeCl(double Re_x_e5, double spinFactor) const
+	[[nodiscard]] double computeCl(double Re_x_e5, double spinFactor) const
 	{
 		const double S = std::max(0.0, spinFactor);
 		if (S <= 0.0)

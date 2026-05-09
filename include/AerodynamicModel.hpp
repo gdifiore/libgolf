@@ -8,8 +8,8 @@
  *
  * Imperial units for kinematic fields (feet, seconds, ft/s); SI units for
  * raw atmosphere (kg/m³, Pa·s, K) since those are the natural outputs of
- * Sutherland's law and the standard atmosphere model. Fields fall into four
- * groups:
+ * Sutherland's law and the standard atmosphere model. Fields are
+ * declared in four groups, in this order:
  *
  *   - Kinematic: `velocity`, `windVelocity`, `spinVector`, `position`, `currentTime`
  *   - Ball geometry: `ballRadius`
@@ -35,19 +35,26 @@
  */
 struct AerodynamicState
 {
+	// Kinematic
 	Vector3D velocity;          ///< Ball velocity (ft/s)
 	Vector3D windVelocity;      ///< Effective wind velocity at ball height (ft/s; zero below hWind)
 	Vector3D spinVector;        ///< Current spin vector (rad/s); direction = launch spin axis, magnitude decays
-	float    c0;                ///< Lumped aerodynamic force coefficient (air density × ball cross-section / mass)
+	Vector3D position;          ///< Ball position (ft; x=lateral, y=forward, z=height)
+	float    currentTime;       ///< Simulation time since launch (s)
+
+	// Ball geometry
 	float    ballRadius;        ///< Ball radius (ft)
-	float    re100;             ///< Lumped Reynolds reference: Re at 100 mph under current atmospherics
+
+	// Atmosphere (raw)
 	float    airDensityKgPerM3 = 0.0F; ///< Raw air density at launch atmosphere (kg/m³)
 	float    airViscosity      = 0.0F; ///< Sutherland-law dynamic viscosity (Pa·s = kg/(m·s))
 	float    tempKelvin        = 0.0F; ///< Air temperature (K)
 	float    pressureMmHg      = 0.0F; ///< Barometric pressure (mmHg)
 	float    relHumidity       = 0.0F; ///< Relative humidity (0..100)
-	Vector3D position;          ///< Ball position (ft; x=lateral, y=forward, z=height)
-	float    currentTime;       ///< Simulation time since launch (s)
+
+	// Atmosphere (lumped)
+	float    c0;                ///< Lumped aerodynamic force coefficient (air density × ball cross-section / mass)
+	float    re100;             ///< Lumped Reynolds reference: Re at 100 mph under current atmospherics
 };
 
 /**
@@ -71,7 +78,7 @@ struct AerodynamicState
  * class MyModel : public AerodynamicModel {
  * public:
  *     Vector3D computeAcceleration(const AerodynamicState& s) const override { ... }
- *     double   computeSpinDecayTau(const AerodynamicState& s) const override { ... }
+ *     float    computeSpinDecayTau(const AerodynamicState& s) const override { ... }
  * };
  * FlightSimulator sim(launch, atmos, ground, std::make_shared<MyModel>());
  * @endcode
@@ -93,7 +100,7 @@ public:
 	 * @return Acceleration vector in ft/s². Gravity (-32.174 ft/s² in z) is added
 	 *         by AerialPhase; do not include it here.
 	 */
-	virtual Vector3D computeAcceleration(const AerodynamicState &state) const = 0;
+	[[nodiscard]] virtual Vector3D computeAcceleration(const AerodynamicState &state) const = 0;
 
 	/**
 	 * @brief Computes the spin decay time constant.
@@ -102,7 +109,7 @@ public:
 	 *              sufficient for aerodynamic damping models)
 	 * @return Time constant tau (seconds). Larger = slower decay.
 	 */
-	virtual double computeSpinDecayTau(const AerodynamicState &state) const = 0;
+	[[nodiscard]] virtual float computeSpinDecayTau(const AerodynamicState &state) const = 0;
 
 protected:
 	AerodynamicModel() = default;

@@ -21,6 +21,16 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <utility>
+
+namespace
+{
+	template <typename Default, typename Base>
+	std::shared_ptr<Base> orDefault(std::shared_ptr<Base> p)
+	{
+		return p ? std::move(p) : std::make_shared<Default>();
+	}
+}
 
 // ============================================================================
 // AerialPhase Implementation
@@ -31,7 +41,7 @@ AerialPhase::AerialPhase(
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> model)
 	: physicsVars(physicsVars), launch(launch), atmos(atmos), terrain(terrain),
-	  model(model ? std::move(model) : std::make_shared<DefaultAerodynamicModel>())
+	  model(orDefault<DefaultAerodynamicModel>(std::move(model)))
 {
 	if (!terrain)
 	{
@@ -165,7 +175,7 @@ void AerialPhase::calculateTau(const BallState &state)
 		return;
 	}
 
-	tau = static_cast<float>(model->computeSpinDecayTau(buildAerodynamicState(state)));
+	tau = model->computeSpinDecayTau(buildAerodynamicState(state));
 }
 
 void AerialPhase::calculateRw(const BallState &state)
@@ -187,16 +197,16 @@ AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) cons
 	    .velocity          = state.velocity,
 	    .windVelocity      = {velocity3D_w[0], velocity3D_w[1], 0.0F}, // vertical wind not modelled
 	    .spinVector        = state.spinVector,
-	    .c0                = physicsVars.getC0(),
+	    .position          = state.position,
+	    .currentTime       = state.currentTime,
 	    .ballRadius        = physics_constants::STD_BALL_RADIUS_FT,
-	    .re100             = physicsVars.getRe100(),
 	    .airDensityKgPerM3 = physicsVars.getRhoMetric(),
 	    .airViscosity      = physicsVars.getAirViscosity(),
 	    .tempKelvin        = physicsVars.getTempKelvin(),
 	    .pressureMmHg      = physicsVars.getBarometricPressure(),
 	    .relHumidity       = physicsVars.getRelHumidity(),
-	    .position          = state.position,
-	    .currentTime       = state.currentTime
+	    .c0                = physicsVars.getC0(),
+	    .re100             = physicsVars.getRe100()
 	};
 }
 
@@ -210,8 +220,7 @@ BouncePhase::BouncePhase(
 	std::shared_ptr<AerodynamicModel> aeroModel,
 	std::shared_ptr<BounceModel> bounceModel)
 	: terrain(terrain),
-	  bounceModel(bounceModel ? std::move(bounceModel)
-	                          : std::make_shared<DefaultBounceModel>()),
+	  bounceModel(orDefault<DefaultBounceModel>(std::move(bounceModel))),
 	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(aeroModel))
 {
 	if (!terrain)
@@ -280,7 +289,7 @@ RollPhase::RollPhase(
 	std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<RollModel> model)
 	: terrain(terrain),
-	  model(model ? std::move(model) : std::make_shared<DefaultRollModel>())
+	  model(orDefault<DefaultRollModel>(std::move(model)))
 {
 	if (!terrain)
 	{
