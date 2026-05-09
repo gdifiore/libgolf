@@ -124,6 +124,15 @@ if(NOT EMSCRIPTEN)
     add_executable(multi_ground_simulation examples/multi_ground_simulation.cpp)
     target_link_libraries(multi_ground_simulation ${PROJECT_NAME})
 
+    add_executable(custom_aerodynamic_model examples/custom_aerodynamic_model.cpp)
+    target_link_libraries(custom_aerodynamic_model ${PROJECT_NAME})
+
+    add_executable(custom_bounce_model examples/custom_bounce_model.cpp)
+    target_link_libraries(custom_bounce_model ${PROJECT_NAME})
+
+    add_executable(custom_roll_model examples/custom_roll_model.cpp)
+    target_link_libraries(custom_roll_model ${PROJECT_NAME})
+
     # Calibration shot runner (tools/calibration/run.py drives this)
     add_executable(calibration_sim_runner tools/calibration/sim_runner.cpp)
     target_link_libraries(calibration_sim_runner ${PROJECT_NAME})

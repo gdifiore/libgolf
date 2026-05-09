@@ -108,35 +108,38 @@ Reference: Washington State University study by Bin Lyu, et al.
 
 ## Basic Example
 
+A minimal subclass with constant Cd and no spin coupling. Builds and runs from the standard CMake build (`build/custom_aerodynamic_model`); source at [`examples/custom_aerodynamic_model.cpp`](../examples/custom_aerodynamic_model.cpp).
+
 ```cpp
-#include <libgolf.hpp>
-
-class ConstantDragModel : public AerodynamicModel {
+class ConstantCdModel : public AerodynamicModel
+{
 public:
-    Vector3D computeAcceleration(const AerodynamicState& s) const override {
-        // Wind-relative velocity
-        float vRelX = s.velocity[0] - s.windVelocity[0];
-        float vRelY = s.velocity[1] - s.windVelocity[1];
-        float vRelZ = s.velocity[2] - s.windVelocity[2];
-        float vw = std::sqrt(vRelX*vRelX + vRelY*vRelY + vRelZ*vRelZ);
+    explicit ConstantCdModel(float cd) : cd_(cd) {}
 
-        if (vw < 0.01f) return {0.0f, 0.0f, 0.0f};
+    Vector3D computeAcceleration(const AerodynamicState &s) const override
+    {
+        const float vRelX = s.velocity[0] - s.windVelocity[0];
+        const float vRelY = s.velocity[1] - s.windVelocity[1];
+        const float vRelZ = s.velocity[2] - s.windVelocity[2];
+        const float vw = std::sqrt(vRelX * vRelX + vRelY * vRelY + vRelZ * vRelZ);
 
-        // Constant drag, no lift
-        float scale = -s.c0 * 0.30f * vw;
-        return { scale * vRelX, scale * vRelY, scale * vRelZ };
+        if (vw < 0.01F) return {0.0F, 0.0F, 0.0F};
+
+        const float scale = -s.c0 * cd_ * vw;
+        return {scale * vRelX, scale * vRelY, scale * vRelZ};
     }
 
-    double computeSpinDecayTau(const AerodynamicState& s) const override {
-        double v = std::sqrt(s.velocity[0]*s.velocity[0] +
-                             s.velocity[1]*s.velocity[1] +
-                             s.velocity[2]*s.velocity[2]);
-        return 1.0 / (0.00002 * v / s.ballRadius);
+    double computeSpinDecayTau(const AerodynamicState & /*s*/) const override
+    {
+        return 1.0e6;
     }
+
+private:
+    float cd_;
 };
 
-auto model = std::make_shared<ConstantDragModel>();
-FlightSimulator sim(ball, atmos, ground, model);
+auto aero = std::make_shared<ConstantCdModel>(0.30F);
+FlightSimulator sim(launch, atmos, ground, aero);
 ```
 
 ## Lookup Table Example
