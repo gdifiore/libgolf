@@ -73,6 +73,7 @@ Reference: Penner, A.R. *The physics of golf* (Reports on Progress in Physics, 2
 
 A minimal subclass with fixed COR and no spin coupling. Builds and runs from the standard CMake build (`build/custom_bounce_model`); source at [`examples/custom_bounce_model.cpp`](../examples/custom_bounce_model.cpp).
 
+{% raw %}
 ```cpp
 class FixedCorBounceModel : public BounceModel
 {
@@ -106,6 +107,7 @@ auto bounce = std::make_shared<FixedCorBounceModel>(0.35F, 0.6F);
 FlightSimulator sim(launch, atmos, ground, /*aero*/ nullptr, bounce);
 sim.run();
 ```
+{% endraw %}
 
 All three model slots on `FlightSimulator` are independent — pass `nullptr` for any slot to keep the default.
 
