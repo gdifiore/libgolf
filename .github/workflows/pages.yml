@@ -34,15 +34,6 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      # Render README.md (and any other markdown) into _site/ via the default
-      # GitHub Pages Jekyll setup. This preserves the auto-generated README
-      # site that "Deploy from a branch" used to produce.
-      - name: Build Jekyll site
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
-
       - name: Set up Emscripten
         uses: mymindstorm/setup-emsdk@v14
 
@@ -52,15 +43,24 @@ jobs:
       - name: Build wasm
         run: cmake --build --preset wasm
 
-      - name: Stage demo at /demo/
-        # jekyll-build-pages runs in a container as a different UID, so _site/
-        # is owned by that user. Reclaim ownership before writing into it.
+      # Stage the demo into the working tree so Jekyll picks it up as static
+      # content during the render. Files without YAML front matter are copied
+      # verbatim, so index.html, libgolf_wasm.js, and the .wasm binary all
+      # land at _site/demo/ unchanged.
+      - name: Stage demo at ./demo/
         run: |
-          sudo chown -R "$USER:$USER" _site
-          mkdir -p _site/demo
-          cp examples/web/index.html _site/demo/
-          cp build-wasm/libgolf_wasm.js _site/demo/
-          cp build-wasm/libgolf_wasm.wasm _site/demo/
+          mkdir -p demo
+          cp examples/web/index.html demo/
+          cp build-wasm/libgolf_wasm.js demo/
+          cp build-wasm/libgolf_wasm.wasm demo/
+
+      # Renders README.md (and the staged demo/ tree) into _site/. This is the
+      # same default-Jekyll setup that "Deploy from a branch" used to run.
+      - name: Build Jekyll site
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

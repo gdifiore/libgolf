@@ -51,3 +51,7 @@ issues
 # Wasm build artifacts staged next to the visualizer for local testing
 examples/web/libgolf_wasm.js
 examples/web/libgolf_wasm.wasm
+
+# Demo staging dir created by the Pages workflow
+/demo/
+/_site/
