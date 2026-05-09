@@ -31,22 +31,22 @@ protected:
 TEST_F(DefaultModelTest, CdBelowLowReThreshold)
 {
 	// Re_x_e5 < RE_THRESHOLD_LOW (0.5) → CD_LOW regardless of spin
-	EXPECT_NEAR(model.computeCd(0.25, 0.0), physics_constants::CD_LOW, 1e-6);
+	EXPECT_NEAR(model.computeCd(0.25, 0.0), DefaultAerodynamicModel::CD_LOW, 1e-6);
 }
 
 TEST_F(DefaultModelTest, CdAtLowReThresholdIsInclusive)
 {
 	// Re_x_e5 == RE_THRESHOLD_LOW uses <= branch → still CD_LOW
-	EXPECT_NEAR(model.computeCd(0.5, 0.0), physics_constants::CD_LOW, 1e-6);
+	EXPECT_NEAR(model.computeCd(0.5, 0.0), DefaultAerodynamicModel::CD_LOW, 1e-6);
 }
 
 TEST_F(DefaultModelTest, CdMidRangeNoSpin)
 {
 	// Re = 0.75, S = 0:
 	// Cd = CD_LOW - (CD_LOW - CD_HIGH) * (0.75 - 0.5) / (1.0 - 0.5) = 0.350
-	double expected = static_cast<double>(physics_constants::CD_LOW) -
-	                  (static_cast<double>(physics_constants::CD_LOW) -
-	                   static_cast<double>(physics_constants::CD_HIGH)) *
+	double expected = static_cast<double>(DefaultAerodynamicModel::CD_LOW) -
+	                  (static_cast<double>(DefaultAerodynamicModel::CD_LOW) -
+	                   static_cast<double>(DefaultAerodynamicModel::CD_HIGH)) *
 	                      (0.75 - 0.5) / (1.0 - 0.5);
 	EXPECT_NEAR(model.computeCd(0.75, 0.0), expected, 1e-6);
 }
@@ -54,25 +54,25 @@ TEST_F(DefaultModelTest, CdMidRangeNoSpin)
 TEST_F(DefaultModelTest, CdMidRangeWithSpin)
 {
 	// Spin factor adds CD_SPIN * S to the interpolated base
-	double base = static_cast<double>(physics_constants::CD_LOW) -
-	              (static_cast<double>(physics_constants::CD_LOW) -
-	               static_cast<double>(physics_constants::CD_HIGH)) *
+	double base = static_cast<double>(DefaultAerodynamicModel::CD_LOW) -
+	              (static_cast<double>(DefaultAerodynamicModel::CD_LOW) -
+	               static_cast<double>(DefaultAerodynamicModel::CD_HIGH)) *
 	                  (0.75 - 0.5) / (1.0 - 0.5);
-	double expected = base + static_cast<double>(physics_constants::CD_SPIN) * 0.2;
+	double expected = base + static_cast<double>(DefaultAerodynamicModel::CD_SPIN) * 0.2;
 	EXPECT_NEAR(model.computeCd(0.75, 0.2), expected, 1e-6);
 }
 
 TEST_F(DefaultModelTest, CdAtHighReThreshold)
 {
 	// Re_x_e5 == RE_THRESHOLD_HIGH → uses >= branch → CD_HIGH
-	EXPECT_NEAR(model.computeCd(1.0, 0.0), physics_constants::CD_HIGH, 1e-6);
+	EXPECT_NEAR(model.computeCd(1.0, 0.0), DefaultAerodynamicModel::CD_HIGH, 1e-6);
 }
 
 TEST_F(DefaultModelTest, CdAboveHighReThreshold)
 {
 	// Re_x_e5 = 2.0, S = 0.5 → CD_HIGH + CD_SPIN * 0.5
-	double expected = static_cast<double>(physics_constants::CD_HIGH) +
-	                  static_cast<double>(physics_constants::CD_SPIN) * 0.5;
+	double expected = static_cast<double>(DefaultAerodynamicModel::CD_HIGH) +
+	                  static_cast<double>(DefaultAerodynamicModel::CD_SPIN) * 0.5;
 	EXPECT_NEAR(model.computeCd(2.0, 0.5), expected, 1e-6);
 }
 
@@ -96,12 +96,12 @@ TEST_F(DefaultModelTest, ClLowReRamp)
 {
 	// 0.3 < Re < 0.5: smoothstep ramp toward Cl_50k. At Re=0.4, t=smoothstep(0.5)=0.5.
 	const double S = 0.10;
-	const double cl50 = static_cast<double>(physics_constants::CL_RE50K_A0) +
-	                    static_cast<double>(physics_constants::CL_RE50K_A1) * S +
-	                    static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
-	                    static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
+	const double cl50 = static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A0) +
+	                    static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A1) * S +
+	                    static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A2) * S * S +
+	                    static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A3) * S * S * S;
 	// S=0.10 < CL_MAX_SR_LERP_LOW (0.35) → ClMax = CL_MAX_BASE.
-	double expected = std::clamp(cl50 * 0.5, 0.0, static_cast<double>(physics_constants::CL_MAX_BASE));
+	double expected = std::clamp(cl50 * 0.5, 0.0, static_cast<double>(DefaultAerodynamicModel::CL_MAX_BASE));
 	EXPECT_NEAR(model.computeCl(0.4, S), expected, 1e-5);
 }
 
@@ -109,12 +109,12 @@ TEST_F(DefaultModelTest, ClAt50kBinExact)
 {
 	// At Re_x_e5 = 0.5 use the 50k cubic exactly.
 	const double S = 0.12;
-	double expected = static_cast<double>(physics_constants::CL_RE50K_A0) +
-	                  static_cast<double>(physics_constants::CL_RE50K_A1) * S +
-	                  static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
-	                  static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
+	double expected = static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A0) +
+	                  static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A1) * S +
+	                  static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A2) * S * S +
+	                  static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A3) * S * S * S;
 	// S=0.12 < lerp band → ClMax = CL_MAX_BASE.
-	expected = std::clamp(expected, 0.0, static_cast<double>(physics_constants::CL_MAX_BASE));
+	expected = std::clamp(expected, 0.0, static_cast<double>(DefaultAerodynamicModel::CL_MAX_BASE));
 	EXPECT_NEAR(model.computeCl(0.5, S), expected, 1e-5);
 }
 
@@ -122,15 +122,15 @@ TEST_F(DefaultModelTest, ClBetweenBinsLerp)
 {
 	// At Re_x_e5 = 0.55 (midway 50k–60k), expect equal blend of clRe50k and clRe60k.
 	const double S = 0.18;
-	double cl50 = static_cast<double>(physics_constants::CL_RE50K_A0) +
-	              static_cast<double>(physics_constants::CL_RE50K_A1) * S +
-	              static_cast<double>(physics_constants::CL_RE50K_A2) * S * S +
-	              static_cast<double>(physics_constants::CL_RE50K_A3) * S * S * S;
-	double cl60 = static_cast<double>(physics_constants::CL_RE60K_A0) +
-	              static_cast<double>(physics_constants::CL_RE60K_A1) * S +
-	              static_cast<double>(physics_constants::CL_RE60K_A2) * S * S;
+	double cl50 = static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A0) +
+	              static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A1) * S +
+	              static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A2) * S * S +
+	              static_cast<double>(DefaultAerodynamicModel::CL_RE50K_A3) * S * S * S;
+	double cl60 = static_cast<double>(DefaultAerodynamicModel::CL_RE60K_A0) +
+	              static_cast<double>(DefaultAerodynamicModel::CL_RE60K_A1) * S +
+	              static_cast<double>(DefaultAerodynamicModel::CL_RE60K_A2) * S * S;
 	// S=0.18 < lerp band → ClMax = CL_MAX_BASE.
-	double expected = std::clamp(0.5 * (cl50 + cl60), 0.0, static_cast<double>(physics_constants::CL_MAX_BASE));
+	double expected = std::clamp(0.5 * (cl50 + cl60), 0.0, static_cast<double>(DefaultAerodynamicModel::CL_MAX_BASE));
 	EXPECT_NEAR(model.computeCl(0.55, S), expected, 1e-5);
 }
 
@@ -139,8 +139,8 @@ TEST_F(DefaultModelTest, ClHighReHillSaturation)
 	// Re_x_e5 >= 0.7 uses Hill saturation Cl = ClMax(S)·S·g / (1 + S·g).
 	// S=0.20 sits below the ClMax(S) lerp band → ClMax = CL_MAX_BASE.
 	const double S = 0.20;
-	const double g = static_cast<double>(physics_constants::HIGH_RE_SPIN_GAIN);
-	const double clMax = static_cast<double>(physics_constants::CL_MAX_BASE);
+	const double g = static_cast<double>(DefaultAerodynamicModel::HIGH_RE_SPIN_GAIN);
+	const double clMax = static_cast<double>(DefaultAerodynamicModel::CL_MAX_BASE);
 	double expected = std::clamp(clMax * S * g / (1.0 + S * g), 0.0, clMax);
 	EXPECT_NEAR(model.computeCl(1.5, S), expected, 1e-6);
 	EXPECT_NEAR(model.computeCl(0.7, S), expected, 1e-6);
@@ -151,7 +151,7 @@ TEST_F(DefaultModelTest, ClClampedToMax)
 	// Hill saturation asymptote → ClMax(S) as S → ∞. At S=5 the cap is the
 	// high-spin asymptote CL_MAX_HIGH_SR.
 	EXPECT_LE(model.computeCl(2.0, 5.0),
-	          static_cast<double>(physics_constants::CL_MAX_HIGH_SR) + 1e-6);
+	          static_cast<double>(DefaultAerodynamicModel::CL_MAX_HIGH_SR) + 1e-6);
 }
 
 TEST_F(DefaultModelTest, ClMaxLerpsAtHighSpinFactor)
@@ -159,8 +159,8 @@ TEST_F(DefaultModelTest, ClMaxLerpsAtHighSpinFactor)
 	// At S well above CL_MAX_SR_LERP_HIGH (0.50), the Hill cap = CL_MAX_HIGH_SR
 	// (0.32) > CL_MAX_BASE (0.268). Verifies the dynamic ClMax is wired in.
 	const double clHigh = model.computeCl(2.0, 1.0);
-	EXPECT_GT(clHigh, static_cast<double>(physics_constants::CL_MAX_BASE));
-	EXPECT_LE(clHigh, static_cast<double>(physics_constants::CL_MAX_HIGH_SR) + 1e-6);
+	EXPECT_GT(clHigh, static_cast<double>(DefaultAerodynamicModel::CL_MAX_BASE));
+	EXPECT_LE(clHigh, static_cast<double>(DefaultAerodynamicModel::CL_MAX_HIGH_SR) + 1e-6);
 }
 
 // ============================================================================
@@ -181,7 +181,7 @@ TEST_F(DefaultModelTest, TauAtTypicalSpeed)
 	    .currentTime  = 0.0F,
 	};
 	double r        = static_cast<double>(physics_constants::STD_BALL_RADIUS_FT);
-	double expected = r / (static_cast<double>(physics_constants::TAU_COEFF) * 100.0);
+	double expected = r / (static_cast<double>(DefaultAerodynamicModel::TAU_COEFF) * 100.0);
 	EXPECT_NEAR(model.computeSpinDecayTau(state), expected, 0.1);
 }
 

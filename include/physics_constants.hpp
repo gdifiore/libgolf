@@ -3,11 +3,16 @@
 
 /**
  * @file physics_constants.hpp
- * @brief Physical constants used in golf ball trajectory calculations.
+ * @brief Universal physical constants and library-wide simulation parameters.
  *
- * This file consolidates all physical constants, conversion factors, and
- * empirical coefficients used throughout the libgolf library. Constants
- * are organized by category for easy reference.
+ * Contains constants that are not specific to any one model implementation:
+ * fundamental physics, ball geometry, unit conversions, atmospheric/SVP/
+ * Sutherland constants (consumed by ShotPhysicsContext to derive state),
+ * and shared simulation thresholds.
+ *
+ * Model-specific tuning lives on the model class itself as
+ * `static constexpr` members — see DefaultAerodynamicModel,
+ * DefaultBounceModel, DefaultRollModel.
  *
  * Reference: Based on work by Prof. Alan M. Nathan, University of Illinois
  * Urbana-Champaign (TrajectoryCalculatorGolf spreadsheet)
@@ -164,125 +169,6 @@ namespace physics_constants
     constexpr float SUTHERLAND_VISCOSITY_COEFF = 0.000001512F;
 
     // ========================================================================
-    // GOLF BALL DRAG FORCE CONSTANTS
-    // ========================================================================
-
-    /// Drag force constant
-    /// Derived from: c0 = 0.07182 * rho * (5.125/mass) * (circ/9.125)²
-    /// where 5.125 oz and 9.125 in are reference ball parameters
-    constexpr float DRAG_FORCE_CONST = 0.07182F;
-
-    /// Reference golf ball mass for drag calculation (oz)
-    constexpr float REF_BALL_MASS_OZ = 5.125F;
-
-    /// Reference golf ball circumference for drag calculation (inches)
-    constexpr float REF_BALL_CIRC_IN = 9.125F;
-
-    // ========================================================================
-    // SPIN DECAY CONSTANTS
-    // ========================================================================
-
-    /// Tau (spin decay time constant) coefficient
-    /// tau = 1 / (TAU_COEFF * v / r)
-    /// where v is velocity and r is ball radius
-    constexpr float TAU_COEFF = 0.00002F;
-
-    // ========================================================================
-    // REYNOLDS NUMBER THRESHOLDS
-    // ========================================================================
-    // Used for determining drag coefficient regime
-
-    /// Low Reynolds number threshold (× 10⁵)
-    /// Below this, Cd = CdL (laminar flow dominated)
-    constexpr float RE_THRESHOLD_LOW = 0.5F;
-
-    /// High Reynolds number threshold (× 10⁵)
-    /// Above this, Cd = CdH (turbulent flow dominated)
-    constexpr float RE_THRESHOLD_HIGH = 1.0F;
-
-    /// Reynolds number scaling factor for comparison with thresholds
-    /// Re_scaled = (v_mph / 100) * Re100 * RE_SCALE_FACTOR
-    constexpr float RE_SCALE_FACTOR = 0.00001F;
-
-    /// Velocity divisor for Reynolds number calculation (mph)
-    constexpr float RE_VELOCITY_DIVISOR = 100.0F;
-
-    // ========================================================================
-    // AERODYNAMIC COEFFICIENTS — DRAG
-    // ========================================================================
-    // Reference: Washington State University study by Bin Lyu, et al.
-
-    /// Drag coefficient with spin effect
-    constexpr float CD_SPIN = 0.180F;
-
-    /// Drag coefficient for low Reynolds number (laminar flow)
-    /// Used when Re <= 0.5e5
-    constexpr float CD_LOW = 0.500F;
-
-    /// Drag coefficient for high Reynolds number (turbulent flow)
-    /// Used when Re >= 1.0e5
-    constexpr float CD_HIGH = 0.200F;
-
-    // ========================================================================
-    // AERODYNAMIC COEFFICIENTS — LIFT (Re-binned)
-    // ========================================================================
-    // Reynolds-dependent Cl(S) curves, fit to Bearman/Harvey wind-tunnel data
-    // for dimpled spheres. Library applies them in Re_x_e5 units (Re/1e5):
-    //
-    //   Re_x_e5 <= 0.3 :       Cl = 0   (no measurable lift below ~30k)
-    //   0.3 < Re_x_e5 < 0.5 :  smoothstep ramp toward Cl_50k
-    //   0.5 <= Re_x_e5 <= 0.7: lerp between adjacent bins {50k, 60k, 65k, 70k}
-    //   Re_x_e5 > 0.7 :        Hill saturation Cl = ClMax · S·g / (1 + S·g)
-    //
-    // The bins replace the legacy single-quadratic Cl(S) — that overestimated
-    // lift on slow shots (chip / short iron, Re ~50k) where the real curve
-    // peaks early then drops sharply.
-
-    /// Reynolds-bin sentinels (Re_x_e5 = Re / 1e5).
-    constexpr float RE_BIN_NO_LIFT_X_E5 = 0.3F;  ///< below: Cl = 0
-    constexpr float RE_BIN_LOW_X_E5     = 0.5F;  ///< Re = 50,000
-    constexpr float RE_BIN_MID_LOW_X_E5 = 0.6F;  ///< Re = 60,000
-    constexpr float RE_BIN_MID_HIGH_X_E5 = 0.65F; ///< Re = 65,000
-    constexpr float RE_BIN_HIGH_X_E5    = 0.7F;  ///< Re = 70,000
-
-    /// Cl(S) cubic at Re = 50,000 (fits Bearman 50k bin).
-    constexpr float CL_RE50K_A0 =  0.0472121F;
-    constexpr float CL_RE50K_A1 =  2.84795F;
-    constexpr float CL_RE50K_A2 = -23.4342F;
-    constexpr float CL_RE50K_A3 =  45.4849F;
-
-    /// Cl(S) quadratic at Re = 60,000.
-    constexpr float CL_RE60K_A0 =  0.320524F;
-    constexpr float CL_RE60K_A1 = -4.7032F;
-    constexpr float CL_RE60K_A2 = 14.0613F;
-
-    /// Cl(S) quadratic at Re = 65,000.
-    constexpr float CL_RE65K_A0 =  0.266667F;
-    constexpr float CL_RE65K_A1 = -4.0F;
-    constexpr float CL_RE65K_A2 = 13.3333F;
-
-    /// Cl(S) quadratic at Re = 70,000.
-    constexpr float CL_RE70K_A0 =  0.0496189F;
-    constexpr float CL_RE70K_A1 =  0.00211396F;
-    constexpr float CL_RE70K_A2 =  2.34201F;
-
-    /// Spin-factor-dependent maximum lift coefficient.
-    /// Cap on bin output and Hill saturation. The Bearman dimpled-sphere data
-    /// shows a higher asymptote at extreme spin (S → 0.5) than at moderate
-    /// spin (S ≤ 0.35). A flat cap clipped wedge / short-iron lift.
-    /// ClMax(S) is a piecewise-linear lerp:
-    ///   S ≤ CL_MAX_SR_LERP_LOW  : ClMax = CL_MAX_BASE   (0.268)
-    ///   S ≥ CL_MAX_SR_LERP_HIGH : ClMax = CL_MAX_HIGH_SR (0.320)
-    ///   between                 : linear interpolation
-    constexpr float CL_MAX_BASE       = 0.268F;
-    constexpr float CL_MAX_HIGH_SR    = 0.320F;
-    constexpr float CL_MAX_SR_LERP_LOW  = 0.35F;
-    constexpr float CL_MAX_SR_LERP_HIGH = 0.50F;
-
-    /// Spin gain in the high-Re Hill saturation Cl = ClMax·S·g / (1 + S·g).
-    constexpr float HIGH_RE_SPIN_GAIN = 16.0F;
-
-    // ========================================================================
     // SIMULATION PARAMETERS
     // ========================================================================
 
@@ -311,61 +197,6 @@ namespace physics_constants
     /// Minimum vertical velocity for bounce transition (ft/s)
     /// Below this, ball transitions from bounce to roll phase
     constexpr float MIN_BOUNCE_VELOCITY = 1.0F;
-
-    /// Minimum impact speed (ft/s) for Penner spin-back tangential model.
-    /// Below this, simple friction retention is used regardless of impact
-    /// angle — prevents non-physical spin-back on low-energy chip shots.
-    /// 20 m/s ≈ 65.617 ft/s. Reference: Penner (2003) regime where the
-    /// rigid-body slip / no-slip transition matches measured wedge bounces.
-    constexpr float MIN_PENNER_BOUNCE_SPEED_FT_PER_S = 20.0F * METERS_TO_FEET;
-
-    // ========================================================================
-    // BOUNCE COR — SPIN/VELOCITY MODULATION
-    // ========================================================================
-    // Effective COR = surface.restitution * (1 - reduction), where
-    //   reduction = maxReduction(rpm) * velocityScale(speedNormal_m/s).
-    // High spin causes the ball to bite into turf rather than spring off
-    // (flop / wedge bite). The velocity scale prevents low-energy chip
-    // shots from getting an unwarranted COR penalty just from carried spin.
-    // Reference: openfairway BounceCalculator.cs:215-250.
-
-    /// Spin RPM at/below which there is no COR reduction. The reduction
-    /// ramps linearly from 0 here to BOUNCE_COR_SPIN_LOW_MAX_REDUCTION at
-    /// BOUNCE_COR_SPIN_KNEE_RPM.
-    constexpr float BOUNCE_COR_SPIN_KNEE_RPM = 1500.0F;
-
-    /// Above the knee, additional spin extends the reduction up to
-    /// BOUNCE_COR_SPIN_HIGH_MAX_REDUCTION at BOUNCE_COR_SPIN_KNEE_RPM +
-    /// BOUNCE_COR_SPIN_HIGH_BAND_RPM (default: 3000 rpm).
-    constexpr float BOUNCE_COR_SPIN_HIGH_BAND_RPM = 1500.0F;
-
-    /// Reduction at the knee (low-spin asymptote).
-    constexpr float BOUNCE_COR_SPIN_LOW_MAX_REDUCTION = 0.30F;
-
-    /// Reduction at saturation (high-spin asymptote).
-    constexpr float BOUNCE_COR_SPIN_HIGH_MAX_REDUCTION = 0.70F;
-
-    /// Normal-component impact speed (m/s) below which the velocity scale
-    /// ramps from 0 to BOUNCE_COR_VEL_MID_SCALE.
-    constexpr float BOUNCE_COR_VEL_LOW_MS = 12.0F;
-
-    /// Velocity scale at BOUNCE_COR_VEL_LOW_MS — partial COR penalty.
-    constexpr float BOUNCE_COR_VEL_MID_SCALE = 0.50F;
-
-    /// At/above this normal speed the full COR penalty applies.
-    constexpr float BOUNCE_COR_VEL_HIGH_MS = 25.0F;
-
-    // ========================================================================
-    // BOUNCE RETENTION (PENNER BRANCH) — SPIN-COUPLED
-    // ========================================================================
-    // The `retention` multiplier in v_t' = retention * |v| * sin(θ - θ_crit)
-    // is reduced as spin grows: higher spin loses more forward push to bite,
-    // tightening wedge total-distance. Reference: openfairway
-    // 0.55 * clamp(1 - rpm/8000, 0.4, 1.0).
-
-    constexpr float BOUNCE_RETENTION_BASE = 0.55F;
-    constexpr float BOUNCE_RETENTION_RPM_NORM = 8000.0F;
-    constexpr float BOUNCE_RETENTION_FLOOR = 0.40F;
 
     /// Ground contact threshold for phase detection (ft)
     /// Ball is considered "on ground" when within this distance
