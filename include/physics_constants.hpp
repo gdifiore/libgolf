@@ -74,7 +74,7 @@ namespace physics_constants
     constexpr float INCHES_PER_FOOT = 12.0F;
 
     /// Inches per meter
-    constexpr float INCHES_PER_METER = 39.37F;
+    constexpr float INCHES_PER_METER = 1.0F / 0.0254F;
 
     // ========================================================================
     // VELOCITY CONVERSION FACTORS
@@ -82,7 +82,7 @@ namespace physics_constants
 
     /// Miles per hour to feet per second conversion factor
     /// 1 mph = 5280 ft / 3600 s = 1.46667 ft/s
-    constexpr float MPH_TO_FT_PER_S = 1.467F;
+    constexpr float MPH_TO_FT_PER_S = 5280.0F / 3600.0F;
 
     /// Reference velocity for Reynolds number calculation (m/s)
     /// Corresponds to 100 mph
@@ -114,8 +114,8 @@ namespace physics_constants
     // ========================================================================
 
     /// Inches of mercury to millimeters of mercury conversion
-    /// 1 inHg = 1000/39.37 mmHg ≈ 25.4 mmHg
-    constexpr float INHG_TO_MMHG = 1000.0F / 39.37F;
+    /// 1 inHg = 25.4 mmHg exactly (mm per inch)
+    constexpr float INHG_TO_MMHG = 1000.0F / INCHES_PER_METER;
 
     // ========================================================================
     // DENSITY CONVERSION FACTORS
@@ -178,6 +178,13 @@ namespace physics_constants
     /// Integration coefficient (0.5 for Euler's method)
     constexpr float HALF = 0.5F;
 
+    /// Convergence cap for the simulation loop (seconds of simulated time).
+    /// FlightSimulator::run aborts past this to guard against non-terminating
+    /// shots — e.g. terrain steeper than dynamic friction (runaway roll) or a
+    /// custom model emitting NaN (phase-complete comparisons never trip).
+    /// Generous vs. a realistic shot (~15 s); only genuine hangs reach it.
+    constexpr float MAX_SIMULATION_TIME = 120.0F;
+
     // ========================================================================
     // NUMERICAL STABILITY THRESHOLDS
     // ========================================================================
@@ -185,10 +192,6 @@ namespace physics_constants
     /// Minimum velocity magnitude to avoid division by zero in calculations (ft/s)
     /// Used in spin factor and friction calculations
     constexpr float MIN_VELOCITY_THRESHOLD = 0.01F;
-
-    /// Minimum horizontal velocity for friction application (ft/s)
-    /// Below this, horizontal velocity is treated as zero to prevent numerical instability
-    constexpr float MIN_HORIZONTAL_VELOCITY = 0.0001F;
 
     // ========================================================================
     // PHASE TRANSITION THRESHOLDS
@@ -201,10 +204,6 @@ namespace physics_constants
     /// Ground contact threshold for phase detection (ft)
     /// Ball is considered "on ground" when within this distance
     constexpr float GROUND_CONTACT_THRESHOLD = 0.1F;
-
-    /// Position comparison tolerance for cache validation
-    /// Prevents cache misses from floating-point precision issues
-    constexpr float POSITION_EPSILON = 1e-6F;
 
     /// Flat surface threshold for slope calculations (cosine of angle)
     /// Surfaces with cos(θ) > this value (~2.5 degrees) use simplified physics

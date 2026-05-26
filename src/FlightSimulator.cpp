@@ -11,6 +11,8 @@
 #include "physics_constants.hpp"
 
 #include <cmath>
+#include <stdexcept>
+#include <string>
 
 // ---------------------------------------------------------------------------
 // Constructors
@@ -70,21 +72,56 @@ void FlightSimulator::initializeFromLaunch(const LaunchData &launch)
 // Public interface
 // ---------------------------------------------------------------------------
 
+namespace
+{
+	// Largest step count the loop may take before declaring non-convergence.
+	// dt must be positive: a non-positive dt never advances time, so the
+	// phase-complete conditions can never trip.
+	long convergenceStepCap(float dt)
+	{
+		if (!(dt > 0.0F))
+		{
+			throw std::invalid_argument("FlightSimulator: dt must be positive");
+		}
+		return static_cast<long>(physics_constants::MAX_SIMULATION_TIME / dt);
+	}
+}
+
 void FlightSimulator::run(float dt)
 {
-	while (currentPhase != Phase::Complete)
+	const long maxSteps = convergenceStepCap(dt);
+
+	for (long step = 0; currentPhase != Phase::Complete; ++step)
 	{
+		if (step >= maxSteps)
+		{
+			throw std::runtime_error(
+				std::string("FlightSimulator::run did not converge within ") +
+				std::to_string(physics_constants::MAX_SIMULATION_TIME) +
+				"s (stuck in " + getCurrentPhaseName() +
+				" phase) — check terrain slope vs. friction or custom-model output for NaN");
+		}
 		stepOnce(dt);
 	}
 }
 
 std::vector<BallState> FlightSimulator::runAndGetTrajectory(float dt)
 {
+	const long maxSteps = convergenceStepCap(dt);
+
 	std::vector<BallState> trajectory;
 	trajectory.reserve(static_cast<size_t>(10.0F / dt)); // ~10s at dt typical shots
 
-	while (currentPhase != Phase::Complete)
+	for (long step = 0; currentPhase != Phase::Complete; ++step)
 	{
+		if (step >= maxSteps)
+		{
+			throw std::runtime_error(
+				std::string("FlightSimulator::runAndGetTrajectory did not converge within ") +
+				std::to_string(physics_constants::MAX_SIMULATION_TIME) +
+				"s (stuck in " + getCurrentPhaseName() +
+				" phase) — check terrain slope vs. friction or custom-model output for NaN");
+		}
 		trajectory.push_back(state);
 		stepOnce(dt);
 	}

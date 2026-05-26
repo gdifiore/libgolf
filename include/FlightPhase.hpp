@@ -8,7 +8,6 @@
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
-#include "ground_surface.hpp"
 #include "terrain_interface.hpp"
 
 #include <memory>
@@ -58,7 +57,9 @@ protected:
  * - Drag and lift forces
  * - Spin decay
  * - Wind effects
- * - Velocity-Verlet integration
+ * - Semi-implicit integration: position advances with a 2nd-order term
+ *   (x += v*dt + 0.5*a*dt^2), velocity with forward Euler (v += a*dt) using
+ *   the acceleration from the start of the step. 1st-order accurate in velocity.
  */
 class AerialPhase : public FlightPhase
 {
@@ -77,7 +78,6 @@ public:
 	// Getters for observable flight quantities (useful for testing and diagnostics)
 	[[nodiscard]] auto getV() const -> float { return v; }
 	[[nodiscard]] auto getVMph() const -> float { return vMph; }
-	[[nodiscard]] auto getPhi() const -> float { return phi; }
 	[[nodiscard]] auto getTau() const -> float { return tau; }
 	[[nodiscard]] auto getRw() const -> float { return rw; }
 	[[nodiscard]] auto getVw() const -> float { return vw; }
@@ -85,7 +85,6 @@ public:
 
 private:
 	ShotPhysicsContext &physicsVars;
-	LaunchData launch;
 	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<AerodynamicModel> model;
@@ -93,7 +92,6 @@ private:
 	// Cached scalar quantities derived from BallState each step
 	float v;
 	float vMph;
-	float phi;
 	float tau;
 	float rw;
 	float vw;
@@ -104,7 +102,6 @@ private:
 	void calculatePosition(BallState &state, float dt);
 	void calculateV(BallState &state, float dt);
 	void calculateVelocityw(const BallState &state);
-	void calculatePhi(const BallState &state);
 	void calculateTau(const BallState &state);
 	void calculateRw(const BallState &state);
 	void calculateAccel(BallState &state);
@@ -149,8 +146,8 @@ private:
 class RollPhase : public FlightPhase
 {
 public:
-	RollPhase(std::shared_ptr<TerrainInterface> terrain,
-	          std::shared_ptr<RollModel> model = nullptr);
+	explicit RollPhase(std::shared_ptr<TerrainInterface> terrain,
+	                   std::shared_ptr<RollModel> model = nullptr);
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;

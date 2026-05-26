@@ -5,9 +5,72 @@
 
 #include <gtest/gtest.h>
 #include <cmath>
+#include <limits>
+#include <stdexcept>
 #include "FlightSimulator.hpp"
+#include "AerodynamicModel.hpp"
+#include "terrain_interface.hpp"
 #include "math_utils.hpp"
 #include "physics_constants.hpp"
+
+namespace
+{
+	// Constant downhill plane z = -slope * y. With slope (~45°) far steeper than
+	// the surface's dynamic friction, gravity-along-slope always exceeds friction,
+	// so the roll phase accelerates without bound and never reaches rest.
+	class SteepDownhillTerrain : public TerrainInterface
+	{
+	public:
+		explicit SteepDownhillTerrain(float slope) : slope_(slope)
+		{
+			surface_.height = 0.0F;
+			surface_.restitution = 0.4F;
+			surface_.frictionStatic = 0.1F;
+			surface_.frictionDynamic = 0.1F;
+			surface_.firmness = 0.8F;
+		}
+
+		[[nodiscard]] auto getHeight([[maybe_unused]] float x, float y) const -> float override
+		{
+			return -slope_ * y;
+		}
+
+		[[nodiscard]] auto getNormal([[maybe_unused]] float x, [[maybe_unused]] float y) const -> Vector3D override
+		{
+			// Plane z + slope*y = 0 → gradient (0, slope, 1), normalized.
+			const float inv = 1.0F / std::sqrt(1.0F + slope_ * slope_);
+			return {0.0F, slope_ * inv, inv};
+		}
+
+		[[nodiscard]] auto getSurfaceProperties([[maybe_unused]] float x, [[maybe_unused]] float y) const
+			-> const GroundSurface & override
+		{
+			return surface_;
+		}
+
+	private:
+		float slope_;
+		GroundSurface surface_;
+	};
+
+	// Custom aero model that poisons the trajectory with NaN. `NaN <= terrainHeight`
+	// is false, so AerialPhase::isPhaseComplete never trips — the loop would hang
+	// without a convergence cap.
+	class NanAerodynamicModel : public AerodynamicModel
+	{
+	public:
+		[[nodiscard]] Vector3D computeAcceleration([[maybe_unused]] const AerodynamicState &s) const override
+		{
+			const float nan = std::numeric_limits<float>::quiet_NaN();
+			return {nan, nan, nan};
+		}
+
+		[[nodiscard]] float computeSpinDecayTau([[maybe_unused]] const AerodynamicState &s) const override
+		{
+			return 1e6F;
+		}
+	};
+}
 
 class FlightSimulatorTest : public ::testing::Test
 {
@@ -187,4 +250,41 @@ TEST_F(FlightSimulatorTest, GetLandingResultReturnsYards)
 	EXPECT_NEAR(result.xF, state.position[0] / physics_constants::YARDS_TO_FEET, 0.01F);
 	EXPECT_NEAR(result.yF, state.position[1] / physics_constants::YARDS_TO_FEET, 0.01F);
 	EXPECT_GT(result.distance, 0.0F);
+}
+
+// --- Convergence guard ----------------------------------------------------
+
+TEST_F(FlightSimulatorTest, SteepDownhillTerrainThrowsInsteadOfHanging)
+{
+	// 45° downhill: gravity-along-slope >> dynamic friction → roll never rests.
+	auto terrain = std::make_shared<SteepDownhillTerrain>(1.0F);
+	FlightSimulator sim(ball, atmos, terrain);
+
+	EXPECT_THROW(sim.run(0.01F), std::runtime_error);
+}
+
+TEST_F(FlightSimulatorTest, NanModelThrowsInsteadOfHanging)
+{
+	// Custom model emitting NaN: aerial phase-complete check never trips.
+	auto model = std::make_shared<NanAerodynamicModel>();
+	FlightSimulator sim(ball, atmos, ground, model);
+
+	EXPECT_THROW(sim.run(0.01F), std::runtime_error);
+}
+
+TEST_F(FlightSimulatorTest, TrajectoryVariantAlsoGuardsAgainstHang)
+{
+	auto model = std::make_shared<NanAerodynamicModel>();
+	FlightSimulator sim(ball, atmos, ground, model);
+
+	EXPECT_THROW(sim.runAndGetTrajectory(0.01F), std::runtime_error);
+}
+
+TEST_F(FlightSimulatorTest, NonPositiveDtThrows)
+{
+	FlightSimulator sim(ball, atmos, ground);
+
+	// dt <= 0 never advances time → phase-complete conditions can never trip.
+	EXPECT_THROW(sim.run(0.0F), std::invalid_argument);
+	EXPECT_THROW(sim.run(-0.01F), std::invalid_argument);
 }

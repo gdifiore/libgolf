@@ -37,10 +37,10 @@ namespace
 // ============================================================================
 
 AerialPhase::AerialPhase(
-	ShotPhysicsContext &physicsVars, const LaunchData &launch,
+	ShotPhysicsContext &physicsVars, [[maybe_unused]] const LaunchData &launch,
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> model)
-	: physicsVars(physicsVars), launch(launch), atmos(atmos), terrain(terrain),
+	: physicsVars(physicsVars), atmos(atmos), terrain(terrain),
 	  model(orDefault<DefaultAerodynamicModel>(std::move(model)))
 {
 	if (!terrain)
@@ -50,7 +50,6 @@ AerialPhase::AerialPhase(
 
 	v    = 0.0F;
 	vMph = 0.0F;
-	phi  = 0.0F;
 	tau  = 0.0F;
 	rw   = 0.0F;
 	vw   = 0.0F;
@@ -72,7 +71,6 @@ void AerialPhase::initialize(BallState &state)
 
 	calculateVelocityw(state);
 
-	calculatePhi(state);
 	calculateTau(state);
 	calculateRw(state);
 	calculateAccel(state);
@@ -86,7 +84,6 @@ void AerialPhase::calculateAccelerations(BallState &state)
 	vMph = v / physics_constants::MPH_TO_FT_PER_S;
 
 	calculateVelocityw(state);
-	calculatePhi(state);
 	calculateTau(state);
 	calculateRw(state);
 	calculateAccel(state);
@@ -108,7 +105,6 @@ void AerialPhase::calculateStep(BallState &state, float dt)
 	calculatePosition(state, dt);
 	calculateV(state, dt);       // updates v, vMph, state.velocity
 	calculateVelocityw(state);   // updates velocity3D_w, vw, vwMph
-	calculatePhi(state);
 	calculateRw(state);
 	calculateAccel(state);       // calls model, then adds gravity
 }
@@ -159,12 +155,6 @@ void AerialPhase::calculateVelocityw(const BallState &state)
 	}
 
 	vwMph = vw / physics_constants::MPH_TO_FT_PER_S;
-}
-
-void AerialPhase::calculatePhi(const BallState &state)
-{
-	// Currently unused in force calculations — kept for potential future use.
-	phi = std::atan2(state.position[1], state.position[2]) * 180.0F / physics_constants::PI;
 }
 
 void AerialPhase::calculateTau(const BallState &state)

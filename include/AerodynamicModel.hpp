@@ -26,9 +26,12 @@
  *   Re       = (v_mph / 100) * re100
  *   Re_x_e5  = Re / 1e5  =  (v_mph / 100) * re100 * 1e-5
  *
- * Both lumped fields are computed once at launch from the launch atmosphere
- * and held static for the shot. Models needing altitude-varying lumped
- * scalars must re-derive them per step from the raw fields.
+ * Density is launch-fixed: every atmospheric field here (raw and lumped) is
+ * computed once at launch and held constant for the shot. No altitude-varying
+ * source field is provided, so there is nothing to "re-derive per step." A
+ * model wanting altitude-dependent density must compute it itself from
+ * `position.z` (e.g. a barometric profile); the lumped `c0`/`re100` would then
+ * need rescaling by the local/launch density ratio.
  *
  * Spin factor (dimensionless surface-to-translational speed ratio):
  *   S = |spinVector| * ballRadius / |velocity - windVelocity|
@@ -73,6 +76,17 @@ struct AerodynamicState
  * Both methods are called once per simulation timestep. The AerodynamicState
  * provides the complete physical context: velocity vectors, full spin vector,
  * ball geometry, and the atmospheric Reynolds reference.
+ *
+ * This model sets aerodynamic forces, not the integration. AerialPhase runs the
+ * step loop and picks the timestep; you supply acceleration and a spin-decay
+ * constant for it to integrate. You cannot swap the aerial integrator itself.
+ * RollModel works the other way: it gets dt and runs its own integrator.
+ *
+ * computeSpinDecayTau only affects spin in the air. Bounce spin comes from
+ * BounceModel (BounceResult::newSpinVector) and roll spin from RollModel
+ * (RollResult::newSpinVector). The spin vector carries across phases, but each
+ * phase decays it with its own model, so changing this model leaves bounce and
+ * roll spin untouched.
  *
  * @code
  * class MyModel : public AerodynamicModel {
