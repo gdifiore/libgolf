@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(golf VERSION 4.5.0 LANGUAGES CXX)
+project(golf VERSION 4.5.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -66,7 +66,13 @@ if(MSVC)
 else()
     # GCC/Clang flags
     set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
+    # No -ffast-math: it implies -ffinite-math-only, which lets the compiler
+    # assume NaN/Inf never occur and fold NaN comparisons to a constant. The
+    # convergence guards (FlightSimulator run loop + *Phase::isPhaseComplete)
+    # rely on IEEE semantics — `NaN <= height` must stay false so a poisoned
+    # trajectory never falsely "completes". Apple Clang folded it the other way,
+    # breaking the hang guards on macOS.
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
 # Code coverage option
