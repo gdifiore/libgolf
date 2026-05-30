@@ -83,7 +83,7 @@ namespace
 	// dangle the field.
 	AccelerationField makeAccelField(std::shared_ptr<AerodynamicModel> model,
 	                                 const ShotPhysicsContext &physicsVars,
-	                                 AtmosphericData atmos, float ballRadius,
+	                                 const AtmosphericData &atmos, float ballRadius,
 	                                 float gravity, std::shared_ptr<Vector3D> stepSpin)
 	{
 		return [model = std::move(model), &physicsVars, atmos, ballRadius, gravity,
