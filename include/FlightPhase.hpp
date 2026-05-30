@@ -70,7 +70,8 @@ public:
 	            const AtmosphericData &atmos,
 	            std::shared_ptr<TerrainInterface> terrain,
 	            std::shared_ptr<AerodynamicModel> model = nullptr,
-	            const BallProperties &ball = {});
+	            const BallProperties &ball = {},
+	            float gravity = physics_constants::GRAVITY_FT_PER_S2);
 
 	void initialize(BallState &state);
 	void calculateStep(BallState &state, float dt) override;
@@ -91,6 +92,7 @@ private:
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<AerodynamicModel> model;
 	float ballRadius;
+	float gravity;
 
 	// Cached scalar quantities derived from BallState each step
 	float v;
@@ -129,7 +131,8 @@ public:
 	            std::shared_ptr<TerrainInterface> terrain,
 	            std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
 	            std::shared_ptr<BounceModel> bounceModel = nullptr,
-	            const BallProperties &ball = {});
+	            const BallProperties &ball = {},
+	            float gravity = physics_constants::GRAVITY_FT_PER_S2);
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;

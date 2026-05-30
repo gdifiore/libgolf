@@ -39,10 +39,11 @@ namespace
 AerialPhase::AerialPhase(
 	ShotPhysicsContext &physicsVars, [[maybe_unused]] const LaunchData &launch,
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
-	std::shared_ptr<AerodynamicModel> model, const BallProperties &ball)
+	std::shared_ptr<AerodynamicModel> model, const BallProperties &ball,
+	float gravity)
 	: physicsVars(physicsVars), atmos(atmos), terrain(terrain),
 	  model(orDefault<DefaultAerodynamicModel>(std::move(model))),
-	  ballRadius(ball.radiusFt())
+	  ballRadius(ball.radiusFt()), gravity(gravity)
 {
 	if (!terrain)
 	{
@@ -179,7 +180,7 @@ void AerialPhase::calculateAccel(BallState &state)
 	Vector3D aeroAccel = model->computeAcceleration(buildAerodynamicState(state));
 	state.acceleration[0] = aeroAccel[0];
 	state.acceleration[1] = aeroAccel[1];
-	state.acceleration[2] = aeroAccel[2] - physics_constants::GRAVITY_FT_PER_S2;
+	state.acceleration[2] = aeroAccel[2] - gravity;
 }
 
 AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) const
@@ -210,11 +211,12 @@ BouncePhase::BouncePhase(
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> aeroModel,
 	std::shared_ptr<BounceModel> bounceModel,
-	const BallProperties &ball)
+	const BallProperties &ball,
+	float gravity)
 	: terrain(terrain),
 	  bounceModel(orDefault<DefaultBounceModel>(std::move(bounceModel))),
 	  ballRadius(ball.radiusFt()),
-	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(aeroModel), ball)
+	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(aeroModel), ball, gravity)
 {
 	if (!terrain)
 	{

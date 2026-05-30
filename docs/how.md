@@ -272,11 +272,26 @@ FlightSimulator sim(launch, atmos, ground,
 A default-constructed `BallProperties{}` reproduces the standard ball exactly,
 so omitting the argument leaves results unchanged.
 
+### Custom Gravity
+
+Gravity defaults to Earth (`32.174 ft/s²`) and can be set through the
+`FlightSimulator` constructor. It is applied to the aerial and between-bounce
+flight integration:
+
+```c++
+constexpr float kMoonGravity = 5.31f; // ft/s²
+FlightSimulator sim(launch, atmos, ground,
+                    /*aero*/ nullptr, /*bounce*/ nullptr, /*roll*/ nullptr,
+                    /*ball*/ BallProperties{}, kMoonGravity);
+```
+
+The built-in roll model decelerates under Earth gravity; a custom `RollModel`
+can use any value.
+
 ### What Isn't Pluggable
 
 You can replace the three per-phase physics models (aerodynamics, bounce, roll) and the terrain. Everything else is fixed in the current release:
 
-- **Gravity** — a fixed constant, not a constructor parameter.
 - **Air model** — the air-density, viscosity, and saturation-vapor-pressure formulas are fixed. You supply `AtmosphericData` inputs; you cannot swap the model that converts them into density.
 - **Integrator and phase machine** — the aerial time integration and the aerial → bounce → roll transition logic are internal. You can replace what each phase *computes*, not how it is stepped or sequenced.
 - **Launch transform** — the mapping from `LaunchData` (launch-monitor inputs) to the initial state vector is fixed.

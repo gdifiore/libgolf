@@ -53,6 +53,8 @@ public:
 	 * @param bounceModel Bounce model (nullptr uses DefaultBounceModel)
 	 * @param rollModel Roll model (nullptr uses DefaultRollModel)
 	 * @param ball Ball properties (defaults to a standard golf ball)
+	 * @param gravity Gravitational acceleration in ft/s² (defaults to Earth);
+	 *        applied to the aerial and between-bounce flight integration
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
@@ -60,7 +62,8 @@ public:
 	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
 	                std::shared_ptr<BounceModel> bounceModel = nullptr,
 	                std::shared_ptr<RollModel> rollModel = nullptr,
-	                const BallProperties &ball = {});
+	                const BallProperties &ball = {},
+	                float gravity = physics_constants::GRAVITY_FT_PER_S2);
 
 	/**
 	 * @brief Constructs a flight simulator with a custom terrain.
@@ -76,6 +79,8 @@ public:
 	 * @param bounceModel Bounce model (nullptr uses DefaultBounceModel)
 	 * @param rollModel Roll model (nullptr uses DefaultRollModel)
 	 * @param ball Ball properties (defaults to a standard golf ball)
+	 * @param gravity Gravitational acceleration in ft/s² (defaults to Earth);
+	 *        applied to the aerial and between-bounce flight integration
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
@@ -83,7 +88,8 @@ public:
 	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
 	                std::shared_ptr<BounceModel> bounceModel = nullptr,
 	                std::shared_ptr<RollModel> rollModel = nullptr,
-	                const BallProperties &ball = {});
+	                const BallProperties &ball = {},
+	                float gravity = physics_constants::GRAVITY_FT_PER_S2);
 
 	/**
 	 * @brief Runs the simulation to completion.
@@ -154,6 +160,7 @@ private:
 	BallState state;
 
 	Vector3D startPosition_{0.0F, 0.0F, 0.0F};
+	float gravity_;
 
 	// Must be declared before phases since phases hold a reference to it
 	ShotPhysicsContext physicsVars_;
