@@ -118,7 +118,7 @@ public:
 		const Vector3D vNormalAfter = vNormal * -effectiveCor;
 
 		float impactAngle = 0.0F;
-		if (impactSpeed > physics_constants::MIN_VELOCITY_THRESHOLD)
+		if (impactSpeed > physics_constants::MIN_SPEED)
 		{
 			const float sinAngle = std::clamp(-vDotN / impactSpeed, -1.0F, 1.0F);
 			impactAngle = std::asin(sinAngle);
@@ -131,7 +131,7 @@ public:
 		Vector3D vTangentAfter{};
 
 		if (steepImpact && energeticImpact &&
-		    tangentMag > physics_constants::MIN_VELOCITY_THRESHOLD)
+		    tangentMag > physics_constants::MIN_SPEED)
 		{
 			// Backspin scalar: positive when spin axis aligns with t̂ × n̂.
 			// For ball moving +Y, normal +Z: t̂ × n̂ = +X — matches golf

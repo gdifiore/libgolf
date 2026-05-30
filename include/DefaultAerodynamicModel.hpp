@@ -163,7 +163,7 @@ public:
 		const float vRelZ = state.velocity[2] - state.windVelocity[2];
 		const double vw = std::sqrt(static_cast<double>(vRelX * vRelX + vRelY * vRelY + vRelZ * vRelZ));
 
-		if (vw < static_cast<double>(physics_constants::MIN_VELOCITY_THRESHOLD))
+		if (vw < static_cast<double>(physics_constants::MIN_SPEED))
 		{
 			return {0.0F, 0.0F, 0.0F};
 		}
@@ -191,7 +191,7 @@ public:
 
 		// Magnus: C0 * (Cl / omega) * vw * (spinVector × vRel)
 		float magnusX = 0.0F, magnusY = 0.0F, magnusZ = 0.0F;
-		if (omegaMag > static_cast<double>(physics_constants::MIN_VELOCITY_THRESHOLD))
+		if (omegaMag > static_cast<double>(physics_constants::MIN_SPIN))
 		{
 			const double magnusScale = static_cast<double>(state.c0) * (Cl / omegaMag) * vw;
 			magnusX = static_cast<float>(magnusScale * (omegaY * vRelZ - omegaZ * vRelY));

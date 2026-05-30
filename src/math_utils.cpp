@@ -135,7 +135,7 @@ Vector3D math_utils::normalize(const Vector3D& v)
 {
     float mag = magnitude(v);
 
-    if (mag < physics_constants::MIN_VELOCITY_THRESHOLD)
+    if (mag < physics_constants::MIN_LENGTH)
     {
         throw std::invalid_argument(std::string(__func__) + ": Cannot normalize zero-length vector");
     }
@@ -155,7 +155,7 @@ Vector3D math_utils::project(const Vector3D& v, const Vector3D& onto)
 {
     float ontoMagSquared = dot(onto, onto);
 
-    if (ontoMagSquared < physics_constants::MIN_VELOCITY_THRESHOLD * physics_constants::MIN_VELOCITY_THRESHOLD)
+    if (ontoMagSquared < physics_constants::MIN_LENGTH * physics_constants::MIN_LENGTH)
     {
         throw std::invalid_argument(std::string(__func__) + ": Cannot project onto zero-length vector");
     }

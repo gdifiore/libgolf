@@ -205,10 +205,18 @@ namespace physics_constants
     // ========================================================================
     // NUMERICAL STABILITY THRESHOLDS
     // ========================================================================
+    // Dimensionally distinct floors guarding against division by zero and
+    // degenerate cases. Equal in value today, but split by dimension so each
+    // can be retuned independently.
 
-    /// Minimum velocity magnitude to avoid division by zero in calculations (ft/s)
-    /// Used in spin factor and friction calculations
-    constexpr float MIN_VELOCITY_THRESHOLD = 0.01F;
+    /// Minimum speed magnitude before a velocity is treated as zero (ft/s)
+    constexpr float MIN_SPEED = 0.01F;
+
+    /// Minimum spin magnitude before spin is treated as zero (rad/s)
+    constexpr float MIN_SPIN = 0.01F;
+
+    /// Minimum vector length before it is treated as zero (ft)
+    constexpr float MIN_LENGTH = 0.01F;
 
     // ========================================================================
     // PHASE TRANSITION THRESHOLDS
