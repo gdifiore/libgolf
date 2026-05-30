@@ -30,6 +30,23 @@ namespace physics_constants
     /// Standard golf ball mass (ounces)
     constexpr float STD_BALL_MASS_OZ = 1.62F;
 
+    // ------------------------------------------------------------------------
+    // Lumped drag-coefficient (c0) derivation inputs
+    // ------------------------------------------------------------------------
+    // c0 = DRAG_FORCE_CONST * rho * (REF_BALL_MASS_OZ / mass) * (circ / REF_BALL_CIRC_IN)^2
+    // These describe the reference ball the empirical drag fit was taken
+    // against; they are an input to the derivation, not a tunable of any one
+    // model, so they live here rather than on a concrete model class.
+
+    /// Drag force constant for the c0 derivation
+    constexpr float DRAG_FORCE_CONST = 0.07182F;
+
+    /// Reference golf ball mass for the c0 derivation (oz)
+    constexpr float REF_BALL_MASS_OZ = 5.125F;
+
+    /// Reference golf ball circumference for the c0 derivation (inches)
+    constexpr float REF_BALL_CIRC_IN = 9.125F;
+
     // ========================================================================
     // FUNDAMENTAL PHYSICAL CONSTANTS
     // ========================================================================

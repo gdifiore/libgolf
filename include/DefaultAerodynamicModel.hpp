@@ -46,18 +46,23 @@ class DefaultAerodynamicModel : public AerodynamicModel
 {
 public:
 	// ========================================================================
-	// DRAG FORCE LUMPED-SCALAR DERIVATION (consumed by ShotPhysicsContext)
+	// DRAG FORCE LUMPED-SCALAR DERIVATION
 	// ========================================================================
-	// c0 = DRAG_FORCE_CONST * rho * (REF_BALL_MASS_OZ / mass) * (circ / REF_BALL_CIRC_IN)^2
+	// The lumped coefficient c0 is derived by ShotPhysicsContext from the
+	// reference-ball constants in physics_constants:
+	//   c0 = DRAG_FORCE_CONST * rho * (REF_BALL_MASS_OZ / mass) * (circ / REF_BALL_CIRC_IN)^2
+	// These aliases are retained for inspection by derived models; the single
+	// source of truth lives in physics_constants so the context layer need not
+	// depend on this concrete model.
 
 	/// Drag force constant. c0 = 0.07182 * rho * (5.125/mass) * (circ/9.125)²
-	static constexpr float DRAG_FORCE_CONST = 0.07182F;
+	static constexpr float DRAG_FORCE_CONST = physics_constants::DRAG_FORCE_CONST;
 
 	/// Reference golf ball mass for drag calculation (oz)
-	static constexpr float REF_BALL_MASS_OZ = 5.125F;
+	static constexpr float REF_BALL_MASS_OZ = physics_constants::REF_BALL_MASS_OZ;
 
 	/// Reference golf ball circumference for drag calculation (inches)
-	static constexpr float REF_BALL_CIRC_IN = 9.125F;
+	static constexpr float REF_BALL_CIRC_IN = physics_constants::REF_BALL_CIRC_IN;
 
 	// ========================================================================
 	// SPIN DECAY
