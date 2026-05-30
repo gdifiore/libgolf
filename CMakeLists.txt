@@ -21,9 +21,6 @@ configure_file(
     @ONLY
 )
 
-include_directories(${PROJECT_INCLUDE_DIR})
-include_directories(${PROJECT_BINARY_DIR}/include)
-
 set(SOURCES
    ${PROJECT_SRC_DIR}/math_utils.cpp
    ${PROJECT_SRC_DIR}/ShotPhysicsContext.cpp
@@ -52,6 +49,15 @@ set(HEADERS
 
 # Create the static library
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
+add_library(golf::golf ALIAS ${PROJECT_NAME})
+
+# Publish the include paths as usage requirements so in-tree targets and
+# downstream consumers (find_package / add_subdirectory) both resolve headers.
+target_include_directories(${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
 # Set library version properties
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -164,6 +170,43 @@ if(EMSCRIPTEN)
     )
 endif()
 
-install(TARGETS golf DESTINATION lib)
-install(DIRECTORY include/ DESTINATION include)
-install(FILES "${PROJECT_BINARY_DIR}/include/version.hpp" DESTINATION include)
+# ----------------------------------------------------------------------------
+# Install + export: make find_package(golf) and the golf::golf target work for
+# downstream projects.
+# ----------------------------------------------------------------------------
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS ${PROJECT_NAME}
+    EXPORT golfTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES "${PROJECT_BINARY_DIR}/include/version.hpp"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+set(GOLF_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/golf)
+
+install(EXPORT golfTargets
+    FILE golfTargets.cmake
+    NAMESPACE golf::
+    DESTINATION ${GOLF_CMAKE_CONFIG_DIR}
+)
+
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/golfConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/golfConfig.cmake"
+    INSTALL_DESTINATION ${GOLF_CMAKE_CONFIG_DIR}
+)
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/golfConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+install(FILES
+    "${PROJECT_BINARY_DIR}/golfConfig.cmake"
+    "${PROJECT_BINARY_DIR}/golfConfigVersion.cmake"
+    DESTINATION ${GOLF_CMAKE_CONFIG_DIR}
+)
