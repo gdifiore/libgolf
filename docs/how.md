@@ -68,6 +68,15 @@ const AtmosphericData atmos{
 };
 ```
 
+Every field defaults to a sea-level standard day (59°F, 29.92 inHg, no wind,
+dry air), so `AtmosphericData{}` is a valid baseline and you only need to set
+the fields that differ from standard:
+
+```c++
+AtmosphericData atmos{}; // standard day
+atmos.elevation = 5280.0f; // mile-high course
+```
+
 Field definitions are documented in `include/atmospheric_data.hpp`.
 
 ### 3. Ground Surface Properties
