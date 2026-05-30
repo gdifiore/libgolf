@@ -27,7 +27,14 @@ jobs:
 
     - name: Run clang-tidy
       run: |
-        find src -name '*.cpp' | xargs clang-tidy -p build --warnings-as-errors='' --format-style=file
+        find src -name '*.cpp' | xargs clang-tidy -p build --warnings-as-errors='' --format-style=file 2>&1 | tee clang-tidy-report.txt
+
+    - name: Upload clang-tidy report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: clang-tidy-report
+        path: clang-tidy-report.txt
 
   cppcheck:
     name: Cppcheck
