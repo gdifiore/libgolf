@@ -67,21 +67,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
-# Set compilation flags based on compiler
 if(MSVC)
-    # MSVC-specific flags
     set(CMAKE_CXX_FLAGS "/W4")
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
 else()
-    # GCC/Clang flags
     set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-    # No -ffast-math: it implies -ffinite-math-only, which lets the compiler
-    # assume NaN/Inf never occur and fold NaN comparisons to a constant. The
-    # convergence guards (FlightSimulator run loop + *Phase::isPhaseComplete)
-    # rely on IEEE semantics — `NaN <= height` must stay false so a poisoned
-    # trajectory never falsely "completes". Apple Clang folded it the other way,
-    # breaking the hang guards on macOS.
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
 # Code coverage option
