@@ -15,7 +15,6 @@
  */
 
 #include "ShotPhysicsContext.hpp"
-#include "DefaultAerodynamicModel.hpp"
 #include "launch_data.hpp"
 #include "atmospheric_data.hpp"
 #include "math_utils.hpp"
@@ -77,8 +76,8 @@ void ShotPhysicsContext::calculateRhoImperial()
 
 void ShotPhysicsContext::calculateC0()
 {
-    c0 = DefaultAerodynamicModel::DRAG_FORCE_CONST * rhoImperial * (DefaultAerodynamicModel::REF_BALL_MASS_OZ / physics_constants::STD_BALL_MASS_OZ) *
-         std::pow(physics_constants::STD_BALL_CIRCUMFERENCE_IN / DefaultAerodynamicModel::REF_BALL_CIRC_IN, 2);
+    c0 = physics_constants::DRAG_FORCE_CONST * rhoImperial * (physics_constants::REF_BALL_MASS_OZ / physics_constants::STD_BALL_MASS_OZ) *
+         std::pow(physics_constants::STD_BALL_CIRCUMFERENCE_IN / physics_constants::REF_BALL_CIRC_IN, 2);
 }
 
 void ShotPhysicsContext::calculateV0()
