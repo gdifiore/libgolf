@@ -82,13 +82,13 @@ protected:
 
 		// Standard atmospheric conditions
 		atmos = {
-			70.0F,  // temperature (F)
-			0.0F,   // wind x
-			0.0F,   // wind y
-			0.0F,   // wind z
-			0.0F,   // wind direction
-			50.0F,  // humidity
-			29.92F  // pressure
+			70.0F,  // temp (F)
+			0.0F,   // elevation (ft)
+			0.0F,   // vWind (mph)
+			0.0F,   // phiWind (deg)
+			0.0F,   // hWind (ft)
+			50.0F,  // relHumidity (%)
+			29.92F  // pressure (inHg)
 		};
 
 		// Standard ground conditions
