@@ -55,7 +55,8 @@ FlightSimulator::FlightSimulator(
 void FlightSimulator::initializeFromLaunch(const LaunchData &launch)
 {
 	const float v0_fps = launch.ballSpeedMph * physics_constants::MPH_TO_FT_PER_S;
-	Vector3D startPos{launch.startX, launch.startY, launch.startZ};
+	startPosition_ = Vector3D{launch.startX, launch.startY, launch.startZ};
+	const Vector3D &startPos = startPosition_;
 
 	state = BallState::fromLaunchParameters(
 		v0_fps,
@@ -138,14 +139,18 @@ const BallState &FlightSimulator::getState() const
 
 LandingResult FlightSimulator::getLandingResult() const
 {
+	// Measure relative to the launch start, not the origin
+	const Vector3D relative = state.position - startPosition_;
+
 	LandingResult result;
-	result.xF = state.position[0] / physics_constants::YARDS_TO_FEET;
-	result.yF = state.position[1] / physics_constants::YARDS_TO_FEET;
-	result.zF = state.position[2] / physics_constants::YARDS_TO_FEET;
+	result.xF = relative[0] / physics_constants::YARDS_TO_FEET;
+	result.yF = relative[1] / physics_constants::YARDS_TO_FEET;
+	result.zF = relative[2] / physics_constants::YARDS_TO_FEET;
 	result.timeOfFlight = state.currentTime;
-	result.bearing = std::atan2(state.position[0], state.position[1]) *
+	result.bearing = std::atan2(relative[0], relative[1]) *
 	                 180.0F / physics_constants::PI;
-	result.distance = math_utils::getDistanceInYards(state.position);
+	result.distance = math_utils::getDistanceInYards(relative);
+
 	return result;
 }
 

@@ -33,11 +33,17 @@ struct AtmosphericData
 	/**
 	 * @brief Wind direction (in degrees).
 	 *
-	 * Angle relative to Y-axis (target line).
-	 * - 0 deg = crosswind from left
-	 * - 45 deg = right-forward wind
-	 * - 90 deg = headwind
-	 * - 180 deg = tailwind
+	 * Angle relative to the Y-axis (target line), measured so that the wind
+	 * velocity vector is (vWind*sin(phiWind), vWind*cos(phiWind)) in field
+	 * coordinates (x = right, y = downrange).
+	 *
+	 *   phiWind   | wind vector        | effect on the shot
+	 *   ----------|--------------------|----------------------------
+	 *     0 deg   | (0, +w) downrange  | tailwind
+	 *    90 deg   | (+w, 0) rightward  | crosswind, left -> right
+	 *   180 deg   | (0, -w)            | headwind
+	 *   270/-90   | (-w, 0)            | crosswind, right -> left
+	 *
 	 * Range: -180 to 180 deg
 	 */
 	float phiWind;

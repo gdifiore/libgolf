@@ -162,7 +162,7 @@ Physics variables computed at launch (air density, Reynolds number, etc.) are ac
 
 ```c++
 const ShotPhysicsContext& vars = sim.getPhysicsVariables();
-float rho = vars.getRhoImperial(); // slugs/ft³
+float rho = vars.getRhoImperial(); // lb/ft³
 ```
 
 ## Coordinate System
@@ -247,6 +247,16 @@ FlightSimulator sim(ball, atmos, ground, /*aero*/ nullptr, /*bounce*/ nullptr, r
 ```
 
 See [Roll Models](roll_model.md) for the interface and a worked example.
+
+### What Isn't Pluggable
+
+You can replace the three per-phase physics models (aerodynamics, bounce, roll) and the terrain. Everything else is fixed in the current release:
+
+- **Gravity** — a fixed constant, not a constructor parameter.
+- **Ball properties** — mass, circumference, and radius use standard golf-ball constants. A custom `AerodynamicModel` *reads* `ballRadius` and `c0` through `AerodynamicState`, but cannot change the constants the simulator itself bakes into `c0` and the spin-rate scaling.
+- **Air model** — the air-density, viscosity, and saturation-vapor-pressure formulas are fixed. You supply `AtmosphericData` inputs; you cannot swap the model that converts them into density.
+- **Integrator and phase machine** — the aerial time integration and the aerial → bounce → roll transition logic are internal. You can replace what each phase *computes*, not how it is stepped or sequenced.
+- **Launch transform** — the mapping from `LaunchData` (launch-monitor inputs) to the initial state vector is fixed.
 
 ### Example Programs
 
