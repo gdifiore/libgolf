@@ -30,14 +30,34 @@ protected:
 
 TEST_F(DefaultModelTest, CdBelowLowReThreshold)
 {
-	// Re_x_e5 < RE_THRESHOLD_LOW (0.5) → CD_LOW regardless of spin
+	// Re_x_e5 < RE_THRESHOLD_LOW (0.5), no spin → CD_LOW
 	EXPECT_NEAR(model.computeCd(0.25, 0.0), DefaultAerodynamicModel::CD_LOW, 1e-6);
 }
 
 TEST_F(DefaultModelTest, CdAtLowReThresholdIsInclusive)
 {
-	// Re_x_e5 == RE_THRESHOLD_LOW uses <= branch → still CD_LOW
+	// Re_x_e5 == RE_THRESHOLD_LOW uses <= branch; no spin → CD_LOW
 	EXPECT_NEAR(model.computeCd(0.5, 0.0), DefaultAerodynamicModel::CD_LOW, 1e-6);
+}
+
+TEST_F(DefaultModelTest, CdLowReCarriesSpinTerm)
+{
+	// The low-Re branch includes CD_SPIN * S, matching the linear branch at
+	// the boundary so Cd is continuous there.
+	const double S = 0.2;
+	const double expected = static_cast<double>(DefaultAerodynamicModel::CD_LOW) +
+	                        static_cast<double>(DefaultAerodynamicModel::CD_SPIN) * S;
+	EXPECT_NEAR(model.computeCd(0.25, S), expected, 1e-6);
+}
+
+TEST_F(DefaultModelTest, CdIsContinuousAcrossLowReThreshold)
+{
+	// No step at RE_THRESHOLD_LOW: approaching 0.5 from below and from above
+	// converges to the same value even with spin.
+	const double S = 0.2;
+	const double below = model.computeCd(0.5 - 1e-6, S);
+	const double above = model.computeCd(0.5 + 1e-6, S);
+	EXPECT_NEAR(below, above, 1e-4);
 }
 
 TEST_F(DefaultModelTest, CdMidRangeNoSpin)

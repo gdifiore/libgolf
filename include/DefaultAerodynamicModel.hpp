@@ -17,8 +17,8 @@
  *
  * where vw = |v - v_wind| and omega is the current spin vector.
  *
- * Drag model (piecewise-linear through the drag crisis):
- *   Re <= RE_THRESHOLD_LOW:                  Cd = CD_LOW
+ * Drag model (piecewise-linear through the drag crisis, continuous in Re):
+ *   Re <= RE_THRESHOLD_LOW:                  Cd = CD_LOW  + CD_SPIN * S
  *   RE_THRESHOLD_LOW < Re < RE_THRESHOLD_HIGH: linear + CD_SPIN * S
  *   Re >= RE_THRESHOLD_HIGH:                 Cd = CD_HIGH + CD_SPIN * S
  *
@@ -218,7 +218,9 @@ public:
 
 		if (Re_x_e5 <= reLow)
 		{
-			return cdLow;
+			// Carry the spin term through the low-Re branch so Cd is continuous
+			// at reLow: the linear branch evaluates to cdLow + cdSpin*S there.
+			return cdLow + cdSpin * spinFactor;
 		}
 		else if (Re_x_e5 < reHigh)
 		{
