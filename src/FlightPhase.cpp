@@ -30,6 +30,49 @@ namespace
 	{
 		return p ? std::move(p) : std::make_shared<Default>();
 	}
+
+	// Effective wind at the ball: the launch wind above hWind, otherwise none.
+	Vector3D effectiveWind(const ShotPhysicsContext &physicsVars,
+	                       const AtmosphericData &atmos, float heightZ)
+	{
+		if (heightZ >= atmos.hWind)
+		{
+			return {physicsVars.getVw()[0], physicsVars.getVw()[1], 0.0F};
+		}
+		return {0.0F, 0.0F, 0.0F};
+	}
+
+	// Snapshot the ball + launch atmosphere into the model-facing state.
+	AerodynamicState buildAeroState(const BallState &state,
+	                                const ShotPhysicsContext &physicsVars,
+	                                const AtmosphericData &atmos, float ballRadius)
+	{
+		const Vector3D wind = effectiveWind(physicsVars, atmos, state.position[2]);
+		return AerodynamicState{
+		    .velocity          = state.velocity,
+		    .windVelocity      = {wind[0], wind[1], 0.0F}, // vertical wind not modelled
+		    .spinVector        = state.spinVector,
+		    .position          = state.position,
+		    .currentTime       = state.currentTime,
+		    .ballRadius        = ballRadius,
+		    .airDensityKgPerM3 = physicsVars.getRhoMetric(),
+		    .airViscosity      = physicsVars.getAirViscosity(),
+		    .tempKelvin        = physicsVars.getTempKelvin(),
+		    .pressureMmHg      = physicsVars.getBarometricPressure(),
+		    .relHumidity       = physicsVars.getRelHumidity(),
+		    .c0                = physicsVars.getC0(),
+		    .re100             = physicsVars.getRe100()
+		};
+	}
+
+	// Aerodynamic acceleration plus gravity, shared by the aerial and
+	// between-bounce flight steps.
+	Vector3D flightAcceleration(const AerodynamicModel &model,
+	                            const AerodynamicState &aeroState, float gravity)
+	{
+		const Vector3D aero = model.computeAcceleration(aeroState);
+		return {aero[0], aero[1], aero[2] - gravity};
+	}
 }
 
 // ============================================================================
@@ -73,19 +116,6 @@ void AerialPhase::initialize(BallState &state)
 
 	calculateVelocityw(state);
 
-	calculateTau(state);
-	calculateRw(state);
-	calculateAccel(state);
-}
-
-void AerialPhase::calculateAccelerations(BallState &state)
-{
-	v    = std::sqrt(state.velocity[0] * state.velocity[0] +
-	                 state.velocity[1] * state.velocity[1] +
-	                 state.velocity[2] * state.velocity[2]);
-	vMph = v / physics_constants::MPH_TO_FT_PER_S;
-
-	calculateVelocityw(state);
 	calculateTau(state);
 	calculateRw(state);
 	calculateAccel(state);
@@ -167,7 +197,7 @@ void AerialPhase::calculateTau(const BallState &state)
 		return;
 	}
 
-	tau = model->computeSpinDecayTau(buildAerodynamicState(state));
+	tau = model->computeSpinDecayTau(buildAeroState(state, physicsVars, atmos, ballRadius));
 }
 
 void AerialPhase::calculateRw(const BallState &state)
@@ -177,29 +207,8 @@ void AerialPhase::calculateRw(const BallState &state)
 
 void AerialPhase::calculateAccel(BallState &state)
 {
-	Vector3D aeroAccel = model->computeAcceleration(buildAerodynamicState(state));
-	state.acceleration[0] = aeroAccel[0];
-	state.acceleration[1] = aeroAccel[1];
-	state.acceleration[2] = aeroAccel[2] - gravity;
-}
-
-AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) const
-{
-	return AerodynamicState{
-	    .velocity          = state.velocity,
-	    .windVelocity      = {velocity3D_w[0], velocity3D_w[1], 0.0F}, // vertical wind not modelled
-	    .spinVector        = state.spinVector,
-	    .position          = state.position,
-	    .currentTime       = state.currentTime,
-	    .ballRadius        = ballRadius,
-	    .airDensityKgPerM3 = physicsVars.getRhoMetric(),
-	    .airViscosity      = physicsVars.getAirViscosity(),
-	    .tempKelvin        = physicsVars.getTempKelvin(),
-	    .pressureMmHg      = physicsVars.getBarometricPressure(),
-	    .relHumidity       = physicsVars.getRelHumidity(),
-	    .c0                = physicsVars.getC0(),
-	    .re100             = physicsVars.getRe100()
-	};
+	state.acceleration = flightAcceleration(
+	    *model, buildAeroState(state, physicsVars, atmos, ballRadius), gravity);
 }
 
 // ============================================================================
@@ -207,16 +216,16 @@ AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) cons
 // ============================================================================
 
 BouncePhase::BouncePhase(
-	ShotPhysicsContext &physicsVars, const LaunchData &launch,
+	ShotPhysicsContext &physicsVars, [[maybe_unused]] const LaunchData &launch,
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> aeroModel,
 	std::shared_ptr<BounceModel> bounceModel,
 	const BallProperties &ball,
 	float gravity)
-	: terrain(terrain),
+	: physicsVars(physicsVars), atmos(atmos), terrain(terrain),
+	  model(orDefault<DefaultAerodynamicModel>(std::move(aeroModel))),
 	  bounceModel(orDefault<DefaultBounceModel>(std::move(bounceModel))),
-	  ballRadius(ball.radiusFt()),
-	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(aeroModel), ball, gravity)
+	  ballRadius(ball.radiusFt()), gravity(gravity)
 {
 	if (!terrain)
 	{
@@ -248,7 +257,9 @@ void BouncePhase::calculateStep(BallState &state, float dt)
 		state.position[2] = terrainHeight;
 	}
 
-	aerialPhase.calculateAccelerations(state);
+	// Aerodynamic acceleration for the free-flight arc between bounces.
+	state.acceleration = flightAcceleration(
+	    *model, buildAeroState(state, physicsVars, atmos, ballRadius), gravity);
 
 	state.position[0] += state.velocity[0] * dt + 0.5F * state.acceleration[0] * dt * dt;
 	state.position[1] += state.velocity[1] * dt + 0.5F * state.acceleration[1] * dt * dt;

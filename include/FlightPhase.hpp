@@ -75,7 +75,6 @@ public:
 
 	void initialize(BallState &state);
 	void calculateStep(BallState &state, float dt) override;
-	void calculateAccelerations(BallState &state);
 	bool isPhaseComplete(const BallState &state) const override;
 
 	// Getters for observable flight quantities (useful for testing and diagnostics)
@@ -110,8 +109,6 @@ private:
 	void calculateTau(const BallState &state);
 	void calculateRw(const BallState &state);
 	void calculateAccel(BallState &state);
-
-	[[nodiscard]] AerodynamicState buildAerodynamicState(const BallState &state) const;
 };
 
 /**
@@ -138,10 +135,13 @@ public:
 	bool isPhaseComplete(const BallState &state) const override;
 
 private:
+	ShotPhysicsContext &physicsVars;
+	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
+	std::shared_ptr<AerodynamicModel> model;
 	std::shared_ptr<BounceModel> bounceModel;
 	float ballRadius;
-	AerialPhase aerialPhase; // Used for aerodynamic calculations between bounces
+	float gravity;
 };
 
 /**
