@@ -39,7 +39,7 @@ jobs:
             compiler: default
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up compiler (Linux)
       if: runner.os == 'Linux' && matrix.compiler != 'default'
@@ -50,7 +50,7 @@ jobs:
         fi
 
     - name: Cache CMake build
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           build
@@ -79,7 +79,7 @@ jobs:
 
     - name: Upload build artifacts
       if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: libgolf-${{ runner.os }}
         path: |
