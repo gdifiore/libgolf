@@ -9,9 +9,12 @@
 #include <stdexcept>
 #include "FlightSimulator.hpp"
 #include "AerodynamicModel.hpp"
+#include "Integrator.hpp"
+#include "DefaultIntegrator.hpp"
 #include "terrain_interface.hpp"
 #include "math_utils.hpp"
 #include "physics_constants.hpp"
+#include <memory>
 
 namespace
 {
@@ -70,6 +73,23 @@ namespace
 			return 1e6F;
 		}
 	};
+
+	// Default-equivalent integrator that counts how many steps it drove, used to
+	// prove a custom integrator is actually wired into the flight phases.
+	class CountingIntegrator : public Integrator
+	{
+	public:
+		explicit CountingIntegrator(std::shared_ptr<int> calls) : calls_(std::move(calls)) {}
+
+		void step(BallState &state, float dt, const AccelerationField &accel) const override
+		{
+			++(*calls_);
+			DefaultIntegrator{}.step(state, dt, accel);
+		}
+
+	private:
+		std::shared_ptr<int> calls_;
+	};
 }
 
 class FlightSimulatorTest : public ::testing::Test
@@ -114,6 +134,40 @@ TEST_F(FlightSimulatorTest, RunsToCompletion)
 {
 	FlightSimulator sim(ball, atmos, ground);
 	sim.run(0.01F);
+	EXPECT_STREQ(sim.getCurrentPhaseName(), "complete");
+}
+
+TEST_F(FlightSimulatorTest, ExplicitDefaultIntegratorMatchesImplicit)
+{
+	FlightSimulator implicitSim(ball, atmos, ground);
+	implicitSim.run(0.01F);
+
+	FlightSimulator explicitSim(ball, atmos, ground,
+	                            /*aero*/ nullptr, /*bounce*/ nullptr, /*roll*/ nullptr,
+	                            /*ball*/ BallProperties{},
+	                            physics_constants::GRAVITY_FT_PER_S2,
+	                            std::make_shared<DefaultIntegrator>());
+	explicitSim.run(0.01F);
+
+	// Supplying the default integrator explicitly must change nothing.
+	EXPECT_FLOAT_EQ(explicitSim.getLandingResult().distance,
+	                implicitSim.getLandingResult().distance);
+	EXPECT_FLOAT_EQ(explicitSim.getLandingResult().timeOfFlight,
+	                implicitSim.getLandingResult().timeOfFlight);
+}
+
+TEST_F(FlightSimulatorTest, CustomIntegratorDrivesTheFlightSteps)
+{
+	auto calls = std::make_shared<int>(0);
+	FlightSimulator sim(ball, atmos, ground,
+	                    /*aero*/ nullptr, /*bounce*/ nullptr, /*roll*/ nullptr,
+	                    /*ball*/ BallProperties{},
+	                    physics_constants::GRAVITY_FT_PER_S2,
+	                    std::make_shared<CountingIntegrator>(calls));
+	sim.run(0.01F);
+
+	// The injected integrator must have advanced the aerial/bounce steps.
+	EXPECT_GT(*calls, 0);
 	EXPECT_STREQ(sim.getCurrentPhaseName(), "complete");
 }
 

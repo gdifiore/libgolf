@@ -5,6 +5,7 @@
 #include "BallState.hpp"
 #include "BounceModel.hpp"
 #include "FlightPhase.hpp"
+#include "Integrator.hpp"
 #include "RollModel.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
@@ -55,6 +56,7 @@ public:
 	 * @param ball Ball properties (defaults to a standard golf ball)
 	 * @param gravity Gravitational acceleration in ft/s² (defaults to Earth);
 	 *        applied to the aerial and between-bounce flight integration
+	 * @param integrator Time integrator for the flight phases (nullptr uses DefaultIntegrator)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
@@ -63,7 +65,8 @@ public:
 	                std::shared_ptr<BounceModel> bounceModel = nullptr,
 	                std::shared_ptr<RollModel> rollModel = nullptr,
 	                const BallProperties &ball = {},
-	                float gravity = physics_constants::GRAVITY_FT_PER_S2);
+	                float gravity = physics_constants::GRAVITY_FT_PER_S2,
+	                std::shared_ptr<Integrator> integrator = nullptr);
 
 	/**
 	 * @brief Constructs a flight simulator with a custom terrain.
@@ -81,6 +84,7 @@ public:
 	 * @param ball Ball properties (defaults to a standard golf ball)
 	 * @param gravity Gravitational acceleration in ft/s² (defaults to Earth);
 	 *        applied to the aerial and between-bounce flight integration
+	 * @param integrator Time integrator for the flight phases (nullptr uses DefaultIntegrator)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
@@ -89,7 +93,8 @@ public:
 	                std::shared_ptr<BounceModel> bounceModel = nullptr,
 	                std::shared_ptr<RollModel> rollModel = nullptr,
 	                const BallProperties &ball = {},
-	                float gravity = physics_constants::GRAVITY_FT_PER_S2);
+	                float gravity = physics_constants::GRAVITY_FT_PER_S2,
+	                std::shared_ptr<Integrator> integrator = nullptr);
 
 	/**
 	 * @brief Runs the simulation to completion.

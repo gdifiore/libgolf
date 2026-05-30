@@ -26,13 +26,14 @@ FlightSimulator::FlightSimulator(
 	std::shared_ptr<BounceModel> bounceModel,
 	std::shared_ptr<RollModel> rollModel,
 	const BallProperties &ball,
-	float gravity)
+	float gravity,
+	std::shared_ptr<Integrator> integrator)
 	: currentPhase(Phase::Aerial),
 	  gravity_(gravity),
 	  physicsVars_(launch, atmos, ball),
 	  terrainStorage_(std::make_shared<FlatTerrain>(ground)),
-	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, ball, gravity),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, bounceModel, ball, gravity),
+	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, ball, gravity, integrator),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, bounceModel, ball, gravity, integrator),
 	  rollPhase(terrainStorage_, rollModel, ball)
 {
 	initializeFromLaunch(launch);
@@ -46,13 +47,14 @@ FlightSimulator::FlightSimulator(
 	std::shared_ptr<BounceModel> bounceModel,
 	std::shared_ptr<RollModel> rollModel,
 	const BallProperties &ball,
-	float gravity)
+	float gravity,
+	std::shared_ptr<Integrator> integrator)
 	: currentPhase(Phase::Aerial),
 	  gravity_(gravity),
 	  physicsVars_(launch, atmos, ball),
 	  terrainStorage_(terrain),
-	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, ball, gravity),
-	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, bounceModel, ball, gravity),
+	  aerialPhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, ball, gravity, integrator),
+	  bouncePhase(physicsVars_, launch, atmos, terrainStorage_, aeroModel, bounceModel, ball, gravity, integrator),
 	  rollPhase(terrainStorage_, rollModel, ball)
 {
 	initializeFromLaunch(launch);

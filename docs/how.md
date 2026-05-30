@@ -288,12 +288,31 @@ FlightSimulator sim(launch, atmos, ground,
 The built-in roll model decelerates under Earth gravity; a custom `RollModel`
 can use any value.
 
+### Custom Integrator
+
+The aerial and between-bounce flight integration uses a semi-implicit Euler
+scheme by default. Implement `Integrator` to substitute your own (e.g. RK4 or
+an adaptive step) and pass it to `FlightSimulator`:
+
+```c++
+auto integrator = std::make_shared<MyRK4Integrator>();
+FlightSimulator sim(launch, atmos, ground,
+                    /*aero*/ nullptr, /*bounce*/ nullptr, /*roll*/ nullptr,
+                    /*ball*/ BallProperties{},
+                    physics_constants::GRAVITY_FT_PER_S2, integrator);
+```
+
+The flight phase owns spin decay, wind, and the acceleration model; the
+integrator owns only how position and velocity advance. It receives an
+acceleration field it can sample at trial states. The roll phase runs its own
+integrator inside `RollModel`.
+
 ### What Isn't Pluggable
 
 You can replace the three per-phase physics models (aerodynamics, bounce, roll) and the terrain. Everything else is fixed in the current release:
 
 - **Air model** — the air-density, viscosity, and saturation-vapor-pressure formulas are fixed. You supply `AtmosphericData` inputs; you cannot swap the model that converts them into density.
-- **Integrator and phase machine** — the aerial time integration and the aerial → bounce → roll transition logic are internal. You can replace what each phase *computes*, not how it is stepped or sequenced.
+- **Phase machine** — the aerial → bounce → roll transition logic and the criteria for when each transition fires are internal. You can replace what each phase *computes* and how the flight phases step (see Custom Integrator), but not how the phases are sequenced.
 - **Launch transform** — the mapping from `LaunchData` (launch-monitor inputs) to the initial state vector is fixed.
 
 ### Example Programs

@@ -5,6 +5,7 @@
 #include "BallProperties.hpp"
 #include "BallState.hpp"
 #include "BounceModel.hpp"
+#include "Integrator.hpp"
 #include "RollModel.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
@@ -71,7 +72,8 @@ public:
 	            std::shared_ptr<TerrainInterface> terrain,
 	            std::shared_ptr<AerodynamicModel> model = nullptr,
 	            const BallProperties &ball = {},
-	            float gravity = physics_constants::GRAVITY_FT_PER_S2);
+	            float gravity = physics_constants::GRAVITY_FT_PER_S2,
+	            std::shared_ptr<Integrator> integrator = nullptr);
 
 	void initialize(BallState &state);
 	void calculateStep(BallState &state, float dt) override;
@@ -90,6 +92,7 @@ private:
 	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<AerodynamicModel> model;
+	std::shared_ptr<Integrator> integrator;
 	float ballRadius;
 	float gravity;
 
@@ -103,8 +106,6 @@ private:
 	Vector3D velocity3D_w;
 
 	// Private calculation methods
-	void calculatePosition(BallState &state, float dt);
-	void calculateV(BallState &state, float dt);
 	void calculateVelocityw(const BallState &state);
 	void calculateTau(const BallState &state);
 	void calculateRw(const BallState &state);
@@ -129,7 +130,8 @@ public:
 	            std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
 	            std::shared_ptr<BounceModel> bounceModel = nullptr,
 	            const BallProperties &ball = {},
-	            float gravity = physics_constants::GRAVITY_FT_PER_S2);
+	            float gravity = physics_constants::GRAVITY_FT_PER_S2,
+	            std::shared_ptr<Integrator> integrator = nullptr);
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;
@@ -140,6 +142,7 @@ private:
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<AerodynamicModel> model;
 	std::shared_ptr<BounceModel> bounceModel;
+	std::shared_ptr<Integrator> integrator;
 	float ballRadius;
 	float gravity;
 };
