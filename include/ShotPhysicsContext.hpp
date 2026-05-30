@@ -1,6 +1,7 @@
 #ifndef SHOT_PHYSICS_CONTEXT_HPP
 #define SHOT_PHYSICS_CONTEXT_HPP
 
+#include "BallProperties.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
 #include "math_utils.hpp"
@@ -9,7 +10,8 @@ class ShotPhysicsContext
 {
 public:
 	ShotPhysicsContext(const LaunchData &launch,
-							 const AtmosphericData &atmos);
+							 const AtmosphericData &atmos,
+							 const BallProperties &ball = {});
 
 	// Getters
 	// Mixed unit convention, matching AerodynamicState: imperial for kinematics
@@ -59,6 +61,7 @@ private:
 	void calculateAllVariables();
 	LaunchData launch;
 	AtmosphericData atmos;
+	BallProperties ball;
 
 	// Member variables
 	float rhoImperial = 0.0F;

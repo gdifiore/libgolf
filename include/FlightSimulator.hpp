@@ -1,6 +1,7 @@
 #ifndef FLIGHT_SIMULATOR_HPP
 #define FLIGHT_SIMULATOR_HPP
 
+#include "BallProperties.hpp"
 #include "BallState.hpp"
 #include "BounceModel.hpp"
 #include "FlightPhase.hpp"
@@ -51,13 +52,15 @@ public:
 	 * @param aeroModel Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
 	 * @param bounceModel Bounce model (nullptr uses DefaultBounceModel)
 	 * @param rollModel Roll model (nullptr uses DefaultRollModel)
+	 * @param ball Ball properties (defaults to a standard golf ball)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
 	                const GroundSurface &ground,
 	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
 	                std::shared_ptr<BounceModel> bounceModel = nullptr,
-	                std::shared_ptr<RollModel> rollModel = nullptr);
+	                std::shared_ptr<RollModel> rollModel = nullptr,
+	                const BallProperties &ball = {});
 
 	/**
 	 * @brief Constructs a flight simulator with a custom terrain.
@@ -72,13 +75,15 @@ public:
 	 * @param aeroModel Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
 	 * @param bounceModel Bounce model (nullptr uses DefaultBounceModel)
 	 * @param rollModel Roll model (nullptr uses DefaultRollModel)
+	 * @param ball Ball properties (defaults to a standard golf ball)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
 	                std::shared_ptr<TerrainInterface> terrain,
 	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
 	                std::shared_ptr<BounceModel> bounceModel = nullptr,
-	                std::shared_ptr<RollModel> rollModel = nullptr);
+	                std::shared_ptr<RollModel> rollModel = nullptr,
+	                const BallProperties &ball = {});
 
 	/**
 	 * @brief Runs the simulation to completion.

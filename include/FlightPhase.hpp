@@ -2,6 +2,7 @@
 #define FLIGHTPHASE_HPP
 
 #include "AerodynamicModel.hpp"
+#include "BallProperties.hpp"
 #include "BallState.hpp"
 #include "BounceModel.hpp"
 #include "RollModel.hpp"
@@ -68,7 +69,8 @@ public:
 	            const LaunchData &launch,
 	            const AtmosphericData &atmos,
 	            std::shared_ptr<TerrainInterface> terrain,
-	            std::shared_ptr<AerodynamicModel> model = nullptr);
+	            std::shared_ptr<AerodynamicModel> model = nullptr,
+	            const BallProperties &ball = {});
 
 	void initialize(BallState &state);
 	void calculateStep(BallState &state, float dt) override;
@@ -88,6 +90,7 @@ private:
 	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<AerodynamicModel> model;
+	float ballRadius;
 
 	// Cached scalar quantities derived from BallState each step
 	float v;
@@ -125,7 +128,8 @@ public:
 	            const AtmosphericData &atmos,
 	            std::shared_ptr<TerrainInterface> terrain,
 	            std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
-	            std::shared_ptr<BounceModel> bounceModel = nullptr);
+	            std::shared_ptr<BounceModel> bounceModel = nullptr,
+	            const BallProperties &ball = {});
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;
@@ -133,6 +137,7 @@ public:
 private:
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<BounceModel> bounceModel;
+	float ballRadius;
 	AerialPhase aerialPhase; // Used for aerodynamic calculations between bounces
 };
 
@@ -147,7 +152,8 @@ class RollPhase : public FlightPhase
 {
 public:
 	explicit RollPhase(std::shared_ptr<TerrainInterface> terrain,
-	                   std::shared_ptr<RollModel> model = nullptr);
+	                   std::shared_ptr<RollModel> model = nullptr,
+	                   const BallProperties &ball = {});
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;
@@ -155,6 +161,7 @@ public:
 private:
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<RollModel> model;
+	float ballRadius;
 	bool atRest = false;
 };
 

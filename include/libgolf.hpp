@@ -11,6 +11,7 @@
 #include "FlightPhase.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "BallState.hpp"
+#include "BallProperties.hpp"
 #include "atmospheric_data.hpp"
 #include "launch_data.hpp"
 #include "ground_surface.hpp"
