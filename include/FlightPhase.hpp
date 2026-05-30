@@ -96,6 +96,11 @@ private:
 	float ballRadius;
 	float gravity;
 
+	// Acceleration field handed to the integrator. Built once and reused every
+	// step; stepSpin holds the spin (fixed across a step) the field samples with.
+	std::shared_ptr<Vector3D> stepSpin;
+	AccelerationField accelField;
+
 	// Cached scalar quantities derived from BallState each step
 	float v;
 	float vMph;
@@ -145,6 +150,11 @@ private:
 	std::shared_ptr<Integrator> integrator;
 	float ballRadius;
 	float gravity;
+
+	// Acceleration field handed to the integrator. Built once and reused every
+	// step; stepSpin holds the spin (fixed across a step) the field samples with.
+	std::shared_ptr<Vector3D> stepSpin;
+	AccelerationField accelField;
 };
 
 /**

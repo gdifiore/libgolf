@@ -75,22 +75,26 @@ namespace
 		return {aero[0], aero[1], aero[2] - gravity};
 	}
 
-	// Acceleration field an Integrator can sample at trial states. Spin is held
-	// fixed for the step (it is decayed once, before integration).
-	AccelerationField makeAccelField(const AerodynamicModel &model,
+	// Acceleration field an Integrator can sample at trial states, built once per
+	// phase and reused every step. The per-step spin (decayed once, before the
+	// step, then held fixed) is read through stepSpin so the field need not be
+	// rebuilt. Captures are move-safe: the model is held by shared_ptr, atmos by
+	// value, and physicsVars outlives the phase, so a moved-from phase does not
+	// dangle the field.
+	AccelerationField makeAccelField(std::shared_ptr<AerodynamicModel> model,
 	                                 const ShotPhysicsContext &physicsVars,
-	                                 const AtmosphericData &atmos, float ballRadius,
-	                                 float gravity, const Vector3D &spinVector)
+	                                 AtmosphericData atmos, float ballRadius,
+	                                 float gravity, std::shared_ptr<Vector3D> stepSpin)
 	{
-		return [&model, &physicsVars, &atmos, ballRadius, gravity,
-		        spinVector](const IntegratorState &s) -> Vector3D {
+		return [model = std::move(model), &physicsVars, atmos, ballRadius, gravity,
+		        stepSpin = std::move(stepSpin)](const IntegratorState &s) -> Vector3D {
 			BallState trial;
 			trial.position    = s.position;
 			trial.velocity    = s.velocity;
-			trial.spinVector  = spinVector;
+			trial.spinVector  = *stepSpin;
 			trial.currentTime = s.time;
 			return flightAcceleration(
-			    model, buildAeroState(trial, physicsVars, atmos, ballRadius), gravity);
+			    *model, buildAeroState(trial, physicsVars, atmos, ballRadius), gravity);
 		};
 	}
 }
@@ -107,7 +111,9 @@ AerialPhase::AerialPhase(
 	: physicsVars(physicsVars), atmos(atmos), terrain(terrain),
 	  model(orDefault<DefaultAerodynamicModel>(std::move(model))),
 	  integrator(orDefault<DefaultIntegrator>(std::move(integrator))),
-	  ballRadius(ball.radiusFt()), gravity(gravity)
+	  ballRadius(ball.radiusFt()), gravity(gravity),
+	  stepSpin(std::make_shared<Vector3D>()),
+	  accelField(makeAccelField(this->model, physicsVars, atmos, ballRadius, gravity, stepSpin))
 {
 	if (!terrain)
 	{
@@ -156,9 +162,10 @@ void AerialPhase::calculateStep(BallState &state, float dt)
 	state.spinVector[2] *= decay;
 
 	// state.acceleration holds the start-of-step acceleration; advance position
-	// and velocity through the (pluggable) integrator.
-	integrator->step(state, dt,
-	    makeAccelField(*model, physicsVars, atmos, ballRadius, gravity, state.spinVector));
+	// and velocity through the (pluggable) integrator. The field samples the
+	// just-decayed spin held in stepSpin.
+	*stepSpin = state.spinVector;
+	integrator->step(state, dt, accelField);
 
 	v    = math_utils::magnitude(state.velocity);
 	vMph = v / physics_constants::MPH_TO_FT_PER_S;
@@ -211,8 +218,9 @@ void AerialPhase::calculateRw(const BallState &state)
 
 void AerialPhase::calculateAccel(BallState &state)
 {
-	state.acceleration = flightAcceleration(
-	    *model, buildAeroState(state, physicsVars, atmos, ballRadius), gravity);
+	*stepSpin = state.spinVector;
+	state.acceleration =
+	    accelField(IntegratorState{state.position, state.velocity, state.currentTime});
 }
 
 // ============================================================================
@@ -230,7 +238,9 @@ BouncePhase::BouncePhase(
 	  model(orDefault<DefaultAerodynamicModel>(std::move(aeroModel))),
 	  bounceModel(orDefault<DefaultBounceModel>(std::move(bounceModel))),
 	  integrator(orDefault<DefaultIntegrator>(std::move(integrator))),
-	  ballRadius(ball.radiusFt()), gravity(gravity)
+	  ballRadius(ball.radiusFt()), gravity(gravity),
+	  stepSpin(std::make_shared<Vector3D>()),
+	  accelField(makeAccelField(this->model, physicsVars, atmos, ballRadius, gravity, stepSpin))
 {
 	if (!terrain)
 	{
@@ -263,12 +273,14 @@ void BouncePhase::calculateStep(BallState &state, float dt)
 	}
 
 	// Aerodynamic acceleration for the free-flight arc between bounces, advanced
-	// through the same (pluggable) integrator the aerial phase uses.
-	state.acceleration = flightAcceleration(
-	    *model, buildAeroState(state, physicsVars, atmos, ballRadius), gravity);
+	// through the same (pluggable) integrator the aerial phase uses. Both the
+	// start-of-step acceleration and the integrator's trial samples come from the
+	// one cached field, so they cannot drift apart. Spin is fixed across the arc.
+	*stepSpin = state.spinVector;
+	state.acceleration =
+	    accelField(IntegratorState{state.position, state.velocity, state.currentTime});
 
-	integrator->step(state, dt,
-	    makeAccelField(*model, physicsVars, atmos, ballRadius, gravity, state.spinVector));
+	integrator->step(state, dt, accelField);
 
 	state.currentTime += dt;
 
