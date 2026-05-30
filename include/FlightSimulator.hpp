@@ -148,6 +148,8 @@ private:
 	Phase currentPhase;
 	BallState state;
 
+	Vector3D startPosition_{0.0F, 0.0F, 0.0F};
+
 	// Must be declared before phases since phases hold a reference to it
 	ShotPhysicsContext physicsVars_;
 

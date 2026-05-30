@@ -252,6 +252,39 @@ TEST_F(FlightSimulatorTest, GetLandingResultReturnsYards)
 	EXPECT_GT(result.distance, 0.0F);
 }
 
+// xF/yF/distance/bearing are measured from the launch start, not the world
+// origin. On flat ground with no wind the physics is
+// translation-invariant, so offsetting the start must leave the start-relative
+// landing result unchanged while the absolute resting position shifts by
+// exactly the offset. The second half guards against "fix" by ignoring start.
+TEST_F(FlightSimulatorTest, LandingResultIsRelativeToNonzeroStart)
+{
+	FlightSimulator atOrigin(ball, atmos, ground);
+	atOrigin.run(0.01F);
+	const LandingResult base = atOrigin.getLandingResult();
+
+	LaunchData offset = ball;
+	offset.startX = 30.0F;   // feet right of the target line
+	offset.startY = 150.0F;  // feet downrange, e.g. an approach shot
+	FlightSimulator shifted(offset, atmos, ground);
+	shifted.run(0.01F);
+	const LandingResult moved = shifted.getLandingResult();
+
+	// Start-relative outputs are invariant to where the shot started.
+	EXPECT_NEAR(moved.xF, base.xF, 0.01F);
+	EXPECT_NEAR(moved.yF, base.yF, 0.01F);
+	EXPECT_NEAR(moved.distance, base.distance, 0.01F);
+	EXPECT_NEAR(moved.bearing, base.bearing, 0.01F);
+
+	// The absolute resting position really shifted by the start offset, so the
+	// invariance above is a subtraction, not a dropped start.
+	const Vector3D &absPos = shifted.getState().position;
+	EXPECT_NEAR(absPos[0] / physics_constants::YARDS_TO_FEET,
+	            base.xF + offset.startX / physics_constants::YARDS_TO_FEET, 0.05F);
+	EXPECT_NEAR(absPos[1] / physics_constants::YARDS_TO_FEET,
+	            base.yF + offset.startY / physics_constants::YARDS_TO_FEET, 0.05F);
+}
+
 // --- Convergence guard ----------------------------------------------------
 
 TEST_F(FlightSimulatorTest, SteepDownhillTerrainThrowsInsteadOfHanging)
