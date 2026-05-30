@@ -88,6 +88,32 @@ TEST(GolfTest, initVarsNotDefault)
   EXPECT_NEAR(vars.getRe100(), 123200, 100);
 }
 
+TEST(GolfTest, defaultAtmosphereIsStandardDay)
+{
+  const AtmosphericData atmos{};
+
+  // Sea-level standard day: 59°F, 29.92 inHg, no wind, dry air.
+  EXPECT_FLOAT_EQ(atmos.temp, 59.0f);
+  EXPECT_FLOAT_EQ(atmos.elevation, 0.0f);
+  EXPECT_FLOAT_EQ(atmos.vWind, 0.0f);
+  EXPECT_FLOAT_EQ(atmos.phiWind, 0.0f);
+  EXPECT_FLOAT_EQ(atmos.hWind, 0.0f);
+  EXPECT_FLOAT_EQ(atmos.relHumidity, 0.0f);
+  EXPECT_FLOAT_EQ(atmos.pressure, 29.92f);
+
+  // Default-constructed atmosphere is usable and yields a sane air density.
+  const LaunchData launch{
+      .ballSpeedMph = 160.0f,
+      .launchAngleDeg = 11.0f,
+      .directionDeg = 0.0f,
+      .backspinRpm = 3000.0f,
+      .sidespinRpm = 0.0f,
+  };
+  const ShotPhysicsContext vars(launch, atmos);
+  EXPECT_NEAR(vars.getRhoMetric(), 1.225, 0.02); // ~ISA sea-level density
+  EXPECT_GT(vars.getC0(), 0.0f);
+}
+
 TEST(GolfTest, ballPropertiesThreadIntoDerivation)
 {
   const LaunchData launch{
