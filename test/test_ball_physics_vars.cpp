@@ -87,3 +87,43 @@ TEST(GolfTest, initVarsNotDefault)
   EXPECT_NEAR(vars.getBarometricPressure(), 759.97, 0.1);
   EXPECT_NEAR(vars.getRe100(), 123200, 100);
 }
+
+TEST(GolfTest, ballPropertiesThreadIntoDerivation)
+{
+  const LaunchData launch{
+      .ballSpeedMph = 160.0f,
+      .launchAngleDeg = 11.0f,
+      .directionDeg = 0.0f,
+      .backspinRpm = 3000.0f,
+      .sidespinRpm = 0.0f,
+  };
+  const AtmosphericData atmos{
+      .temp = 70.0f,
+      .elevation = 0.0f,
+      .vWind = 0.0f,
+      .phiWind = 0.0f,
+      .hWind = 0.0f,
+      .relHumidity = 50.0f,
+      .pressure = 29.92f,
+  };
+
+  // A default-constructed BallProperties must reproduce the standard ball.
+  const ShotPhysicsContext implicitDefault(launch, atmos);
+  const ShotPhysicsContext explicitDefault(launch, atmos, BallProperties{});
+  EXPECT_FLOAT_EQ(implicitDefault.getC0(), explicitDefault.getC0());
+  EXPECT_FLOAT_EQ(implicitDefault.getROmega(), explicitDefault.getROmega());
+  EXPECT_FLOAT_EQ(implicitDefault.getRe100(), explicitDefault.getRe100());
+
+  // c0 scales as 1/mass: a heavier ball of the same size drags less per unit speed.
+  const BallProperties heavy{.massOz = 2.0f};
+  const ShotPhysicsContext heavyVars(launch, atmos, heavy);
+  EXPECT_LT(heavyVars.getC0(), implicitDefault.getC0());
+  EXPECT_FLOAT_EQ(heavyVars.getROmega(), implicitDefault.getROmega());
+
+  // A larger circumference raises c0 (∝ area), surface speed, and the Reynolds reference.
+  const BallProperties big{.circumferenceIn = 6.0f};
+  const ShotPhysicsContext bigVars(launch, atmos, big);
+  EXPECT_GT(bigVars.getC0(), implicitDefault.getC0());
+  EXPECT_GT(bigVars.getROmega(), implicitDefault.getROmega());
+  EXPECT_GT(bigVars.getRe100(), implicitDefault.getRe100());
+}

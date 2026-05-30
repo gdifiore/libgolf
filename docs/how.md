@@ -248,12 +248,26 @@ FlightSimulator sim(ball, atmos, ground, /*aero*/ nullptr, /*bounce*/ nullptr, r
 
 See [Roll Models](roll_model.md) for the interface and a worked example.
 
+### Custom Ball Properties
+
+The simulator models a standard golf ball by default. Pass a `BallProperties`
+to simulate a different ball; its mass and circumference feed the aerodynamic
+coefficients and the radius the force models receive:
+
+```c++
+BallProperties ball{.massOz = 1.80f, .circumferenceIn = 5.30f};
+FlightSimulator sim(launch, atmos, ground,
+                    /*aero*/ nullptr, /*bounce*/ nullptr, /*roll*/ nullptr, ball);
+```
+
+A default-constructed `BallProperties{}` reproduces the standard ball exactly,
+so omitting the argument leaves results unchanged.
+
 ### What Isn't Pluggable
 
 You can replace the three per-phase physics models (aerodynamics, bounce, roll) and the terrain. Everything else is fixed in the current release:
 
 - **Gravity** — a fixed constant, not a constructor parameter.
-- **Ball properties** — mass, circumference, and radius use standard golf-ball constants. A custom `AerodynamicModel` *reads* `ballRadius` and `c0` through `AerodynamicState`, but cannot change the constants the simulator itself bakes into `c0` and the spin-rate scaling.
 - **Air model** — the air-density, viscosity, and saturation-vapor-pressure formulas are fixed. You supply `AtmosphericData` inputs; you cannot swap the model that converts them into density.
 - **Integrator and phase machine** — the aerial time integration and the aerial → bounce → roll transition logic are internal. You can replace what each phase *computes*, not how it is stepped or sequenced.
 - **Launch transform** — the mapping from `LaunchData` (launch-monitor inputs) to the initial state vector is fixed.

@@ -39,9 +39,10 @@ namespace
 AerialPhase::AerialPhase(
 	ShotPhysicsContext &physicsVars, [[maybe_unused]] const LaunchData &launch,
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
-	std::shared_ptr<AerodynamicModel> model)
+	std::shared_ptr<AerodynamicModel> model, const BallProperties &ball)
 	: physicsVars(physicsVars), atmos(atmos), terrain(terrain),
-	  model(orDefault<DefaultAerodynamicModel>(std::move(model)))
+	  model(orDefault<DefaultAerodynamicModel>(std::move(model))),
+	  ballRadius(ball.radiusFt())
 {
 	if (!terrain)
 	{
@@ -189,7 +190,7 @@ AerodynamicState AerialPhase::buildAerodynamicState(const BallState &state) cons
 	    .spinVector        = state.spinVector,
 	    .position          = state.position,
 	    .currentTime       = state.currentTime,
-	    .ballRadius        = physics_constants::STD_BALL_RADIUS_FT,
+	    .ballRadius        = ballRadius,
 	    .airDensityKgPerM3 = physicsVars.getRhoMetric(),
 	    .airViscosity      = physicsVars.getAirViscosity(),
 	    .tempKelvin        = physicsVars.getTempKelvin(),
@@ -208,10 +209,12 @@ BouncePhase::BouncePhase(
 	ShotPhysicsContext &physicsVars, const LaunchData &launch,
 	const AtmosphericData &atmos, std::shared_ptr<TerrainInterface> terrain,
 	std::shared_ptr<AerodynamicModel> aeroModel,
-	std::shared_ptr<BounceModel> bounceModel)
+	std::shared_ptr<BounceModel> bounceModel,
+	const BallProperties &ball)
 	: terrain(terrain),
 	  bounceModel(orDefault<DefaultBounceModel>(std::move(bounceModel))),
-	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(aeroModel))
+	  ballRadius(ball.radiusFt()),
+	  aerialPhase(physicsVars, launch, atmos, terrain, std::move(aeroModel), ball)
 {
 	if (!terrain)
 	{
@@ -235,7 +238,7 @@ void BouncePhase::calculateStep(BallState &state, float dt)
 			state.velocity,
 			surfaceNormal,
 			state.spinVector,
-			physics_constants::STD_BALL_RADIUS_FT
+			ballRadius
 		};
 		BounceResult result = bounceModel->resolveBounce(bounceState, surface);
 		state.velocity = result.newVelocity;
@@ -277,9 +280,11 @@ bool BouncePhase::isPhaseComplete(const BallState &state) const
 
 RollPhase::RollPhase(
 	std::shared_ptr<TerrainInterface> terrain,
-	std::shared_ptr<RollModel> model)
+	std::shared_ptr<RollModel> model,
+	const BallProperties &ball)
 	: terrain(terrain),
-	  model(orDefault<DefaultRollModel>(std::move(model)))
+	  model(orDefault<DefaultRollModel>(std::move(model))),
+	  ballRadius(ball.radiusFt())
 {
 	if (!terrain)
 	{
@@ -297,7 +302,7 @@ void RollPhase::calculateStep(BallState &state, float dt)
 		state.velocity,
 		state.spinVector,
 		surfaceNormal,
-		physics_constants::STD_BALL_RADIUS_FT,
+		ballRadius,
 		dt,
 		terrain.get()
 	};
