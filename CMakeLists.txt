@@ -45,6 +45,8 @@ set(HEADERS
    ${PROJECT_INCLUDE_DIR}/physics_constants.hpp
    ${PROJECT_INCLUDE_DIR}/RollModel.hpp
    ${PROJECT_INCLUDE_DIR}/DefaultRollModel.hpp
+   ${PROJECT_INCLUDE_DIR}/Integrator.hpp
+   ${PROJECT_INCLUDE_DIR}/DefaultIntegrator.hpp
 )
 
 # Create the static library

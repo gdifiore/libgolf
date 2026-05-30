@@ -79,8 +79,9 @@ struct AerodynamicState
  *
  * This model sets aerodynamic forces, not the integration. AerialPhase runs the
  * step loop and picks the timestep; you supply acceleration and a spin-decay
- * constant for it to integrate. You cannot swap the aerial integrator itself.
- * RollModel works the other way: it gets dt and runs its own integrator.
+ * constant for it to integrate. The integration scheme itself is swappable
+ * separately through the Integrator interface. RollModel works differently
+ * again: it gets dt and runs its own integrator internally.
  *
  * computeSpinDecayTau only affects spin in the air. Bounce spin comes from
  * BounceModel (BounceResult::newSpinVector) and roll spin from RollModel

@@ -6,6 +6,8 @@
 #include "DefaultAerodynamicModel.hpp"
 #include "DefaultBounceModel.hpp"
 #include "DefaultRollModel.hpp"
+#include "Integrator.hpp"
+#include "DefaultIntegrator.hpp"
 #include "RollModel.hpp"
 #include "FlightSimulator.hpp"
 #include "FlightPhase.hpp"
