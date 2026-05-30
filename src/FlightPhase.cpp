@@ -60,7 +60,7 @@ AerialPhase::AerialPhase(
 
 void AerialPhase::initialize(BallState &state)
 {
-	if (math_utils::magnitude(state.spinVector) < physics_constants::MIN_VELOCITY_THRESHOLD)
+	if (math_utils::magnitude(state.spinVector) < physics_constants::MIN_SPIN)
 	{
 		state.spinVector = physicsVars.getW();
 	}
@@ -160,7 +160,7 @@ void AerialPhase::calculateVelocityw(const BallState &state)
 
 void AerialPhase::calculateTau(const BallState &state)
 {
-	if (v < physics_constants::MIN_VELOCITY_THRESHOLD)
+	if (v < physics_constants::MIN_SPEED)
 	{
 		tau = 1e6F;
 		return;
