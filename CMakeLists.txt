@@ -70,9 +70,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # No -ffast-math: -ffinite-math-only folds NaN comparisons to a constant and
 # breaks the convergence guards that rely on `NaN <= height` staying false.
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "/W4")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 else()
-    set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
 # Code coverage option
