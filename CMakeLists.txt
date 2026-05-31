@@ -67,6 +67,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
+# No -ffast-math: -ffinite-math-only folds NaN comparisons to a constant and
+# breaks the convergence guards that rely on `NaN <= height` staying false.
 if(MSVC)
     set(CMAKE_CXX_FLAGS "/W4")
 else()
@@ -90,6 +92,7 @@ if(NOT EMSCRIPTEN)
       GIT_TAG v1.17.0
     )
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF) # keep gtest/gmock out of our install prefix
     FetchContent_MakeAvailable(googletest)
 
     # Enable testing
