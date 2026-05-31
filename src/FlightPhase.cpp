@@ -123,7 +123,6 @@ AerialPhase::AerialPhase(
 	v    = 0.0F;
 	vMph = 0.0F;
 	tau  = 0.0F;
-	rw   = 0.0F;
 	vw   = 0.0F;
 	vwMph = 0.0F;
 	velocity3D_w = {0.0F, 0.0F, 0.0F};
@@ -144,7 +143,6 @@ void AerialPhase::initialize(BallState &state)
 	calculateVelocityw(state);
 
 	calculateTau(state);
-	calculateRw(state);
 	calculateAccel(state);
 }
 
@@ -170,7 +168,6 @@ void AerialPhase::calculateStep(BallState &state, float dt)
 	v    = math_utils::magnitude(state.velocity);
 	vMph = v / physics_constants::MPH_TO_FT_PER_S;
 	calculateVelocityw(state);   // updates velocity3D_w, vw, vwMph
-	calculateRw(state);
 	calculateAccel(state);       // start-of-step acceleration for the next step
 }
 
@@ -209,11 +206,6 @@ void AerialPhase::calculateTau(const BallState &state)
 	}
 
 	tau = model->computeSpinDecayTau(buildAeroState(state, physicsVars, atmos, ballRadius));
-}
-
-void AerialPhase::calculateRw(const BallState &state)
-{
-	rw = math_utils::magnitude(state.spinVector);
 }
 
 void AerialPhase::calculateAccel(BallState &state)

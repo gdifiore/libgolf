@@ -83,7 +83,6 @@ public:
 	[[nodiscard]] auto getV() const -> float { return v; }
 	[[nodiscard]] auto getVMph() const -> float { return vMph; }
 	[[nodiscard]] auto getTau() const -> float { return tau; }
-	[[nodiscard]] auto getRw() const -> float { return rw; }
 	[[nodiscard]] auto getVw() const -> float { return vw; }
 	[[nodiscard]] auto getVwMph() const -> float { return vwMph; }
 
@@ -105,7 +104,6 @@ private:
 	float v;
 	float vMph;
 	float tau;
-	float rw;
 	float vw;
 	float vwMph;
 	Vector3D velocity3D_w;
@@ -113,7 +111,6 @@ private:
 	// Private calculation methods
 	void calculateVelocityw(const BallState &state);
 	void calculateTau(const BallState &state);
-	void calculateRw(const BallState &state);
 	void calculateAccel(BallState &state);
 };
 
