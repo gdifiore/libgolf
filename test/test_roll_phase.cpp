@@ -336,12 +336,12 @@ TEST_F(RollPhaseTest, BallCanStartRollingFromNearZeroVelocityOnSlope)
 
 	RollPhase roll(slopedTerrain);
 
-	// Ball starting with very small velocity (just above MIN_VELOCITY_THRESHOLD)
+	// Ball starting with very small velocity (just above MIN_SPEED)
 	// This tests that the velocity reversal fix allows the ball to accelerate
 	// from near-zero velocity without getting stuck
 	BallState state;
 	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {0.0F, 0.02F, 0.0F};  // Small velocity above MIN_VELOCITY_THRESHOLD
+	state.velocity = {0.0F, 0.02F, 0.0F};  // Small velocity above MIN_SPEED
 	state.acceleration = {0.0F, 0.0F, 0.0F};
 	state.currentTime = 0.0F;
 

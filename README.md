@@ -19,6 +19,22 @@ chmod +x build.sh
 ./build.sh
 ```
 
+## Using libgolf in your project
+
+After installing (`cmake --install build`), consume it from another CMake
+project with `find_package`:
+
+```cmake
+find_package(golf REQUIRED)
+
+add_executable(my_app main.cpp)
+target_link_libraries(my_app PRIVATE golf::golf)
+```
+
+`golf::golf` carries its include paths, so `#include <libgolf.hpp>` works with
+no extra configuration. The same target name is available via
+`add_subdirectory(libgolf)` for in-tree builds.
+
 ## Features
 
 - Full trajectory simulation with automatic phase transitions (aerial → bounce → roll)

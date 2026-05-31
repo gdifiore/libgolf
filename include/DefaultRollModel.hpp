@@ -97,7 +97,7 @@ private:
 
 		// Stationary: friction direction undefined, gravity along slope is
 		// balanced by static friction at rest.
-		if (vHorizontal < physics_constants::MIN_VELOCITY_THRESHOLD)
+		if (vHorizontal < physics_constants::MIN_SPEED)
 		{
 			return acceleration;
 		}

@@ -30,6 +30,23 @@ namespace physics_constants
     /// Standard golf ball mass (ounces)
     constexpr float STD_BALL_MASS_OZ = 1.62F;
 
+    // ------------------------------------------------------------------------
+    // Lumped drag-coefficient (c0) derivation inputs
+    // ------------------------------------------------------------------------
+    // c0 = DRAG_FORCE_CONST * rho * (REF_BALL_MASS_OZ / mass) * (circ / REF_BALL_CIRC_IN)^2
+    // These describe the reference ball the empirical drag fit was taken
+    // against; they are an input to the derivation, not a tunable of any one
+    // model, so they live here rather than on a concrete model class.
+
+    /// Drag force constant for the c0 derivation
+    constexpr float DRAG_FORCE_CONST = 0.07182F;
+
+    /// Reference golf ball mass for the c0 derivation (oz)
+    constexpr float REF_BALL_MASS_OZ = 5.125F;
+
+    /// Reference golf ball circumference for the c0 derivation (inches)
+    constexpr float REF_BALL_CIRC_IN = 9.125F;
+
     // ========================================================================
     // FUNDAMENTAL PHYSICAL CONSTANTS
     // ========================================================================
@@ -188,10 +205,18 @@ namespace physics_constants
     // ========================================================================
     // NUMERICAL STABILITY THRESHOLDS
     // ========================================================================
+    // Dimensionally distinct floors guarding against division by zero and
+    // degenerate cases. Equal in value today, but split by dimension so each
+    // can be retuned independently.
 
-    /// Minimum velocity magnitude to avoid division by zero in calculations (ft/s)
-    /// Used in spin factor and friction calculations
-    constexpr float MIN_VELOCITY_THRESHOLD = 0.01F;
+    /// Minimum speed magnitude before a velocity is treated as zero (ft/s)
+    constexpr float MIN_SPEED = 0.01F;
+
+    /// Minimum spin magnitude before spin is treated as zero (rad/s)
+    constexpr float MIN_SPIN = 0.01F;
+
+    /// Minimum vector length before it is treated as zero (ft)
+    constexpr float MIN_LENGTH = 0.01F;
 
     // ========================================================================
     // PHASE TRANSITION THRESHOLDS

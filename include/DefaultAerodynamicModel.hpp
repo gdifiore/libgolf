@@ -17,8 +17,8 @@
  *
  * where vw = |v - v_wind| and omega is the current spin vector.
  *
- * Drag model (piecewise-linear through the drag crisis):
- *   Re <= RE_THRESHOLD_LOW:                  Cd = CD_LOW
+ * Drag model (piecewise-linear through the drag crisis, continuous in Re):
+ *   Re <= RE_THRESHOLD_LOW:                  Cd = CD_LOW  + CD_SPIN * S
  *   RE_THRESHOLD_LOW < Re < RE_THRESHOLD_HIGH: linear + CD_SPIN * S
  *   Re >= RE_THRESHOLD_HIGH:                 Cd = CD_HIGH + CD_SPIN * S
  *
@@ -46,18 +46,23 @@ class DefaultAerodynamicModel : public AerodynamicModel
 {
 public:
 	// ========================================================================
-	// DRAG FORCE LUMPED-SCALAR DERIVATION (consumed by ShotPhysicsContext)
+	// DRAG FORCE LUMPED-SCALAR DERIVATION
 	// ========================================================================
-	// c0 = DRAG_FORCE_CONST * rho * (REF_BALL_MASS_OZ / mass) * (circ / REF_BALL_CIRC_IN)^2
+	// The lumped coefficient c0 is derived by ShotPhysicsContext from the
+	// reference-ball constants in physics_constants:
+	//   c0 = DRAG_FORCE_CONST * rho * (REF_BALL_MASS_OZ / mass) * (circ / REF_BALL_CIRC_IN)^2
+	// These aliases are retained for inspection by derived models; the single
+	// source of truth lives in physics_constants so the context layer need not
+	// depend on this concrete model.
 
 	/// Drag force constant. c0 = 0.07182 * rho * (5.125/mass) * (circ/9.125)²
-	static constexpr float DRAG_FORCE_CONST = 0.07182F;
+	static constexpr float DRAG_FORCE_CONST = physics_constants::DRAG_FORCE_CONST;
 
 	/// Reference golf ball mass for drag calculation (oz)
-	static constexpr float REF_BALL_MASS_OZ = 5.125F;
+	static constexpr float REF_BALL_MASS_OZ = physics_constants::REF_BALL_MASS_OZ;
 
 	/// Reference golf ball circumference for drag calculation (inches)
-	static constexpr float REF_BALL_CIRC_IN = 9.125F;
+	static constexpr float REF_BALL_CIRC_IN = physics_constants::REF_BALL_CIRC_IN;
 
 	// ========================================================================
 	// SPIN DECAY
@@ -158,7 +163,7 @@ public:
 		const float vRelZ = state.velocity[2] - state.windVelocity[2];
 		const double vw = std::sqrt(static_cast<double>(vRelX * vRelX + vRelY * vRelY + vRelZ * vRelZ));
 
-		if (vw < static_cast<double>(physics_constants::MIN_VELOCITY_THRESHOLD))
+		if (vw < static_cast<double>(physics_constants::MIN_SPEED))
 		{
 			return {0.0F, 0.0F, 0.0F};
 		}
@@ -186,7 +191,7 @@ public:
 
 		// Magnus: C0 * (Cl / omega) * vw * (spinVector × vRel)
 		float magnusX = 0.0F, magnusY = 0.0F, magnusZ = 0.0F;
-		if (omegaMag > static_cast<double>(physics_constants::MIN_VELOCITY_THRESHOLD))
+		if (omegaMag > static_cast<double>(physics_constants::MIN_SPIN))
 		{
 			const double magnusScale = static_cast<double>(state.c0) * (Cl / omegaMag) * vw;
 			magnusX = static_cast<float>(magnusScale * (omegaY * vRelZ - omegaZ * vRelY));
@@ -213,7 +218,9 @@ public:
 
 		if (Re_x_e5 <= reLow)
 		{
-			return cdLow;
+			// Carry the spin term through the low-Re branch so Cd is continuous
+			// at reLow: the linear branch evaluates to cdLow + cdSpin*S there.
+			return cdLow + cdSpin * spinFactor;
 		}
 		else if (Re_x_e5 < reHigh)
 		{

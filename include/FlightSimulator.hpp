@@ -1,9 +1,11 @@
 #ifndef FLIGHT_SIMULATOR_HPP
 #define FLIGHT_SIMULATOR_HPP
 
+#include "BallProperties.hpp"
 #include "BallState.hpp"
 #include "BounceModel.hpp"
 #include "FlightPhase.hpp"
+#include "Integrator.hpp"
 #include "RollModel.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
@@ -51,13 +53,20 @@ public:
 	 * @param aeroModel Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
 	 * @param bounceModel Bounce model (nullptr uses DefaultBounceModel)
 	 * @param rollModel Roll model (nullptr uses DefaultRollModel)
+	 * @param ball Ball properties (defaults to a standard golf ball)
+	 * @param gravity Gravitational acceleration in ft/s² (defaults to Earth);
+	 *        applied to the aerial and between-bounce flight integration
+	 * @param integrator Time integrator for the flight phases (nullptr uses DefaultIntegrator)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
 	                const GroundSurface &ground,
 	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
 	                std::shared_ptr<BounceModel> bounceModel = nullptr,
-	                std::shared_ptr<RollModel> rollModel = nullptr);
+	                std::shared_ptr<RollModel> rollModel = nullptr,
+	                const BallProperties &ball = {},
+	                float gravity = physics_constants::GRAVITY_FT_PER_S2,
+	                std::shared_ptr<Integrator> integrator = nullptr);
 
 	/**
 	 * @brief Constructs a flight simulator with a custom terrain.
@@ -72,13 +81,20 @@ public:
 	 * @param aeroModel Aerodynamic coefficient model (nullptr uses DefaultAerodynamicModel)
 	 * @param bounceModel Bounce model (nullptr uses DefaultBounceModel)
 	 * @param rollModel Roll model (nullptr uses DefaultRollModel)
+	 * @param ball Ball properties (defaults to a standard golf ball)
+	 * @param gravity Gravitational acceleration in ft/s² (defaults to Earth);
+	 *        applied to the aerial and between-bounce flight integration
+	 * @param integrator Time integrator for the flight phases (nullptr uses DefaultIntegrator)
 	 */
 	FlightSimulator(const LaunchData &launch,
 	                const AtmosphericData &atmos,
 	                std::shared_ptr<TerrainInterface> terrain,
 	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
 	                std::shared_ptr<BounceModel> bounceModel = nullptr,
-	                std::shared_ptr<RollModel> rollModel = nullptr);
+	                std::shared_ptr<RollModel> rollModel = nullptr,
+	                const BallProperties &ball = {},
+	                float gravity = physics_constants::GRAVITY_FT_PER_S2,
+	                std::shared_ptr<Integrator> integrator = nullptr);
 
 	/**
 	 * @brief Runs the simulation to completion.
@@ -149,6 +165,7 @@ private:
 	BallState state;
 
 	Vector3D startPosition_{0.0F, 0.0F, 0.0F};
+	float gravity_;
 
 	// Must be declared before phases since phases hold a reference to it
 	ShotPhysicsContext physicsVars_;

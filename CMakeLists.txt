@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(golf VERSION 4.5.2 LANGUAGES CXX)
+project(golf VERSION 4.6.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,9 +21,6 @@ configure_file(
     @ONLY
 )
 
-include_directories(${PROJECT_INCLUDE_DIR})
-include_directories(${PROJECT_BINARY_DIR}/include)
-
 set(SOURCES
    ${PROJECT_SRC_DIR}/math_utils.cpp
    ${PROJECT_SRC_DIR}/ShotPhysicsContext.cpp
@@ -41,16 +38,28 @@ set(HEADERS
    ${PROJECT_INCLUDE_DIR}/FlightPhase.hpp
    ${PROJECT_INCLUDE_DIR}/FlightSimulator.hpp
    ${PROJECT_INCLUDE_DIR}/BallState.hpp
+   ${PROJECT_INCLUDE_DIR}/BallProperties.hpp
    ${PROJECT_INCLUDE_DIR}/ground_surface.hpp
    ${PROJECT_INCLUDE_DIR}/terrain_interface.hpp
    ${PROJECT_INCLUDE_DIR}/ground_physics.hpp
    ${PROJECT_INCLUDE_DIR}/physics_constants.hpp
    ${PROJECT_INCLUDE_DIR}/RollModel.hpp
    ${PROJECT_INCLUDE_DIR}/DefaultRollModel.hpp
+   ${PROJECT_INCLUDE_DIR}/Integrator.hpp
+   ${PROJECT_INCLUDE_DIR}/DefaultIntegrator.hpp
 )
 
 # Create the static library
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
+add_library(golf::golf ALIAS ${PROJECT_NAME})
+
+# Publish the include paths as usage requirements so in-tree targets and
+# downstream consumers (find_package / add_subdirectory) both resolve headers.
+target_include_directories(${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
 # Set library version properties
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -58,21 +67,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
-# Set compilation flags based on compiler
+# No -ffast-math: -ffinite-math-only folds NaN comparisons to a constant and
+# breaks the convergence guards that rely on `NaN <= height` staying false.
 if(MSVC)
-    # MSVC-specific flags
     set(CMAKE_CXX_FLAGS "/W4")
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
 else()
-    # GCC/Clang flags
     set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-    # No -ffast-math: it implies -ffinite-math-only, which lets the compiler
-    # assume NaN/Inf never occur and fold NaN comparisons to a constant. The
-    # convergence guards (FlightSimulator run loop + *Phase::isPhaseComplete)
-    # rely on IEEE semantics — `NaN <= height` must stay false so a poisoned
-    # trajectory never falsely "completes". Apple Clang folded it the other way,
-    # breaking the hang guards on macOS.
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
 # Code coverage option
@@ -92,6 +92,7 @@ if(NOT EMSCRIPTEN)
       GIT_TAG v1.17.0
     )
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF) # keep gtest/gmock out of our install prefix
     FetchContent_MakeAvailable(googletest)
 
     # Enable testing
@@ -163,6 +164,43 @@ if(EMSCRIPTEN)
     )
 endif()
 
-install(TARGETS golf DESTINATION lib)
-install(DIRECTORY include/ DESTINATION include)
-install(FILES "${PROJECT_BINARY_DIR}/include/version.hpp" DESTINATION include)
+# ----------------------------------------------------------------------------
+# Install + export: make find_package(golf) and the golf::golf target work for
+# downstream projects.
+# ----------------------------------------------------------------------------
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS ${PROJECT_NAME}
+    EXPORT golfTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES "${PROJECT_BINARY_DIR}/include/version.hpp"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+set(GOLF_CMAKE_CONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/golf)
+
+install(EXPORT golfTargets
+    FILE golfTargets.cmake
+    NAMESPACE golf::
+    DESTINATION ${GOLF_CMAKE_CONFIG_DIR}
+)
+
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/golfConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/golfConfig.cmake"
+    INSTALL_DESTINATION ${GOLF_CMAKE_CONFIG_DIR}
+)
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/golfConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+install(FILES
+    "${PROJECT_BINARY_DIR}/golfConfig.cmake"
+    "${PROJECT_BINARY_DIR}/golfConfigVersion.cmake"
+    DESTINATION ${GOLF_CMAKE_CONFIG_DIR}
+)

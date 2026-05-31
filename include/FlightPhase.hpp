@@ -2,8 +2,10 @@
 #define FLIGHTPHASE_HPP
 
 #include "AerodynamicModel.hpp"
+#include "BallProperties.hpp"
 #include "BallState.hpp"
 #include "BounceModel.hpp"
+#include "Integrator.hpp"
 #include "RollModel.hpp"
 #include "ShotPhysicsContext.hpp"
 #include "atmospheric_data.hpp"
@@ -68,11 +70,13 @@ public:
 	            const LaunchData &launch,
 	            const AtmosphericData &atmos,
 	            std::shared_ptr<TerrainInterface> terrain,
-	            std::shared_ptr<AerodynamicModel> model = nullptr);
+	            std::shared_ptr<AerodynamicModel> model = nullptr,
+	            const BallProperties &ball = {},
+	            float gravity = physics_constants::GRAVITY_FT_PER_S2,
+	            std::shared_ptr<Integrator> integrator = nullptr);
 
 	void initialize(BallState &state);
 	void calculateStep(BallState &state, float dt) override;
-	void calculateAccelerations(BallState &state);
 	bool isPhaseComplete(const BallState &state) const override;
 
 	// Getters for observable flight quantities (useful for testing and diagnostics)
@@ -88,6 +92,14 @@ private:
 	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<AerodynamicModel> model;
+	std::shared_ptr<Integrator> integrator;
+	float ballRadius;
+	float gravity;
+
+	// Acceleration field handed to the integrator. Built once and reused every
+	// step; stepSpin holds the spin (fixed across a step) the field samples with.
+	std::shared_ptr<Vector3D> stepSpin;
+	AccelerationField accelField;
 
 	// Cached scalar quantities derived from BallState each step
 	float v;
@@ -99,14 +111,10 @@ private:
 	Vector3D velocity3D_w;
 
 	// Private calculation methods
-	void calculatePosition(BallState &state, float dt);
-	void calculateV(BallState &state, float dt);
 	void calculateVelocityw(const BallState &state);
 	void calculateTau(const BallState &state);
 	void calculateRw(const BallState &state);
 	void calculateAccel(BallState &state);
-
-	[[nodiscard]] AerodynamicState buildAerodynamicState(const BallState &state) const;
 };
 
 /**
@@ -125,15 +133,28 @@ public:
 	            const AtmosphericData &atmos,
 	            std::shared_ptr<TerrainInterface> terrain,
 	            std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
-	            std::shared_ptr<BounceModel> bounceModel = nullptr);
+	            std::shared_ptr<BounceModel> bounceModel = nullptr,
+	            const BallProperties &ball = {},
+	            float gravity = physics_constants::GRAVITY_FT_PER_S2,
+	            std::shared_ptr<Integrator> integrator = nullptr);
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;
 
 private:
+	ShotPhysicsContext &physicsVars;
+	AtmosphericData atmos;
 	std::shared_ptr<TerrainInterface> terrain;
+	std::shared_ptr<AerodynamicModel> model;
 	std::shared_ptr<BounceModel> bounceModel;
-	AerialPhase aerialPhase; // Used for aerodynamic calculations between bounces
+	std::shared_ptr<Integrator> integrator;
+	float ballRadius;
+	float gravity;
+
+	// Acceleration field handed to the integrator. Built once and reused every
+	// step; stepSpin holds the spin (fixed across a step) the field samples with.
+	std::shared_ptr<Vector3D> stepSpin;
+	AccelerationField accelField;
 };
 
 /**
@@ -147,7 +168,8 @@ class RollPhase : public FlightPhase
 {
 public:
 	explicit RollPhase(std::shared_ptr<TerrainInterface> terrain,
-	                   std::shared_ptr<RollModel> model = nullptr);
+	                   std::shared_ptr<RollModel> model = nullptr,
+	                   const BallProperties &ball = {});
 
 	void calculateStep(BallState &state, float dt) override;
 	bool isPhaseComplete(const BallState &state) const override;
@@ -155,6 +177,7 @@ public:
 private:
 	std::shared_ptr<TerrainInterface> terrain;
 	std::shared_ptr<RollModel> model;
+	float ballRadius;
 	bool atRest = false;
 };
 

@@ -15,7 +15,6 @@
  */
 
 #include "ShotPhysicsContext.hpp"
-#include "DefaultAerodynamicModel.hpp"
 #include "launch_data.hpp"
 #include "atmospheric_data.hpp"
 #include "math_utils.hpp"
@@ -34,8 +33,8 @@
  *       physically reasonable ranges. Passing invalid or out-of-range data may lead to
  *       unexpected behavior or incorrect calculations.
  */
-ShotPhysicsContext::ShotPhysicsContext(const LaunchData &launch, const AtmosphericData &atmos)
-    : launch(launch), atmos(atmos)
+ShotPhysicsContext::ShotPhysicsContext(const LaunchData &launch, const AtmosphericData &atmos, const BallProperties &ball)
+    : launch(launch), atmos(atmos), ball(ball)
 {
     tempC = math_utils::convertFahrenheitToCelsius(atmos.temp);
     elevationM = math_utils::convertFeetToMeters(atmos.elevation);
@@ -77,8 +76,8 @@ void ShotPhysicsContext::calculateRhoImperial()
 
 void ShotPhysicsContext::calculateC0()
 {
-    c0 = DefaultAerodynamicModel::DRAG_FORCE_CONST * rhoImperial * (DefaultAerodynamicModel::REF_BALL_MASS_OZ / physics_constants::STD_BALL_MASS_OZ) *
-         std::pow(physics_constants::STD_BALL_CIRCUMFERENCE_IN / DefaultAerodynamicModel::REF_BALL_CIRC_IN, 2);
+    c0 = physics_constants::DRAG_FORCE_CONST * rhoImperial * (physics_constants::REF_BALL_MASS_OZ / ball.massOz) *
+         std::pow(ball.circumferenceIn / physics_constants::REF_BALL_CIRC_IN, 2);
 }
 
 void ShotPhysicsContext::calculateV0()
@@ -109,7 +108,7 @@ void ShotPhysicsContext::calculateOmega()
 
 void ShotPhysicsContext::calculateROmega()
 {
-    rOmega = (physics_constants::STD_BALL_CIRCUMFERENCE_IN / (2 * physics_constants::PI)) * (omega / physics_constants::INCHES_PER_FOOT);
+    rOmega = (ball.circumferenceIn / (2 * physics_constants::PI)) * (omega / physics_constants::INCHES_PER_FOOT);
 }
 
 void ShotPhysicsContext::calculateVw()
@@ -140,7 +139,7 @@ void ShotPhysicsContext::calculateAirViscosity()
 void ShotPhysicsContext::calculateRe100()
 {
     // Re = ρ · v · D / μ, evaluated at v = RE100_VELOCITY_M_PER_S.
-    const float diameterM = physics_constants::STD_BALL_CIRCUMFERENCE_IN /
+    const float diameterM = ball.circumferenceIn /
                             (physics_constants::PI * physics_constants::INCHES_PER_METER);
     Re100 = rhoMetric * physics_constants::RE100_VELOCITY_M_PER_S * diameterM / airViscosity;
 }
