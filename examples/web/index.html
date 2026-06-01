@@ -310,23 +310,6 @@
     #run-btn:hover { opacity: 0.92; }
     #run-btn:active { transform: scale(0.98); }
 
-    #replay-btn {
-      display: block;
-      width: calc(100% - 40px);
-      margin: 14px 20px 0;
-      padding: 9px 0;
-      background: transparent;
-      color: var(--accent2);
-      font-family: var(--font);
-      font-size: 13px; font-weight: 600;
-      letter-spacing: 0.3px;
-      border: 1px solid var(--accent); border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.12s ease;
-    }
-    #replay-btn:hover { background: var(--chip-bg-active); }
-    #replay-btn:active { transform: scale(0.98); }
-
     /* ── Error toast ── */
     #error-toast {
       position: fixed;
@@ -524,8 +507,7 @@
       </div>
     </details>
 
-    <button id="replay-btn">▶ Replay shot</button>
-    <button id="run-btn">Re-simulate</button>
+    <button id="run-btn">▶ Hit shot</button>
   </aside>
 
   <!-- 3D viewport -->
@@ -620,7 +602,6 @@ Object.values(sliders).forEach(s => {
 });
 
 $('run-btn').addEventListener('click', runSim);
-$('replay-btn').addEventListener('click', replayFlight);
 
 const CLUB_PRESETS = {
   driver:  { speed: 160, launch: 12, backspin: 2600, sidespin: 0 },
@@ -928,14 +909,6 @@ function startFlight(points3, timeOfFlight) {
   flight.playing = true;
   ballMesh.visible = true;
   ballMesh.position.copy(points3[0]);
-}
-
-function replayFlight() {
-  if (!flight.pts) return;
-  flight.t = 0;
-  flight.restT = 0;
-  flight.playing = true;
-  ballMesh.visible = true;
 }
 
 // Move the ball, grow the bright trail to match, and drop a cue to the ground.
