@@ -310,6 +310,23 @@
     #run-btn:hover { opacity: 0.92; }
     #run-btn:active { transform: scale(0.98); }
 
+    #replay-btn {
+      display: block;
+      width: calc(100% - 40px);
+      margin: 14px 20px 0;
+      padding: 9px 0;
+      background: transparent;
+      color: var(--accent2);
+      font-family: var(--font);
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.3px;
+      border: 1px solid var(--accent); border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.12s ease;
+    }
+    #replay-btn:hover { background: var(--chip-bg-active); }
+    #replay-btn:active { transform: scale(0.98); }
+
     /* ── Error toast ── */
     #error-toast {
       position: fixed;
@@ -372,7 +389,7 @@
     <div class="sidebar-section">
       <div class="section-label">Club Preset</div>
       <div class="chip-row" id="club-presets">
-        <button class="chip" data-club="driver">Driver</button>
+        <button class="chip active" data-club="driver">Driver</button>
         <button class="chip" data-club="6iron">6 Iron</button>
         <button class="chip" data-club="9iron">9 Iron</button>
         <button class="chip" data-club="wedge">Wedge</button>
@@ -507,6 +524,7 @@
       </div>
     </details>
 
+    <button id="replay-btn">▶ Replay shot</button>
     <button id="run-btn">Re-simulate</button>
   </aside>
 
@@ -546,10 +564,18 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const $ = id => document.getElementById(id);
+
+// Headless capture: loading examples/web with ?record plays one deterministic
+// hero shot, one frame per __capture.renderFrame() call, so the README GIF is
+// the actual web demo. Driven by the local-only demo-tooling/regen.sh.
+const RECORD = new URLSearchParams(location.search).has('record');
 
 function showError(msg) {
   const t = $('error-toast');
@@ -594,6 +620,7 @@ Object.values(sliders).forEach(s => {
 });
 
 $('run-btn').addEventListener('click', runSim);
+$('replay-btn').addEventListener('click', replayFlight);
 
 const CLUB_PRESETS = {
   driver:  { speed: 160, launch: 12, backspin: 2600, sidespin: 0 },
@@ -662,6 +689,8 @@ function getAtmos() {
     phiWind:     parseFloat(sliders.winddir.el.value),
     hWind:       0,
     relHumidity: parseFloat(sliders.humid.el.value),
+    // Fixed sea-level station pressure; the model derives the altitude effect
+    // from `elevation`, so this stays at standard 29.92 inHg and is not a knob.
     pressure:    29.92,
   };
 }
@@ -685,114 +714,90 @@ const canvasWrap = $('canvas-wrap');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = false;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 
 const scene = new THREE.Scene();
-// Clear-morning tournament sky: pale cream horizon → soft blue zenith
-scene.background = new THREE.Color(0xc8d6dc);
-scene.fog = new THREE.FogExp2(0xc8d6dc, 0.0035);
+// Dark wireframe look, matching the standalone viewer and the hero GIF.
+scene.background = new THREE.Color(0x0a1f15);   // forest-deep
+// No fog: the orthographic camera sits a fixed 1500 units down ISO_DIR, and
+// FogExp2 is keyed off distance-from-camera — so every fragment reads as ~1500
+// units out and the whole scene saturates to the fog colour (== background).
+// That erased the faint grid and most of the arc. The raylib viewer/GIF use no
+// fog either, so drop it.
 
-{
-  const skyGeo = new THREE.SphereGeometry(1200, 16, 8);
-  const skyMat = new THREE.ShaderMaterial({
-    side: THREE.BackSide,
-    vertexShader: `
-      varying vec3 vPos;
-      void main() {
-        vPos = position;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      varying vec3 vPos;
-      void main() {
-        float t = clamp((vPos.y + 100.0) / 400.0, 0.0, 1.0);
-        vec3 horizon = vec3(0.82, 0.87, 0.88);  /* pale sky cream */
-        vec3 zenith  = vec3(0.36, 0.55, 0.66);  /* muted clear blue */
-        gl_FragColor = vec4(mix(horizon, zenith, t), 1.0);
-      }
-    `,
-  });
-  scene.add(new THREE.Mesh(skyGeo, skyMat));
-}
-
-const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 3000);
-camera.position.set(-20, 30, 30);
+// True isometric: orthographic projection viewed down a fixed diagonal.
+// ISO_DIR is the unit offset from target to camera; viewSize is the current
+// orthographic half-height in world units (set by frameTrajectory / applyOrtho).
+const ISO_DIR = new THREE.Vector3(0.72, 0.62, 0.95).normalize();
+let viewSize = 120;
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 6000);
+camera.position.copy(ISO_DIR.clone().multiplyScalar(1500));
 camera.lookAt(0, 0, -80);
+
+function applyOrtho(w, h) {
+  const aspect = w / h;
+  camera.left = -viewSize * aspect;
+  camera.right = viewSize * aspect;
+  camera.top = viewSize;
+  camera.bottom = -viewSize;
+  camera.updateProjectionMatrix();
+}
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.07;
-controls.minDistance = 10;
-controls.maxDistance = 800;
-controls.maxPolarAngle = Math.PI * 0.48;
+controls.minZoom = 0.4;
+controls.maxZoom = 6;
+controls.maxPolarAngle = Math.PI * 0.49;
 controls.target.set(0, 0, -80);
 
-scene.add(new THREE.AmbientLight(0xfff2d4, 0.65));
+// Lines are unlit; this just keeps the ball sphere readable.
+scene.add(new THREE.AmbientLight(0xfff2d4, 0.95));
+const keyLight = new THREE.DirectionalLight(0xffe6b8, 0.5);
+keyLight.position.set(60, 90, 40);
+scene.add(keyLight);
 
-// Warm low-angle sun, like late-afternoon at Augusta
-const sunLight = new THREE.DirectionalLight(0xffe0a8, 1.7);
-sunLight.position.set(80, 90, 60);
-sunLight.castShadow = true;
-sunLight.shadow.mapSize.set(2048, 2048);
-sunLight.shadow.camera.near = 1;
-sunLight.shadow.camera.far = 600;
-sunLight.shadow.camera.left = -300;
-sunLight.shadow.camera.right = 300;
-sunLight.shadow.camera.top = 300;
-sunLight.shadow.camera.bottom = -300;
-sunLight.shadow.bias = -0.0002;
-scene.add(sunLight);
-
-// ── Fairway ──────────────────────────────────────────────────────────────────
-
+// No solid turf — the wireframe grid below is the only ground, matching the
+// standalone viewer. FAIRWAY_W is still used to size the grid.
 const FAIRWAY_W = 300;
-const FAIRWAY_L = 600;
-
-const fairwayGeo = new THREE.PlaneGeometry(FAIRWAY_W, FAIRWAY_L, 40, 120);
-fairwayGeo.rotateX(-Math.PI / 2);
-
-const fairwayColors = [];
-const fairwayPosAttr = fairwayGeo.attributes.position;
-for (let i = 0; i < fairwayPosAttr.count; i++) {
-  const x = fairwayPosAttr.getX(i);
-  const z = fairwayPosAttr.getZ(i);
-  const n = (Math.sin(x * 0.4 + z * 0.15) * 0.5 + Math.cos(x * 0.2 - z * 0.3) * 0.5);
-  // Deeper tournament-turf: slight stripe banding via sin(z * 0.06)
-  const stripe = Math.sin(z * 0.065) * 0.04;
-  const r = 0.10 + n * 0.04;
-  const g = 0.40 + n * 0.08 + stripe;
-  const b = 0.18 + n * 0.03;
-  fairwayColors.push(r, g, b);
-}
-fairwayGeo.setAttribute('color', new THREE.Float32BufferAttribute(fairwayColors, 3));
-
-const fairwayMat = new THREE.MeshLambertMaterial({ vertexColors: true, color: 0xffffff });
-const fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
-fairway.receiveShadow = true;
-fairway.position.set(0, -0.01, -(FAIRWAY_L / 2));
-scene.add(fairway);
 
 // ── Grid + labels ─────────────────────────────────────────────────────────────
 
 const gridGroup = new THREE.Group();
 scene.add(gridGroup);
 
+// THREE.Group.clear() detaches children but does NOT free their GPU resources.
+// Grid lines and label sprites (each a CanvasTexture) are rebuilt per shot, so
+// dispose everything first or the textures/geometries leak on every re-sim.
+function disposeGroup(g) {
+  g.traverse(o => {
+    o.geometry?.dispose();
+    o.material?.map?.dispose();
+    o.material?.dispose();
+  });
+  g.clear();
+}
+
 function buildGrid(maxYards) {
-  gridGroup.clear();
-  const lineMat = new THREE.LineBasicMaterial({ color: 0xf4ecd6, transparent: true, opacity: 0.20 });
+  disposeGroup(gridGroup);
+  const faint = new THREE.LineBasicMaterial({ color: 0xf4ecd6, transparent: true, opacity: 0.11 });
+  const centre = new THREE.LineBasicMaterial({ color: 0x4a2e16 });
   const half = FAIRWAY_W / 2;
-  for (let y = 50; y <= maxYards + 50; y += 50) {
-    const z = -y;
-    const geom = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(-half, 0.02, z),
-      new THREE.Vector3( half, 0.02, z),
-    ]);
-    gridGroup.add(new THREE.Line(geom, lineMat));
+  const far = -(maxYards + 50);
+  const seg = (a, b, mat) =>
+    gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), mat));
+  // Cross lines every 50 yd downrange
+  for (let y = 0; y <= maxYards + 50; y += 50) {
+    seg(new THREE.Vector3(-half, 0.02, -y), new THREE.Vector3(half, 0.02, -y), faint);
   }
+  // Longitudinal rails across the width
+  for (let x = -half; x <= half + 0.1; x += 30) {
+    seg(new THREE.Vector3(x, 0.02, 0), new THREE.Vector3(x, 0.02, far), faint);
+  }
+  // Tee→target centre line
+  seg(new THREE.Vector3(0, 0.03, 0), new THREE.Vector3(0, 0.03, far), centre);
 }
 buildGrid(550);
 
@@ -800,12 +805,15 @@ const labelGroup = new THREE.Group();
 scene.add(labelGroup);
 
 function makeDistLabel(yardage) {
-  const w = 128, h = 40;
+  // Canvas is the texture (pixels); sprite.scale is the on-field size (yards).
+  // Raise both together: more canvas px keeps the glyphs sharp, bigger scale
+  // makes them read at the zoomed-out ortho framing.
+  const w = 192, h = 60;
   const cv = document.createElement('canvas');
   cv.width = w; cv.height = h;
   const ctx = cv.getContext('2d');
   ctx.clearRect(0, 0, w, h);
-  ctx.font = 'bold 22px DM Sans, sans-serif';
+  ctx.font = 'bold 34px DM Sans, sans-serif';
   ctx.fillStyle = 'rgba(244, 236, 214, 0.72)';  /* cream */
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -813,12 +821,12 @@ function makeDistLabel(yardage) {
   const tex = new THREE.CanvasTexture(cv);
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(10, 3.2, 1);
+  sprite.scale.set(16, 5, 1);
   sprite.position.set(-(FAIRWAY_W / 2) + 5, 1.0, -yardage);
   return sprite;
 }
 function buildLabels(maxYards) {
-  labelGroup.clear();
+  disposeGroup(labelGroup);
   for (let y = 50; y <= maxYards + 50; y += 50) {
     labelGroup.add(makeDistLabel(y));
   }
@@ -835,11 +843,31 @@ scene.add(teeMesh);
 
 // ── Trajectory objects ────────────────────────────────────────────────────────
 
-let aerialMesh = null;
-let groundMesh = null;
-let carryMarker = null;
-let landingMarker = null;
-let landingLight = null;
+let faintLine = null;   // full ghost arc (fat line), drawn once
+let brightLine = null;  // traveled segment, revealed via instanceCount
+let dropLine = null;    // vertical cue from ball down to the ground
+
+// LineMaterial works in screen pixels, so it needs the canvas resolution and
+// must be updated on resize. Track every fat-line material here.
+const lineMaterials = [];
+
+function makeFatLine(points3, color, widthPx, opacity) {
+  const pos = [];
+  points3.forEach(p => pos.push(p.x, p.y, p.z));
+  const geo = new LineGeometry();
+  geo.setPositions(pos);
+  const mat = new LineMaterial({ color, linewidth: widthPx, transparent: true, opacity });
+  mat.resolution.set(canvasWrap.clientWidth, canvasWrap.clientHeight);
+  lineMaterials.push(mat);
+  const line = new Line2(geo, mat);
+  // Line2's instanced bounding sphere is unreliable here (orthographic camera
+  // sits 1500 units off down ISO_DIR), so the whole arc gets frustum-culled and
+  // never draws. The grid uses plain THREE.Line and is unaffected — hence grid
+  // shows but the trajectory doesn't. Skip culling; one short line is cheap.
+  line.frustumCulled = false;
+  scene.add(line);
+  return line;
+}
 
 function disposeMesh(m) {
   if (!m) return;
@@ -848,85 +876,112 @@ function disposeMesh(m) {
   m.material?.dispose();
 }
 function clearTrajectory() {
-  disposeMesh(aerialMesh); aerialMesh = null;
-  disposeMesh(groundMesh); groundMesh = null;
-  disposeMesh(carryMarker); carryMarker = null;
-  disposeMesh(landingMarker); landingMarker = null;
-  if (landingLight) { scene.remove(landingLight); landingLight = null; }
+  disposeMesh(faintLine); faintLine = null;
+  disposeMesh(brightLine); brightLine = null;
+  disposeMesh(dropLine); dropLine = null;
+  lineMaterials.length = 0;
 }
 
-function buildTube(points3, colorStart, colorEnd, radius, emissive) {
-  if (points3.length < 2) return null;
-  const curve = new THREE.CatmullRomCurve3(points3);
-  const numSeg = Math.max(points3.length * 4, 60);
-  const geo = new THREE.TubeGeometry(curve, numSeg, radius, 8, false);
-  const posAttr = geo.attributes.position;
-  const colors = new Float32Array(posAttr.count * 3);
-  const cs = new THREE.Color(colorStart);
-  const ce = new THREE.Color(colorEnd);
-  for (let i = 0; i < posAttr.count; i++) {
-    const t = i / Math.max(1, posAttr.count - 1);
-    const c = new THREE.Color().lerpColors(cs, ce, t);
-    colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+// ── Flight playback ───────────────────────────────────────────────────────────
+// A ball mesh travels the already-drawn arc over (timeOfFlight / speedup),
+// rests briefly at the landing spot, then auto-replays — a clean GIF loop.
+
+let ballMesh = null;
+const flight = { pts: null, n: 0, dur: 1, t: 0, restT: 0, playing: false };
+const FLIGHT_SPEEDUP = 1.4;  // play back faster than real hang time
+const FLIGHT_REST = 0.9;     // seconds held at rest before auto-replay
+
+function ensureBall() {
+  if (ballMesh) return;
+  ballMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.7, 24, 24),
+    new THREE.MeshStandardMaterial({
+      color: 0xf4ecd6, emissive: 0xf0c971, emissiveIntensity: 0.4, roughness: 0.3,
+    })
+  );
+  // Gold wireframe glow shell, matching the standalone viewer's ball.
+  ballMesh.add(new THREE.Mesh(
+    new THREE.SphereGeometry(1.1, 12, 12),
+    new THREE.MeshBasicMaterial({ color: 0xf0c971, wireframe: true, transparent: true, opacity: 0.4 })
+  ));
+  ballMesh.visible = false;
+  scene.add(ballMesh);
+}
+
+// Map progress p∈[0,1] to a position along the sampled path. Points are at
+// uniform sim timesteps, so index ≈ time and linear interpolation tracks the
+// real flight timing.
+function ballAt(p) {
+  const f = Math.min(Math.max(p, 0), 1) * (flight.n - 1);
+  const i0 = Math.floor(f);
+  const i1 = Math.min(i0 + 1, flight.n - 1);
+  return flight.pts[i0].clone().lerp(flight.pts[i1], f - i0);
+}
+
+function startFlight(points3, timeOfFlight) {
+  ensureBall();
+  flight.pts = points3;
+  flight.n = points3.length;
+  flight.dur = Math.max(0.4, (timeOfFlight || 2) / FLIGHT_SPEEDUP);
+  flight.t = 0;
+  flight.restT = 0;
+  flight.playing = true;
+  ballMesh.visible = true;
+  ballMesh.position.copy(points3[0]);
+}
+
+function replayFlight() {
+  if (!flight.pts) return;
+  flight.t = 0;
+  flight.restT = 0;
+  flight.playing = true;
+  ballMesh.visible = true;
+}
+
+// Move the ball, grow the bright trail to match, and drop a cue to the ground.
+function setHead(pos, prog) {
+  ballMesh.position.copy(pos);
+  if (brightLine) {
+    brightLine.geometry.instanceCount = Math.max(1, Math.ceil(Math.min(prog, 1) * (flight.n - 1)));
   }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  const mat = new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    roughness: 0.3,
-    metalness: 0.1,
-    emissive: new THREE.Color(emissive),
-    emissiveIntensity: 0.08,
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.castShadow = true;
-  scene.add(mesh);
-  return mesh;
+  if (dropLine) {
+    const a = dropLine.geometry.attributes.position.array;
+    a[0] = pos.x; a[1] = pos.y; a[2] = pos.z;
+    a[3] = pos.x; a[4] = 0;     a[5] = pos.z;
+    dropLine.geometry.attributes.position.needsUpdate = true;
+  }
 }
 
-function buildTrajectory(points3, carryIdx) {
+function advanceFlight(dt) {
+  if (!flight.playing || !flight.pts || flight.n < 2) return;
+  if (flight.t < flight.dur) {
+    flight.t += dt;
+    const prog = flight.t / flight.dur;
+    setHead(ballAt(prog), prog);
+  } else {
+    setHead(flight.pts[flight.n - 1], 1);
+    flight.restT += dt;
+    if (flight.restT >= FLIGHT_REST) { flight.t = 0; flight.restT = 0; }
+  }
+}
+
+function buildTrajectory(points3) {
   if (points3.length < 2) return;
 
-  const cIdx = Math.min(Math.max(carryIdx, 1), points3.length - 1);
-  const aerial = points3.slice(0, cIdx + 1);
-  if (aerial.length >= 2) {
-    // cream → warm gold → brass
-    aerialMesh = buildTube(aerial, 0xf4ecd6, 0xd4a24c, 0.28, 0xd4a24c);
-  }
+  // Faint full arc for context (cream), drawn once.
+  faintLine = makeFatLine(points3, 0xf4ecd6, 1.8, 0.22);
 
-  // Only draw a ground segment when there are extra points after carry
-  if (points3.length - cIdx > 2) {
-    const ground = points3.slice(cIdx);
-    // brass → dark walnut
-    groundMesh = buildTube(ground, 0xb48235, 0x4a2e16, 0.16, 0x3a2410);
-  }
+  // Bright traveled segment (brass) — same points, revealed via instanceCount
+  // (LineGeometry is instanced per segment, so this draws the first k segments).
+  brightLine = makeFatLine(points3, 0xd4a24c, 3.6, 1.0);
+  brightLine.geometry.instanceCount = 1;
 
-  // Carry marker — warm gold
-  const carryPos = points3[cIdx].clone();
-  carryPos.y = Math.max(carryPos.y, 0.15);
-  carryMarker = new THREE.Mesh(
-    new THREE.SphereGeometry(0.42, 16, 16),
-    new THREE.MeshStandardMaterial({
-      color: 0xf0c971, emissive: 0xd4a24c, emissiveIntensity: 0.7, roughness: 0.35,
-    })
+  // Drop line (ball → ground); endpoints updated each frame in setHead().
+  dropLine = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+    new THREE.LineBasicMaterial({ color: 0xf0c971, transparent: true, opacity: 0.35 })
   );
-  carryMarker.position.copy(carryPos);
-  scene.add(carryMarker);
-
-  // Landing marker — brass glow, warm point light
-  const landPos = points3[points3.length - 1].clone();
-  landPos.y = Math.max(landPos.y, 0.25);
-  landingMarker = new THREE.Mesh(
-    new THREE.SphereGeometry(0.6, 20, 20),
-    new THREE.MeshStandardMaterial({
-      color: 0xd4a24c, emissive: 0xb48235, emissiveIntensity: 1.1, roughness: 0.25,
-    })
-  );
-  landingMarker.position.copy(landPos);
-  scene.add(landingMarker);
-
-  landingLight = new THREE.PointLight(0xf0c971, 4, 18);
-  landingLight.position.copy(landPos);
-  scene.add(landingLight);
+  scene.add(dropLine);
 }
 
 // ─── Camera framing ───────────────────────────────────────────────────────────
@@ -941,17 +996,20 @@ function frameTrajectory(points3) {
   const size = new THREE.Vector3();
   box.getSize(size);
 
-  const maxDim = Math.max(size.x, size.y, size.z);
-  const fovRad = camera.fov * Math.PI / 180;
-  const dist = (maxDim / 2) / Math.tan(fovRad / 2) * 1.6;
+  // Fit the orthographic half-height to the shot: downrange (z) dominates, plus
+  // headroom for the apex. Tuned to mirror the standalone viewer's framing.
+  viewSize = Math.max(size.z, size.x) * 0.40 + size.y * 0.35 + 14;
+  applyOrtho(canvasWrap.clientWidth, canvasWrap.clientHeight);
 
-  const landing = points3[points3.length - 1];
-  const targetPos = new THREE.Vector3(
-    center.x + size.x * 0.1 - 12,
-    center.y + dist * 0.38,
-    landing.z * 0.12 + 18
-  );
-  animateCamera(targetPos, center);
+  const targetPos = center.clone().add(ISO_DIR.clone().multiplyScalar(1500));
+  if (RECORD) {
+    // No ease in capture mode — frame 0 must already be correctly framed.
+    camera.position.copy(targetPos);
+    controls.target.copy(center);
+    controls.update();
+  } else {
+    animateCamera(targetPos, center);
+  }
 }
 
 function animateCamera(targetPos, targetLook) {
@@ -988,11 +1046,13 @@ function updateStats(r) {
 // ─── Wasm ─────────────────────────────────────────────────────────────────────
 
 let libgolf = null;
+let lastMaxLabel = -1;   // grid/labels only rebuilt when the 50yd bucket changes
 
 async function initWasm() {
   try {
     const { default: createLibGolf } = await import('./libgolf_wasm.js');
     libgolf = await createLibGolf();
+    if (RECORD) { setupRecord(); return; }
     hideLoading();
     runSim();
   } catch (err) {
@@ -1023,6 +1083,7 @@ function runSim() {
   const size = traj.size();
   if (size < 6) {
     traj.delete();
+    result.delete?.();
     showError('Simulation returned insufficient data.');
     return;
   }
@@ -1044,16 +1105,66 @@ function runSim() {
     offlineYards: result.offlineYards,
     timeOfFlight: result.timeOfFlight,
   };
-  const carryIdx = result.carryIndex;
+  // Free the embind result wrapper once its fields are copied out (no-op if the
+  // binding returns a plain object).
+  result.delete?.();
 
   const maxLabel = Math.ceil(Math.max(r.totalYards, r.carryYards) / 50) * 50 + 50;
-  buildGrid(maxLabel);
-  buildLabels(maxLabel);
+  if (maxLabel !== lastMaxLabel) {
+    buildGrid(maxLabel);
+    buildLabels(maxLabel);
+    lastMaxLabel = maxLabel;
+  }
 
   clearTrajectory();
-  buildTrajectory(points3, carryIdx);
+  buildTrajectory(points3);
   updateStats(r);
   frameTrajectory(points3);
+  startFlight(points3, r.timeOfFlight);
+}
+
+// ─── Headless capture ───────────────────────────────────────────────────────
+// Sets a fixed hero shot (driver, slight draw, firm fairway) and exposes
+// window.__capture so demo-tooling/regen.sh can render and screenshot each frame
+// deterministically. One clean loop: flight, then a short hold at the landing
+// spot before the GIF wraps back to the tee.
+function setupRecord() {
+  const hero = {
+    speed: 167, launch: 11, direction: 0, backspin: 2000, sidespin: -1500,
+    windspeed: 0, winddir: 90, temp: 70, elev: 0, humid: 50,
+    rest: 0.60, fdyn: 0.12, firm: 1.00,
+  };
+  for (const [k, v] of Object.entries(hero)) {
+    if (!sliders[k]) continue;
+    sliders[k].el.value = v;
+    sliders[k].val.innerHTML = fmtSlider(sliders[k]);
+  }
+  $('sidebar').style.display = 'none';
+  $('loading-overlay').style.display = 'none';
+  onResize();           // size the renderer to the full-bleed viewport
+  runSim();             // build the arc, frame the camera instantly (RECORD)
+
+  // Decouple GIF length from the sim's real hang time (which drags out with the
+  // bounce/roll tail): play the whole path over a fixed, punchy window so the
+  // loop stays short and the file small.
+  const FPS = 24, FLIGHT_S = 5.0, REST_S = 0.5;
+  const flightFrames = Math.round(FLIGHT_S * FPS);
+  const frames = flightFrames + Math.round(REST_S * FPS);
+
+  window.__capture = {
+    fps: FPS,
+    frames,
+    width: canvasWrap.clientWidth,
+    height: canvasWrap.clientHeight,
+    renderFrame(i) {
+      const prog = Math.min(i / flightFrames, 1);
+      setHead(ballAt(prog), prog);   // ball + bright trail + drop line
+      ballMesh.visible = true;
+      controls.update();
+      renderer.render(scene, camera);
+    },
+  };
+  window.__captureReady = true;
 }
 
 // ─── Resize ───────────────────────────────────────────────────────────────────
@@ -1062,25 +1173,22 @@ function onResize() {
   const w = canvasWrap.clientWidth;
   const h = canvasWrap.clientHeight;
   renderer.setSize(w, h);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  applyOrtho(w, h);
+  lineMaterials.forEach(m => m.resolution.set(w, h));
 }
 window.addEventListener('resize', onResize);
 onResize();
 
 // ─── Render loop ──────────────────────────────────────────────────────────────
 
-let pulseT = 0;
+const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
-  pulseT += 0.04;
-  if (landingLight) landingLight.intensity = 3.5 + Math.sin(pulseT * 2.8) * 1.0;
-  if (landingMarker) landingMarker.scale.setScalar(1 + Math.sin(pulseT * 2.8) * 0.08);
-  if (carryMarker) carryMarker.scale.setScalar(1 + Math.sin(pulseT * 2.4 + 1) * 0.05);
+  advanceFlight(Math.min(clock.getDelta(), 0.05));  // clamp avoids jumps on tab refocus
   controls.update();
   renderer.render(scene, camera);
 }
-animate();
+if (!RECORD) animate();  // capture mode renders explicitly, one frame per request
 
 initWasm();
 </script>
