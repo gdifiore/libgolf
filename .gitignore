@@ -55,3 +55,6 @@ examples/web/libgolf_wasm.wasm
 # Demo staging dir created by the Pages workflow
 /demo/
 /_site/
+
+# Local-only GIF regeneration tooling (Playwright deps + scratch frames)
+/demo-tooling/
