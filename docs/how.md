@@ -39,7 +39,9 @@ const LaunchData ball{
 };
 ```
 
-These fields match the output of a typical launch monitor. An optional start position can be provided in feet:
+These fields match the output of a typical launch monitor. `launchAngleDeg` must be strictly greater than 0: the simulation starts in the aerial phase, which ends the moment the ball is at or below ground height, so a zero or negative angle launched from ground level produces no trajectory. Putts and ground-level rolls are outside the model's scope.
+
+An optional start position can be provided in feet:
 
 ```c++
 LaunchData ball{

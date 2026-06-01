@@ -32,6 +32,12 @@ struct LaunchData
 	 * - Driver: ~10-15 deg
 	 * - Mid iron: ~20-30 deg
 	 * - Wedge: ~40-50 deg
+	 *
+	 * @note Use a launch angle strictly greater than 0. The simulation begins
+	 * in the aerial phase, which ends as soon as the ball is at or below ground
+	 * height. A zero (or negative) angle launched from ground level (startZ = 0)
+	 * leaves the aerial phase immediately, so no trajectory is produced. Putts
+	 * and other ground-level rolls are outside the model's scope.
 	 */
 	float launchAngleDeg;
 
