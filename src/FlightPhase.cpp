@@ -148,8 +148,6 @@ void AerialPhase::initialize(BallState &state)
 
 void AerialPhase::calculateStep(BallState &state, float dt)
 {
-	state.currentTime += dt;
-
 	// Spin decay uses the velocity from the previous step (v is still current).
 	// Exponential model: torque opposing spin is proportional to spin rate itself.
 	// All components decay uniformly — axis direction is preserved.
@@ -164,6 +162,7 @@ void AerialPhase::calculateStep(BallState &state, float dt)
 	// just-decayed spin held in stepSpin.
 	*stepSpin = state.spinVector;
 	integrator->step(state, dt, accelField);
+	state.currentTime += dt;
 
 	v    = math_utils::magnitude(state.velocity);
 	vMph = v / physics_constants::MPH_TO_FT_PER_S;

@@ -90,6 +90,25 @@ namespace
 	private:
 		std::shared_ptr<int> calls_;
 	};
+
+	class FirstStepTimeIntegrator : public Integrator
+	{
+	public:
+		explicit FirstStepTimeIntegrator(std::shared_ptr<float> firstTime)
+			: firstTime_(std::move(firstTime)) {}
+
+		void step(BallState &state, float dt, const AccelerationField &accel) const override
+		{
+			if (std::isnan(*firstTime_))
+			{
+				*firstTime_ = state.currentTime;
+			}
+			DefaultIntegrator{}.step(state, dt, accel);
+		}
+
+	private:
+		std::shared_ptr<float> firstTime_;
+	};
 }
 
 class FlightSimulatorTest : public ::testing::Test
@@ -169,6 +188,20 @@ TEST_F(FlightSimulatorTest, CustomIntegratorDrivesTheFlightSteps)
 	// The injected integrator must have advanced the aerial/bounce steps.
 	EXPECT_GT(*calls, 0);
 	EXPECT_STREQ(sim.getCurrentPhaseName(), "complete");
+}
+
+TEST_F(FlightSimulatorTest, CustomIntegratorReceivesStartOfStepTime)
+{
+	auto firstTime = std::make_shared<float>(std::numeric_limits<float>::quiet_NaN());
+	FlightSimulator sim(ball, atmos, ground,
+	                    /*aero*/ nullptr, /*bounce*/ nullptr, /*roll*/ nullptr,
+	                    /*ball*/ BallProperties{},
+	                    physics_constants::GRAVITY_FT_PER_S2,
+	                    std::make_shared<FirstStepTimeIntegrator>(firstTime));
+
+	sim.run(0.01F);
+
+	EXPECT_FLOAT_EQ(*firstTime, 0.0F);
 }
 
 TEST_F(FlightSimulatorTest, GravityParameterAffectsFlight)
