@@ -160,6 +160,7 @@ TEST(DefaultRollModelTest, NearZeroSlopeStartGetsAccelerated)
     // Velocity below STOPPING_VELOCITY: sign-flip clamp must NOT kick in,
     // so gravity along slope can grow it.
     EXPECT_GT(result.newVelocity[1], 0.02F);
+    EXPECT_FALSE(result.atRest);
 }
 
 TEST(DefaultRollModelTest, SpinDecaysButPreservesAxis)

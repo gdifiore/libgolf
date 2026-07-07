@@ -80,8 +80,10 @@ public:
 			newSpin = {0.0F, 0.0F, 0.0F};
 		}
 
+		const float oldHorizontal = std::sqrt(oldVelX * oldVelX + oldVelY * oldVelY);
 		const float vHorizontal = std::sqrt(newVel[0] * newVel[0] + newVel[1] * newVel[1]);
-		const bool atRest = vHorizontal < STOPPING_VELOCITY;
+		const bool atRest = vHorizontal < STOPPING_VELOCITY &&
+			vHorizontal <= oldHorizontal;
 
 		return RollResult{newPos, newVel, newSpin, atRest};
 	}
