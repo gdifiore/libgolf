@@ -58,3 +58,4 @@ examples/web/libgolf_wasm.wasm
 
 # Local-only GIF regeneration tooling (Playwright deps + scratch frames)
 /demo-tooling/
+tools/fitting/data/

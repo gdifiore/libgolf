@@ -5,6 +5,7 @@
 #include "BallProperties.hpp"
 #include "BallState.hpp"
 #include "BounceModel.hpp"
+#include "CalibratedAerodynamicModel.hpp"
 #include "DefaultAerodynamicModel.hpp"
 #include "DefaultBounceModel.hpp"
 #include "DefaultIntegrator.hpp"

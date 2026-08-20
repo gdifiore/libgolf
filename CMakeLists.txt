@@ -45,6 +45,7 @@ set(HEADERS
    ${PROJECT_INCLUDE_DIR}/FlightSimulator.hpp
    ${PROJECT_INCLUDE_DIR}/BallState.hpp
    ${PROJECT_INCLUDE_DIR}/BallProperties.hpp
+   ${PROJECT_INCLUDE_DIR}/CalibratedAerodynamicModel.hpp
    ${PROJECT_INCLUDE_DIR}/ground_surface.hpp
    ${PROJECT_INCLUDE_DIR}/terrain_interface.hpp
    ${PROJECT_INCLUDE_DIR}/ground_physics.hpp
@@ -149,9 +150,9 @@ if(GOLF_BUILD_EXAMPLES AND NOT EMSCRIPTEN)
     add_executable(custom_roll_model examples/custom_roll_model.cpp)
     target_link_libraries(custom_roll_model ${PROJECT_NAME})
 
-    # Calibration shot runner (tools/calibration/run.py drives this)
-    add_executable(calibration_sim_runner tools/calibration/sim_runner.cpp)
-    target_link_libraries(calibration_sim_runner ${PROJECT_NAME})
+    # Garmin aerodynamic fitter shot runner.
+    add_executable(fitting_sim_runner tools/fitting/sim_runner.cpp)
+    target_link_libraries(fitting_sim_runner ${PROJECT_NAME})
 
 endif()
 

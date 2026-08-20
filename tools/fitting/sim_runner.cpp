@@ -1,4 +1,4 @@
-// Calibration shot runner.
+// Aerodynamic fitting shot runner.
 //
 // Reads launch+atmos rows from stdin (CSV with header), runs each through
 // FlightSimulator, prints per-shot result CSV to stdout.
@@ -14,6 +14,7 @@
 // side_yd is lateral position (x) at the carry index — i.e. how far the ball
 // has drifted from the target line at first ground touch, before bounce/roll.
 
+#include "CalibratedAerodynamicModel.hpp"
 #include "FlightSimulator.hpp"
 #include "atmospheric_data.hpp"
 #include "ground_surface.hpp"
@@ -25,6 +26,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -56,8 +58,23 @@ float toFloat(const std::string &s, float fallback = 0.0F)
 }
 } // namespace
 
-int main()
+int main(int argc, char **argv)
 {
+	std::shared_ptr<AerodynamicModel> aeroModel;
+	if (argc != 1)
+	{
+		if (argc != 5 || std::string(argv[1]) != "--aero-scales")
+		{
+			std::fprintf(stderr, "usage: fitting_sim_runner [--aero-scales DRAG LIFT SPIN_DECAY]\n");
+			return 2;
+		}
+		aeroModel = std::make_shared<CalibratedAerodynamicModel>(AerodynamicCalibration{
+		    .dragScale = toFloat(argv[2]),
+		    .liftScale = toFloat(argv[3]),
+		    .spinDecayScale = toFloat(argv[4]),
+		});
+	}
+
 	std::string header;
 	if (!std::getline(std::cin, header))
 	{
@@ -118,13 +135,7 @@ int main()
 		};
 		const GroundSurface ground;
 
-		// To validate a custom model, construct it here and pass it to FlightSimulator:
-		//   auto aero   = std::make_shared<MyAerodynamicModel>();
-		//   auto bounce = std::make_shared<MyBounceModel>();
-		//   auto roll   = std::make_shared<MyRollModel>();
-		//   FlightSimulator sim(launch, atmos, ground, aero, bounce, roll);
-		// Any slot left as nullptr falls back to the built-in default model.
-		FlightSimulator sim(launch, atmos, ground);
+		FlightSimulator sim(launch, atmos, ground, aeroModel);
 		auto traj = sim.runAndGetTrajectory();
 
 		const float ydPerFt = 1.0F / physics_constants::YARDS_TO_FEET;
