@@ -301,6 +301,9 @@ TEST_F(RollPhaseTest, SpinDecaysToZeroFromNegative)
 TEST_F(RollPhaseTest, BallCanStartRollingFromNearZeroVelocityOnSlope)
 {
 	// Create sloped terrain (10 degree downslope)
+	// tan(10°) exceeds this static-friction coefficient, so the ball should
+	// begin rolling rather than remain held on the slope.
+	ground.frictionStatic = 0.1F;
 	ground.frictionDynamic = 0.15F;
 
 	// Create a simple sloped terrain for testing

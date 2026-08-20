@@ -24,7 +24,8 @@ using namespace emscripten;
 /**
  * Result of a shot simulation, returned to JavaScript as a plain object.
  *
- * trajectory: Flat [x, y, z, x, y, z, ...] array of positions in YARDS
+ * trajectory: Flat [x, y, z, x, y, z, ...] array of shot-local positions in
+ *   YARDS. x/y are relative to the launch point; z is above flat ground.
  *   x = lateral (right = positive)
  *   y = downrange (forward = positive)
  *   z = height (up = positive)
@@ -36,7 +37,7 @@ struct ShotResult
 {
     std::vector<float> trajectory;
     int carryIndex = 0;          // index of first ground contact (point count, not float count)
-    float carryYards = 0.0F;     // downrange distance at first ground contact
+    float carryYards = 0.0F;     // downrange displacement at first ground contact
     float totalYards = 0.0F;     // downrange distance at rest
     float apexYards = 0.0F;      // peak height above ground
     float offlineYards = 0.0F;   // lateral position at rest (right = +)
@@ -64,9 +65,9 @@ ShotResult runShot(const LaunchData &launch,
     for (size_t i = 0; i < trajectory.size(); ++i)
     {
         const auto &p = trajectory[i].position;
-        out.trajectory.push_back(p[0] / FT_PER_YD);
-        out.trajectory.push_back(p[1] / FT_PER_YD);
-        out.trajectory.push_back(p[2] / FT_PER_YD);
+        out.trajectory.push_back((p[0] - launch.startX) / FT_PER_YD);
+        out.trajectory.push_back((p[1] - launch.startY) / FT_PER_YD);
+        out.trajectory.push_back((p[2] - ground.height) / FT_PER_YD);
         if (i == 0 || p[2] > apexFt)
         {
             apexFt = p[2];
@@ -88,8 +89,9 @@ ShotResult runShot(const LaunchData &launch,
     }
 
     out.carryIndex = carryIdx;
-    out.carryYards = trajectory.empty() ? 0.0F : trajectory[carryIdx].position[1] / FT_PER_YD;
-    out.apexYards = std::max(0.0F, apexFt) / FT_PER_YD;
+    out.carryYards = trajectory.empty() ? 0.0F :
+        (trajectory[carryIdx].position[1] - launch.startY) / FT_PER_YD;
+    out.apexYards = std::max(0.0F, apexFt - ground.height) / FT_PER_YD;
     out.totalYards = landing.yF;       // landing fields already in yards
     out.offlineYards = landing.xF;
     out.timeOfFlight = landing.timeOfFlight;

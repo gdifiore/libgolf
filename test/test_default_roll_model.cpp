@@ -146,9 +146,12 @@ TEST(DefaultRollModelTest, SignFlipClampsToZero)
 
 TEST(DefaultRollModelTest, NearZeroSlopeStartGetsAccelerated)
 {
-    DefaultRollModel model;
-    GroundSurface surface;
-    surface.frictionDynamic = 0.15F;
+	DefaultRollModel model;
+	GroundSurface surface;
+	// A 10° slope exceeds this static-friction limit, so the ball must begin
+	// moving even though it starts almost at rest.
+	surface.frictionStatic = 0.1F;
+	surface.frictionDynamic = 0.15F;
 
     const float angle = 10.0F * physics_constants::DEG_TO_RAD;
     Vector3D normal{0.0F, std::sin(angle), std::cos(angle)};
@@ -160,7 +163,40 @@ TEST(DefaultRollModelTest, NearZeroSlopeStartGetsAccelerated)
     // Velocity below STOPPING_VELOCITY: sign-flip clamp must NOT kick in,
     // so gravity along slope can grow it.
     EXPECT_GT(result.newVelocity[1], 0.02F);
-    EXPECT_FALSE(result.atRest);
+	EXPECT_FALSE(result.atRest);
+}
+
+TEST(DefaultRollModelTest, StaticFrictionHoldsOnShallowSlope)
+{
+	DefaultRollModel model;
+	GroundSurface surface;
+	surface.frictionStatic = 0.5F;
+	surface.frictionDynamic = 0.15F;
+
+	const float angle = 10.0F * physics_constants::DEG_TO_RAD;
+	const Vector3D normal{0.0F, std::sin(angle), std::cos(angle)};
+
+	auto result = model.step(makeState({0.0F, 0.02F, 0.0F}, normal), surface);
+
+	EXPECT_NEAR(result.newVelocity[0], 0.0F, 1e-6F);
+	EXPECT_NEAR(result.newVelocity[1], 0.0F, 1e-6F);
+	EXPECT_TRUE(result.atRest);
+}
+
+TEST(DefaultRollModelTest, SteepSlopeBreaksStaticFrictionFromRest)
+{
+	DefaultRollModel model;
+	GroundSurface surface;
+	surface.frictionStatic = 0.1F;
+	surface.frictionDynamic = 0.05F;
+
+	const float angle = 30.0F * physics_constants::DEG_TO_RAD;
+	const Vector3D normal{0.0F, std::sin(angle), std::cos(angle)};
+
+	auto result = model.step(makeState({0.0F, 0.0F, 0.0F}, normal), surface);
+
+	EXPECT_GT(result.newVelocity[1], 0.0F);
+	EXPECT_FALSE(result.atRest);
 }
 
 TEST(DefaultRollModelTest, SpinDecaysButPreservesAxis)

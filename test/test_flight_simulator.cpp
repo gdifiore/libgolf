@@ -320,9 +320,9 @@ TEST_F(FlightSimulatorTest, HandlesNonZeroGroundHeight)
 	elevatedGround.frictionDynamic = 0.2F;
 	elevatedGround.firmness = 0.8F;
 
-	// Start ball at the elevated ground height
+	// startZ is a height above the terrain, so zero starts on this elevated tee.
 	LaunchData elevatedBall = ball;
-	elevatedBall.startZ = elevatedGround.height;
+	elevatedBall.startZ = 0.0F;
 
 	FlightSimulator sim(elevatedBall, atmos, elevatedGround);
 	sim.run(0.01F);
@@ -339,6 +339,8 @@ TEST_F(FlightSimulatorTest, HandlesNonZeroGroundHeight)
 		finalState.velocity[2] * finalState.velocity[2]
 	);
 	EXPECT_LT(finalSpeed, 1.0F) << "Ball should be stopped or nearly stopped";
+	EXPECT_NEAR(sim.getLandingResult().zF, 0.0F, 0.01F)
+		<< "LandingResult zF is height above the final terrain";
 }
 
 TEST_F(FlightSimulatorTest, SpinDecaysAcrossAllPhases)

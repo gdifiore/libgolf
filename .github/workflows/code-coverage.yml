@@ -25,7 +25,8 @@ jobs:
       run: |
         cmake -B build \
           -DCMAKE_BUILD_TYPE=Debug \
-          -DENABLE_COVERAGE=ON
+          -DENABLE_COVERAGE=ON \
+          -DBUILD_TESTING=ON
 
     - name: Build
       run: cmake --build build
