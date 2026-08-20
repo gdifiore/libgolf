@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
-project(golf VERSION 4.6.1 LANGUAGES CXX)
+project(golf VERSION 4.7.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Keep the library consumable from offline or vendored builds.  Tests fetch
+# GoogleTest, so they are opt-in rather than a configure-time dependency for
+# every library consumer.
+option(BUILD_TESTING "Build the libgolf test suite" OFF)
+option(GOLF_BUILD_EXAMPLES "Build libgolf examples and calibration runner" ON)
 
 # Version information
 set(GOLF_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
@@ -83,7 +89,7 @@ if(ENABLE_COVERAGE AND NOT MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 endif()
 
-if(NOT EMSCRIPTEN)
+if(BUILD_TESTING AND NOT EMSCRIPTEN)
     # Include Google Test
     include(FetchContent)
     FetchContent_Declare(
@@ -121,6 +127,9 @@ if(NOT EMSCRIPTEN)
     add_executable(libgolf_tests ${TEST_SOURCES})
     target_link_libraries(libgolf_tests ${PROJECT_NAME} GTest::gtest_main)
 
+endif()
+
+if(GOLF_BUILD_EXAMPLES AND NOT EMSCRIPTEN)
     # Examples
     add_executable(calculate_ball_landing examples/calculate_ball_landing.cpp)
     target_link_libraries(calculate_ball_landing ${PROJECT_NAME})
@@ -144,6 +153,9 @@ if(NOT EMSCRIPTEN)
     add_executable(calibration_sim_runner tools/calibration/sim_runner.cpp)
     target_link_libraries(calibration_sim_runner ${PROJECT_NAME})
 
+endif()
+
+if(BUILD_TESTING AND NOT EMSCRIPTEN)
     # Discover tests
     include(GoogleTest)
     gtest_discover_tests(libgolf_tests)

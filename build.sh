@@ -24,8 +24,13 @@ fi
 mkdir -p build
 cd build
 
-# Generate build files using CMake
-cmake ..
+# Generate build files using CMake. The normal library/example build has no
+# network dependency; --test explicitly enables the GoogleTest-based suite.
+if [ "$RUN_TESTS" -eq 1 ]; then
+    cmake .. -DBUILD_TESTING=ON
+else
+    cmake ..
+fi
 
 # Build the project
 cmake --build .

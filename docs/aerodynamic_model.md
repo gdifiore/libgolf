@@ -32,7 +32,7 @@ The fields fall into four groups:
 
 **Kinematic state** — `velocity`, `windVelocity`, `spinVector`, `position`, and `currentTime` are snapshots of the ball and its surrounding wind at the current timestep. The default model uses only the first three; `position` and `currentTime` are there so models with altitude-, location-, or time-dependent behaviour can reach for them.
 
-**Ball geometry** — `ballRadius` is populated from `physics_constants::STD_BALL_RADIUS_FT`. The library does not currently support non-standard ball sizes; changing the constant is the only hook.
+**Ball geometry** — `ballRadius` is derived from the `BallProperties` supplied to `FlightSimulator`; omitting that argument uses the standard golf-ball dimensions.
 
 **Lumped atmosphere** — `c0` and `re100` are precomputed by `ShotPhysicsContext` from temperature, pressure, and humidity. They're a compact encoding for lumped-parameter force laws of the form `F = c0 · Cd(Re, S) · vw · v_rel`. The default model consumes them directly; custom models that prefer the same form can too.
 
@@ -83,7 +83,7 @@ F_magnus =  c0 * (Cl / |omega|) * vw * (omega × v_rel)
 
 **Drag** (piecewise-linear through the drag crisis):
 ```
-Re <= RE_THRESHOLD_LOW (0.5):                  Cd = CD_LOW  (0.500)
+Re <= RE_THRESHOLD_LOW (0.5):                  Cd = CD_LOW (0.500) + CD_SPIN * S
 RE_THRESHOLD_LOW < Re < RE_THRESHOLD_HIGH (1.0): linear + CD_SPIN * S
 Re >= RE_THRESHOLD_HIGH (1.0):                 Cd = CD_HIGH (0.200) + CD_SPIN * S
 ```
