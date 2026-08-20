@@ -63,7 +63,8 @@ The built-in implementation lives in `include/DefaultRollModel.hpp` and is used 
 Algorithm:
 
 ```
-a       = -g·sin(θ) along slope - μ·g·cos(θ) opposing motion         (Coulomb friction)
+if |g_tangent| <= μ_static·N and the ball is nearly stationary: rest
+else: a = g_tangent - μ_dynamic·N opposing (or initiating) motion
 v'      = v + a·dt
 v_xy   := 0 if sign flipped across the step and |v_old_xy| > ε       (prevents reversal)
 p'      = p + v'·dt
@@ -72,7 +73,8 @@ atRest  = |v'_horizontal| < STOPPING_VELOCITY
 ```
 
 Where:
-- `μ = surface.frictionDynamic`.
+- `surface.frictionStatic` determines whether a near-stationary ball holds on
+  a slope; `surface.frictionDynamic` supplies Coulomb friction once it rolls.
 - `θ` derived from `surfaceNormal[2]`. Surfaces with `cos(θ) > FLAT_SURFACE_THRESHOLD` skip slope decomposition.
 - `STOPPING_VELOCITY = 0.1 ft/s` and `SPIN_DECAY_RATE = 2.0 rad/s²` live as `static constexpr` members on `DefaultRollModel`.
 

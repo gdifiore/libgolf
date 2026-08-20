@@ -201,7 +201,10 @@ During the roll phase, two forces act on the ball:
 1. **Gravity component along slope**: Accelerates ball downhill or decelerates uphill
 2. **Rolling friction**: Opposes motion in all directions
 
-On flat surfaces, rolling friction alone causes deceleration. On slopes, the ball will accelerate if the gravity component exceeds friction.
+On flat surfaces, rolling friction alone causes deceleration. A nearly stationary
+ball holds while static friction can balance the downhill gravity component; it
+starts rolling once that threshold is exceeded. Rolling friction then opposes
+its motion.
 
 **Spin decay during roll:** Linear decay model where ground friction applies constant torque opposing spin. This differs from aerial phase which uses exponential decay due to aerodynamic damping.
 

@@ -38,11 +38,25 @@ public:
 	                              const GroundSurface &surface) const override
 	{
 		const float dt = state.dt;
-
-		const Vector3D accel = computeAcceleration(state.velocity, state.surfaceNormal, surface);
-
 		const float oldVelX = state.velocity[0];
 		const float oldVelY = state.velocity[1];
+		const float oldHorizontal = std::sqrt(oldVelX * oldVelX + oldVelY * oldVelY);
+
+		// A ball that is nearly stationary should remain at rest only when
+		// static friction can balance gravity along the surface.  Conversely, a
+		// steep enough slope must start a stationary ball rolling.
+		if (oldHorizontal < STOPPING_VELOCITY &&
+		    staticFrictionHolds(state.surfaceNormal, surface))
+		{
+			return RollResult{
+				state.position,
+				{0.0F, 0.0F, 0.0F},
+				state.spinVector,
+				true
+			};
+		}
+
+		const Vector3D accel = computeAcceleration(state.velocity, state.surfaceNormal, surface);
 
 		Vector3D newVel = state.velocity + accel * dt;
 
@@ -80,7 +94,6 @@ public:
 			newSpin = {0.0F, 0.0F, 0.0F};
 		}
 
-		const float oldHorizontal = std::sqrt(oldVelX * oldVelX + oldVelY * oldVelY);
 		const float vHorizontal = std::sqrt(newVel[0] * newVel[0] + newVel[1] * newVel[1]);
 		const bool atRest = vHorizontal < STOPPING_VELOCITY &&
 			vHorizontal <= oldHorizontal;
@@ -89,6 +102,24 @@ public:
 	}
 
 private:
+	static Vector3D gravityTangent(const Vector3D &surfaceNormal)
+	{
+		const Vector3D gravity = {0.0F, 0.0F, -physics_constants::GRAVITY_FT_PER_S2};
+		const float gravityDotNormal = math_utils::dot(gravity, surfaceNormal);
+		return gravity - surfaceNormal * gravityDotNormal;
+	}
+
+	static bool staticFrictionHolds(const Vector3D &surfaceNormal,
+	                                const GroundSurface &surface)
+	{
+		const Vector3D tangentGravity = gravityTangent(surfaceNormal);
+		const float tangentMagnitude = math_utils::magnitude(tangentGravity);
+		const float normalForce = std::abs(
+			math_utils::dot(Vector3D{0.0F, 0.0F, -physics_constants::GRAVITY_FT_PER_S2},
+			                surfaceNormal));
+		return tangentMagnitude <= surface.frictionStatic * normalForce;
+	}
+
 	static Vector3D computeAcceleration(const Vector3D &velocity,
 	                                    const Vector3D &surfaceNormal,
 	                                    const GroundSurface &surface)
@@ -96,13 +127,6 @@ private:
 		Vector3D acceleration = {0.0F, 0.0F, 0.0F};
 
 		const float vHorizontal = std::sqrt(velocity[0] * velocity[0] + velocity[1] * velocity[1]);
-
-		// Stationary: friction direction undefined, gravity along slope is
-		// balanced by static friction at rest.
-		if (vHorizontal < physics_constants::MIN_SPEED)
-		{
-			return acceleration;
-		}
 
 		const float cosTheta = surfaceNormal[2];
 
@@ -116,17 +140,31 @@ private:
 			return acceleration;
 		}
 
-		const Vector3D gravity = {0.0F, 0.0F, -physics_constants::GRAVITY_FT_PER_S2};
+		acceleration = gravityTangent(surfaceNormal);
 
-		const float gravityDotNormal = math_utils::dot(gravity, surfaceNormal);
-		const Vector3D gravityNormal = surfaceNormal * gravityDotNormal;
-		acceleration = gravity - gravityNormal;
-
-		const float normalForce = std::abs(gravityDotNormal);
+		const float normalForce = std::abs(
+			math_utils::dot(Vector3D{0.0F, 0.0F, -physics_constants::GRAVITY_FT_PER_S2},
+			                surfaceNormal));
 		const float frictionDeceleration = surface.frictionDynamic * normalForce;
 
-		acceleration[0] -= frictionDeceleration * (velocity[0] / vHorizontal);
-		acceleration[1] -= frictionDeceleration * (velocity[1] / vHorizontal);
+		if (vHorizontal >= physics_constants::MIN_SPEED)
+		{
+			acceleration[0] -= frictionDeceleration * (velocity[0] / vHorizontal);
+			acceleration[1] -= frictionDeceleration * (velocity[1] / vHorizontal);
+		}
+		else
+		{
+			// Static friction has already failed, so kinetic friction opposes the
+			// impending downhill motion.
+			const float tangentHorizontal =
+				std::sqrt(acceleration[0] * acceleration[0] +
+				          acceleration[1] * acceleration[1]);
+			if (tangentHorizontal >= physics_constants::MIN_SPEED)
+			{
+				acceleration[0] -= frictionDeceleration * acceleration[0] / tangentHorizontal;
+				acceleration[1] -= frictionDeceleration * acceleration[1] / tangentHorizontal;
+			}
+		}
 
 		return acceleration;
 	}

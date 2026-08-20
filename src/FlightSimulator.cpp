@@ -63,7 +63,15 @@ FlightSimulator::FlightSimulator(
 void FlightSimulator::initializeFromLaunch(const LaunchData &launch)
 {
 	const float v0_fps = launch.ballSpeedMph * physics_constants::MPH_TO_FT_PER_S;
-	startPosition_ = Vector3D{launch.startX, launch.startY, launch.startZ};
+	// LaunchData::startZ is a tee height above the local terrain, whereas the
+	// simulation state always stores absolute world coordinates.
+	const float launchTerrainHeight =
+		terrainStorage_->getHeight(launch.startX, launch.startY);
+	startPosition_ = Vector3D{
+		launch.startX,
+		launch.startY,
+		launchTerrainHeight + launch.startZ
+	};
 	const Vector3D &startPos = startPosition_;
 
 	state = BallState::fromLaunchParameters(
@@ -153,7 +161,12 @@ LandingResult FlightSimulator::getLandingResult() const
 	LandingResult result;
 	result.xF = relative[0] / physics_constants::YARDS_TO_FEET;
 	result.yF = relative[1] / physics_constants::YARDS_TO_FEET;
-	result.zF = relative[2] / physics_constants::YARDS_TO_FEET;
+	// Unlike x/y, zF is a clearance above the terrain at the resting point.
+	// This remains zero for a ball at rest on an elevated green.
+	const float finalTerrainHeight =
+		terrainStorage_->getHeight(state.position[0], state.position[1]);
+	result.zF = (state.position[2] - finalTerrainHeight) /
+	            physics_constants::YARDS_TO_FEET;
 	result.timeOfFlight = state.currentTime;
 	result.bearing = std::atan2(relative[0], relative[1]) *
 	                 180.0F / physics_constants::PI;

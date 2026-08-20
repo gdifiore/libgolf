@@ -71,6 +71,9 @@ chmod +x build.sh
 ./build.sh
 ```
 
+The default build is dependency-free. To fetch GoogleTest and run the test
+suite, use `./build.sh --test` (or configure CMake with `-DBUILD_TESTING=ON`).
+
 ## Using libgolf in your project
 
 After installing (`cmake --install build`), consume it from another CMake

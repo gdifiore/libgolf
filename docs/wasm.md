@@ -69,7 +69,7 @@ const result = libgolf.runShot(
         temp:        70.0,      // °F
         elevation:   0.0,       // ft
         vWind:       10.0,      // mph
-        phiWind:     90.0,      // 0 = cross-L, 90 = head, 180 = tail, 270 = cross-R
+        phiWind:     90.0,      // 0 = tail, 90 = crosswind to the right, 180 = head, 270 = crosswind to the left
         hWind:       0.0,
         relHumidity: 50.0,      // %
         pressure:    29.92,     // inHg
@@ -90,7 +90,7 @@ const result = libgolf.runShot(
 
 | Field | Type | Description |
 |------|------|-------------|
-| `trajectory`   | `VectorFloat` | Flat `[x, y, z, x, y, z, ...]` array of positions in **yards** |
+| `trajectory`   | `VectorFloat` | Flat `[x, y, z, x, y, z, ...]` array in **yards**; x/y are relative to launch and z is above ground |
 | `carryIndex`   | `number`      | Index (in points, not floats) of first ground contact |
 | `carryYards`   | `number`      | Downrange distance at first ground contact |
 | `totalYards`   | `number`      | Downrange distance at rest (carry + roll) |

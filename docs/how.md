@@ -17,6 +17,9 @@ cmake -B build
 cmake --build build
 ```
 
+Tests are opt-in because they fetch GoogleTest. Configure with
+`cmake -B build -DBUILD_TESTING=ON` before building when you want to run them.
+
 Include the main header in your source files:
 
 ```c++
@@ -126,7 +129,8 @@ printf("Bearing:  %.1f degrees\n", result.bearing);
 ```
 
 `LandingResult` contains:
-- `xF`, `yF`, `zF` — final position in yards
+- `xF`, `yF` — final lateral/downrange displacement from launch in yards
+- `zF` — final height above the terrain at rest in yards (normally `0`)
 - `distance` — total distance in yards
 - `bearing` — direction in degrees
 - `timeOfFlight` — total simulation time in seconds

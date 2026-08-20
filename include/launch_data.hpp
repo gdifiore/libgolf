@@ -83,7 +83,7 @@ struct LaunchData
 	float startY = 0.0f;
 
 	/**
-	 * @brief Starting height above ground (feet).
+	 * @brief Starting height above the terrain at (startX, startY) (feet).
 	 *
 	 * Typically 0.0 for ground-level shots. Set to tee height for teed-up shots.
 	 */
@@ -119,7 +119,7 @@ struct LandingResult
 	float yF;
 
 	/**
-	 * @brief Final height above ground (yards).
+	 * @brief Final height above the terrain at the resting position (yards).
 	 *
 	 * Typically 0.0 when ball comes to rest on ground.
 	 */

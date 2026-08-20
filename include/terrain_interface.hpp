@@ -35,11 +35,10 @@
  *
  * // Use custom terrain in flight simulation
  * auto terrain = std::make_shared<MyTerrain>(groundSurface);
- * FlightSimulator sim(physicsVars, ball, atmos, groundSurface, terrain);
+ * FlightSimulator sim(launch, atmos, terrain);
  *
- * // Note: When a custom terrain is provided, the groundSurface parameter
- * // serves as a fallback for backward compatibility. The flight simulator
- * // will query terrain properties from the TerrainInterface implementation.
+ * // The simulator queries all ground data from TerrainInterface; there is no
+ * // separate fallback GroundSurface when using this constructor.
  * @endcode
  *
  * @copyright Copyright (c) 2025, Gabriel DiFiore
