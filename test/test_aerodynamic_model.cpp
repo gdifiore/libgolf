@@ -6,9 +6,11 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <memory>
 
 #include "AerodynamicModel.hpp"
+#include "CalibratedAerodynamicModel.hpp"
 #include "DefaultAerodynamicModel.hpp"
 #include "FlightSimulator.hpp"
 #include "atmospheric_data.hpp"
@@ -231,6 +233,46 @@ TEST_F(DefaultModelTest, TauScalesInverselyWithSpeed)
         .re100 = 123600.0F,
     };
     EXPECT_NEAR(model.computeSpinDecayTau(slow), model.computeSpinDecayTau(fast) * 2.0, 0.1);
+}
+
+TEST(CalibratedAerodynamicModelTest, UnityScalesMatchReferenceModel)
+{
+    const AerodynamicState state{
+        .velocity = {5.0F, 150.0F, 30.0F},
+        .windVelocity = {0.0F, 0.0F, 0.0F},
+        .spinVector = {500.0F, 0.0F, 20.0F},
+        .position = {0.0F, 0.0F, 3.0F},
+        .currentTime = 1.0F,
+        .ballRadius = physics_constants::STD_BALL_RADIUS_FT,
+        .c0 = 0.005682F,
+        .re100 = 123600.0F,
+    };
+    const DefaultAerodynamicModel reference;
+    const CalibratedAerodynamicModel calibrated({1.0F, 1.0F, 1.0F});
+    const Vector3D expected = reference.computeAcceleration(state);
+    const Vector3D actual = calibrated.computeAcceleration(state);
+    EXPECT_NEAR(actual[0], expected[0], 1e-6F);
+    EXPECT_NEAR(actual[1], expected[1], 1e-6F);
+    EXPECT_NEAR(actual[2], expected[2], 1e-6F);
+    EXPECT_NEAR(calibrated.computeSpinDecayTau(state), reference.computeSpinDecayTau(state), 1e-6F);
+}
+
+TEST(CalibratedAerodynamicModelTest, GarminFitIsExplicitAndPositive)
+{
+    const CalibratedAerodynamicModel model;
+    EXPECT_GT(model.calibration().dragScale, 0.0F);
+    EXPECT_GT(model.calibration().liftScale, 0.0F);
+    EXPECT_GT(model.calibration().spinDecayScale, 0.0F);
+}
+
+TEST(CalibratedAerodynamicModelTest, RejectsNonFiniteAndNonPositiveScales)
+{
+    EXPECT_THROW(CalibratedAerodynamicModel({0.0F, 1.0F, 1.0F}), std::invalid_argument);
+    EXPECT_THROW(CalibratedAerodynamicModel({1.0F, -1.0F, 1.0F}), std::invalid_argument);
+    EXPECT_THROW(CalibratedAerodynamicModel({std::numeric_limits<float>::infinity(), 1.0F, 1.0F}),
+                 std::invalid_argument);
+    EXPECT_THROW(CalibratedAerodynamicModel({1.0F, std::numeric_limits<float>::quiet_NaN(), 1.0F}),
+                 std::invalid_argument);
 }
 
 // ============================================================================

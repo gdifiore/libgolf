@@ -157,6 +157,21 @@ class DefaultAerodynamicModel : public AerodynamicModel
 
     [[nodiscard]] Vector3D computeAcceleration(const AerodynamicState &state) const override
     {
+        return computeAccelerationScaled(state, 1.0F, 1.0F);
+    }
+
+    /**
+	 * @brief Computes the reference force law with bounded calibration scales.
+	 *
+	 * The scales are deliberately applied to coefficients rather than directly
+	 * to the final acceleration: `dragScale` changes only drag and
+	 * `liftScale` changes only Magnus lift.  This is used by
+	 * CalibratedAerodynamicModel and is public so a fitted model need not copy
+	 * the reference force law.
+	 */
+    [[nodiscard]] Vector3D computeAccelerationScaled(const AerodynamicState &state, float dragScale,
+                                                     float liftScale) const
+    {
         // Wind-relative velocity
         const float vRelX = state.velocity[0] - state.windVelocity[0];
         const float vRelY = state.velocity[1] - state.windVelocity[1];
@@ -181,14 +196,14 @@ class DefaultAerodynamicModel : public AerodynamicModel
         const double omegaMag = std::sqrt(omegaX * omegaX + omegaY * omegaY + omegaZ * omegaZ);
         const double spinFactor = omegaMag * static_cast<double>(state.ballRadius) / vw;
 
-        const double Cd = computeCd(Re_x_e5, spinFactor);
-        const double Cl = computeCl(Re_x_e5, spinFactor);
+        const double Cd = computeCd(Re_x_e5, spinFactor) * static_cast<double>(dragScale);
+        const double Cl = computeCl(Re_x_e5, spinFactor) * static_cast<double>(liftScale);
 
         // Drag: -C0 * Cd * vw * vRel
-        const double dragScale = -static_cast<double>(state.c0) * Cd * vw;
-        const float dragX = static_cast<float>(dragScale * vRelX);
-        const float dragY = static_cast<float>(dragScale * vRelY);
-        const float dragZ = static_cast<float>(dragScale * vRelZ);
+        const double dragForceScale = -static_cast<double>(state.c0) * Cd * vw;
+        const float dragX = static_cast<float>(dragForceScale * vRelX);
+        const float dragY = static_cast<float>(dragForceScale * vRelY);
+        const float dragZ = static_cast<float>(dragForceScale * vRelZ);
 
         // Magnus: C0 * (Cl / omega) * vw * (spinVector × vRel)
         float magnusX = 0.0F, magnusY = 0.0F, magnusZ = 0.0F;
@@ -205,8 +220,15 @@ class DefaultAerodynamicModel : public AerodynamicModel
 
     [[nodiscard]] float computeSpinDecayTau(const AerodynamicState &state) const override
     {
+        return computeSpinDecayTauScaled(state, 1.0F);
+    }
+
+    /// @brief Reference spin-decay time constant multiplied by a fit scale.
+    [[nodiscard]] float computeSpinDecayTauScaled(const AerodynamicState &state,
+                                                  float spinDecayScale) const
+    {
         const float v = math_utils::magnitude(state.velocity);
-        return 1.0F / (TAU_COEFF * v / state.ballRadius);
+        return spinDecayScale / (TAU_COEFF * v / state.ballRadius);
     }
 
     [[nodiscard]] double computeCd(double Re_x_e5, double spinFactor) const
