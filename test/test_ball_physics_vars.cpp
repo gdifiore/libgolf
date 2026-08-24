@@ -6,150 +6,150 @@
 // U. of Illinois
 TEST(GolfTest, initVarsDefault)
 {
-  const LaunchData launch{
-      .ballSpeedMph = 160.0f,
-      .launchAngleDeg = 11.0f,
-      .directionDeg = 0.0f,
-      .backspinRpm = 3000.0f,
-      .sidespinRpm = 0.0f,
-  };
-  const AtmosphericData atmos{
-      .temp = 70.0f,
-      .elevation = 0.0f,
-      .vWind = 0.0f,
-      .phiWind = 0.0f,
-      .hWind = 0.0f,
-      .relHumidity = 50.0f,
-      .pressure = 29.92f,
-  };
+    const LaunchData launch{
+        .ballSpeedMph = 160.0f,
+        .launchAngleDeg = 11.0f,
+        .directionDeg = 0.0f,
+        .backspinRpm = 3000.0f,
+        .sidespinRpm = 0.0f,
+    };
+    const AtmosphericData atmos{
+        .temp = 70.0f,
+        .elevation = 0.0f,
+        .vWind = 0.0f,
+        .phiWind = 0.0f,
+        .hWind = 0.0f,
+        .relHumidity = 50.0f,
+        .pressure = 29.92f,
+    };
 
-  auto ballVars = ShotPhysicsContext(launch, atmos);
+    auto ballVars = ShotPhysicsContext(launch, atmos);
 
-  EXPECT_NEAR(ballVars.getRhoImperial(), 0.0748, 0.001);
-  EXPECT_NEAR(ballVars.getRhoMetric(), 1.194, 0.001);
-  EXPECT_NEAR(ballVars.getC0(), 0.005682, 0.00001);
-  EXPECT_NEAR(ballVars.getV0(), 234.72, 0.1);
-  EXPECT_NEAR(ballVars.getV0Vector()[0], 0.0, 0.1);    // V0x
-  EXPECT_NEAR(ballVars.getV0Vector()[1], 230.41, 0.1); // V0y
-  EXPECT_NEAR(ballVars.getV0Vector()[2], 44.79, 0.1);  // V0z
-  EXPECT_NEAR(ballVars.getW()[0], 314.16, 0.1);        // Wx
-  EXPECT_NEAR(ballVars.getW()[1], 0.0, 0.1);           // Wy
-  EXPECT_NEAR(ballVars.getW()[2], 0.0, 0.1);           // Wz
-  EXPECT_NEAR(ballVars.getOmega(), 314.16, 0.1);
-  EXPECT_NEAR(ballVars.getROmega(), 21.99, 0.01);
-  EXPECT_NEAR(ballVars.getTempC(), 21.11, 0.1);
-  EXPECT_NEAR(ballVars.getElevationM(), 0.0, 0.1);
-  EXPECT_NEAR(ballVars.getVw()[0], 0.0, 0.1); // Vxw
-  EXPECT_NEAR(ballVars.getVw()[1], 0.0, 0.1); // Vyw
-  EXPECT_NEAR(ballVars.getSVP(), 18.79, 0.01);
-  EXPECT_NEAR(ballVars.getBarometricPressure(), 759.97, 0.1);
-  EXPECT_NEAR(ballVars.getRe100(), 123600, 100);
+    EXPECT_NEAR(ballVars.getRhoImperial(), 0.0748, 0.001);
+    EXPECT_NEAR(ballVars.getRhoMetric(), 1.194, 0.001);
+    EXPECT_NEAR(ballVars.getC0(), 0.005682, 0.00001);
+    EXPECT_NEAR(ballVars.getV0(), 234.72, 0.1);
+    EXPECT_NEAR(ballVars.getV0Vector()[0], 0.0, 0.1);    // V0x
+    EXPECT_NEAR(ballVars.getV0Vector()[1], 230.41, 0.1); // V0y
+    EXPECT_NEAR(ballVars.getV0Vector()[2], 44.79, 0.1);  // V0z
+    EXPECT_NEAR(ballVars.getW()[0], 314.16, 0.1);        // Wx
+    EXPECT_NEAR(ballVars.getW()[1], 0.0, 0.1);           // Wy
+    EXPECT_NEAR(ballVars.getW()[2], 0.0, 0.1);           // Wz
+    EXPECT_NEAR(ballVars.getOmega(), 314.16, 0.1);
+    EXPECT_NEAR(ballVars.getROmega(), 21.99, 0.01);
+    EXPECT_NEAR(ballVars.getTempC(), 21.11, 0.1);
+    EXPECT_NEAR(ballVars.getElevationM(), 0.0, 0.1);
+    EXPECT_NEAR(ballVars.getVw()[0], 0.0, 0.1); // Vxw
+    EXPECT_NEAR(ballVars.getVw()[1], 0.0, 0.1); // Vyw
+    EXPECT_NEAR(ballVars.getSVP(), 18.79, 0.01);
+    EXPECT_NEAR(ballVars.getBarometricPressure(), 759.97, 0.1);
+    EXPECT_NEAR(ballVars.getRe100(), 123600, 100);
 }
 
 TEST(GolfTest, initVarsNotDefault)
 {
-  const LaunchData launch{
-      .ballSpeedMph = 160.0f,
-      .launchAngleDeg = 11.0f,
-      .directionDeg = 0.0f,
-      .backspinRpm = 3000.0f,
-      .sidespinRpm = 500.0f,
-  };
-  const AtmosphericData atmos{
-      .temp = 70.0f,
-      .elevation = 90.0f,
-      .vWind = 2.0f,
-      .phiWind = 30.0f,
-      .hWind = 50.0f,
-      .relHumidity = 50.0f,
-      .pressure = 29.92f,
-  };
+    const LaunchData launch{
+        .ballSpeedMph = 160.0f,
+        .launchAngleDeg = 11.0f,
+        .directionDeg = 0.0f,
+        .backspinRpm = 3000.0f,
+        .sidespinRpm = 500.0f,
+    };
+    const AtmosphericData atmos{
+        .temp = 70.0f,
+        .elevation = 90.0f,
+        .vWind = 2.0f,
+        .phiWind = 30.0f,
+        .hWind = 50.0f,
+        .relHumidity = 50.0f,
+        .pressure = 29.92f,
+    };
 
-  auto vars = ShotPhysicsContext(launch, atmos);
+    auto vars = ShotPhysicsContext(launch, atmos);
 
-  EXPECT_NEAR(vars.getRhoImperial(), 0.0745, 0.001);
-  EXPECT_NEAR(vars.getRhoMetric(), 1.190, 0.001);
-  EXPECT_NEAR(vars.getC0(), 0.005663, 0.00001);
-  EXPECT_NEAR(vars.getV0(), 234.72, 0.1);
-  EXPECT_NEAR(vars.getV0Vector()[0], 0.0, 0.1);    // V0x
-  EXPECT_NEAR(vars.getV0Vector()[1], 230.41, 0.1); // V0y
-  EXPECT_NEAR(vars.getV0Vector()[2], 44.79, 0.1);  // V0z
-  EXPECT_NEAR(vars.getW()[0], 314.16, 0.1);        // Wx
-  EXPECT_NEAR(vars.getW()[1], -9.99, 0.1);         // Wy
-  EXPECT_NEAR(vars.getW()[2], 51.4, 0.1);          // Wz
-  EXPECT_NEAR(vars.getOmega(), 318.49, 0.1);
-  EXPECT_NEAR(vars.getROmega(), 22.29, 0.01);
-  EXPECT_NEAR(vars.getTempC(), 21.11, 0.1);
-  EXPECT_NEAR(vars.getElevationM(), 27.4, 0.1);
-  EXPECT_NEAR(vars.getVw()[0], 1.5, 0.1); // Vxw
-  EXPECT_NEAR(vars.getVw()[1], 2.5, 0.1); // Vyw
-  EXPECT_NEAR(vars.getSVP(), 18.79, 0.01);
-  EXPECT_NEAR(vars.getBarometricPressure(), 759.97, 0.1);
-  EXPECT_NEAR(vars.getRe100(), 123200, 100);
+    EXPECT_NEAR(vars.getRhoImperial(), 0.0745, 0.001);
+    EXPECT_NEAR(vars.getRhoMetric(), 1.190, 0.001);
+    EXPECT_NEAR(vars.getC0(), 0.005663, 0.00001);
+    EXPECT_NEAR(vars.getV0(), 234.72, 0.1);
+    EXPECT_NEAR(vars.getV0Vector()[0], 0.0, 0.1);    // V0x
+    EXPECT_NEAR(vars.getV0Vector()[1], 230.41, 0.1); // V0y
+    EXPECT_NEAR(vars.getV0Vector()[2], 44.79, 0.1);  // V0z
+    EXPECT_NEAR(vars.getW()[0], 314.16, 0.1);        // Wx
+    EXPECT_NEAR(vars.getW()[1], -9.99, 0.1);         // Wy
+    EXPECT_NEAR(vars.getW()[2], 51.4, 0.1);          // Wz
+    EXPECT_NEAR(vars.getOmega(), 318.49, 0.1);
+    EXPECT_NEAR(vars.getROmega(), 22.29, 0.01);
+    EXPECT_NEAR(vars.getTempC(), 21.11, 0.1);
+    EXPECT_NEAR(vars.getElevationM(), 27.4, 0.1);
+    EXPECT_NEAR(vars.getVw()[0], 1.5, 0.1); // Vxw
+    EXPECT_NEAR(vars.getVw()[1], 2.5, 0.1); // Vyw
+    EXPECT_NEAR(vars.getSVP(), 18.79, 0.01);
+    EXPECT_NEAR(vars.getBarometricPressure(), 759.97, 0.1);
+    EXPECT_NEAR(vars.getRe100(), 123200, 100);
 }
 
 TEST(GolfTest, defaultAtmosphereIsStandardDay)
 {
-  const AtmosphericData atmos{};
+    const AtmosphericData atmos{};
 
-  // Sea-level standard day: 59°F, 29.92 inHg, no wind, dry air.
-  EXPECT_FLOAT_EQ(atmos.temp, 59.0f);
-  EXPECT_FLOAT_EQ(atmos.elevation, 0.0f);
-  EXPECT_FLOAT_EQ(atmos.vWind, 0.0f);
-  EXPECT_FLOAT_EQ(atmos.phiWind, 0.0f);
-  EXPECT_FLOAT_EQ(atmos.hWind, 0.0f);
-  EXPECT_FLOAT_EQ(atmos.relHumidity, 0.0f);
-  EXPECT_FLOAT_EQ(atmos.pressure, 29.92f);
+    // Sea-level standard day: 59°F, 29.92 inHg, no wind, dry air.
+    EXPECT_FLOAT_EQ(atmos.temp, 59.0f);
+    EXPECT_FLOAT_EQ(atmos.elevation, 0.0f);
+    EXPECT_FLOAT_EQ(atmos.vWind, 0.0f);
+    EXPECT_FLOAT_EQ(atmos.phiWind, 0.0f);
+    EXPECT_FLOAT_EQ(atmos.hWind, 0.0f);
+    EXPECT_FLOAT_EQ(atmos.relHumidity, 0.0f);
+    EXPECT_FLOAT_EQ(atmos.pressure, 29.92f);
 
-  // Default-constructed atmosphere is usable and yields a sane air density.
-  const LaunchData launch{
-      .ballSpeedMph = 160.0f,
-      .launchAngleDeg = 11.0f,
-      .directionDeg = 0.0f,
-      .backspinRpm = 3000.0f,
-      .sidespinRpm = 0.0f,
-  };
-  const ShotPhysicsContext vars(launch, atmos);
-  EXPECT_NEAR(vars.getRhoMetric(), 1.225, 0.02); // ~ISA sea-level density
-  EXPECT_GT(vars.getC0(), 0.0f);
+    // Default-constructed atmosphere is usable and yields a sane air density.
+    const LaunchData launch{
+        .ballSpeedMph = 160.0f,
+        .launchAngleDeg = 11.0f,
+        .directionDeg = 0.0f,
+        .backspinRpm = 3000.0f,
+        .sidespinRpm = 0.0f,
+    };
+    const ShotPhysicsContext vars(launch, atmos);
+    EXPECT_NEAR(vars.getRhoMetric(), 1.225, 0.02); // ~ISA sea-level density
+    EXPECT_GT(vars.getC0(), 0.0f);
 }
 
 TEST(GolfTest, ballPropertiesThreadIntoDerivation)
 {
-  const LaunchData launch{
-      .ballSpeedMph = 160.0f,
-      .launchAngleDeg = 11.0f,
-      .directionDeg = 0.0f,
-      .backspinRpm = 3000.0f,
-      .sidespinRpm = 0.0f,
-  };
-  const AtmosphericData atmos{
-      .temp = 70.0f,
-      .elevation = 0.0f,
-      .vWind = 0.0f,
-      .phiWind = 0.0f,
-      .hWind = 0.0f,
-      .relHumidity = 50.0f,
-      .pressure = 29.92f,
-  };
+    const LaunchData launch{
+        .ballSpeedMph = 160.0f,
+        .launchAngleDeg = 11.0f,
+        .directionDeg = 0.0f,
+        .backspinRpm = 3000.0f,
+        .sidespinRpm = 0.0f,
+    };
+    const AtmosphericData atmos{
+        .temp = 70.0f,
+        .elevation = 0.0f,
+        .vWind = 0.0f,
+        .phiWind = 0.0f,
+        .hWind = 0.0f,
+        .relHumidity = 50.0f,
+        .pressure = 29.92f,
+    };
 
-  // A default-constructed BallProperties must reproduce the standard ball.
-  const ShotPhysicsContext implicitDefault(launch, atmos);
-  const ShotPhysicsContext explicitDefault(launch, atmos, BallProperties{});
-  EXPECT_FLOAT_EQ(implicitDefault.getC0(), explicitDefault.getC0());
-  EXPECT_FLOAT_EQ(implicitDefault.getROmega(), explicitDefault.getROmega());
-  EXPECT_FLOAT_EQ(implicitDefault.getRe100(), explicitDefault.getRe100());
+    // A default-constructed BallProperties must reproduce the standard ball.
+    const ShotPhysicsContext implicitDefault(launch, atmos);
+    const ShotPhysicsContext explicitDefault(launch, atmos, BallProperties{});
+    EXPECT_FLOAT_EQ(implicitDefault.getC0(), explicitDefault.getC0());
+    EXPECT_FLOAT_EQ(implicitDefault.getROmega(), explicitDefault.getROmega());
+    EXPECT_FLOAT_EQ(implicitDefault.getRe100(), explicitDefault.getRe100());
 
-  // c0 scales as 1/mass: a heavier ball of the same size drags less per unit speed.
-  const BallProperties heavy{.massOz = 2.0f};
-  const ShotPhysicsContext heavyVars(launch, atmos, heavy);
-  EXPECT_LT(heavyVars.getC0(), implicitDefault.getC0());
-  EXPECT_FLOAT_EQ(heavyVars.getROmega(), implicitDefault.getROmega());
+    // c0 scales as 1/mass: a heavier ball of the same size drags less per unit speed.
+    const BallProperties heavy{.massOz = 2.0f};
+    const ShotPhysicsContext heavyVars(launch, atmos, heavy);
+    EXPECT_LT(heavyVars.getC0(), implicitDefault.getC0());
+    EXPECT_FLOAT_EQ(heavyVars.getROmega(), implicitDefault.getROmega());
 
-  // A larger circumference raises c0 (∝ area), surface speed, and the Reynolds reference.
-  const BallProperties big{.circumferenceIn = 6.0f};
-  const ShotPhysicsContext bigVars(launch, atmos, big);
-  EXPECT_GT(bigVars.getC0(), implicitDefault.getC0());
-  EXPECT_GT(bigVars.getROmega(), implicitDefault.getROmega());
-  EXPECT_GT(bigVars.getRe100(), implicitDefault.getRe100());
+    // A larger circumference raises c0 (∝ area), surface speed, and the Reynolds reference.
+    const BallProperties big{.circumferenceIn = 6.0f};
+    const ShotPhysicsContext bigVars(launch, atmos, big);
+    EXPECT_GT(bigVars.getC0(), implicitDefault.getC0());
+    EXPECT_GT(bigVars.getROmega(), implicitDefault.getROmega());
+    EXPECT_GT(bigVars.getRe100(), implicitDefault.getRe100());
 }

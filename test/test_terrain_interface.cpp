@@ -9,8 +9,8 @@
 // Simple mock terrain with a constant slope for testing
 class MockSlopedTerrain : public TerrainInterface
 {
-public:
-    MockSlopedTerrain(float slopeAngleDegrees, const GroundSurface& surface)
+  public:
+    MockSlopedTerrain(float slopeAngleDegrees, const GroundSurface &surface)
         : surface(surface)
     {
         // Calculate slope in Y direction (downrange)
@@ -20,14 +20,14 @@ public:
         // Normal vector for a slope descending in +Y direction
         // Perpendicular to slope surface, pointing upward
         normal[0] = 0.0F;
-        normal[1] = std::sin(angleRad);  // Tilts forward for downslope
-        normal[2] = std::cos(angleRad);  // Upward component
+        normal[1] = std::sin(angleRad); // Tilts forward for downslope
+        normal[2] = std::cos(angleRad); // Upward component
     }
 
     float getHeight(float x, float y) const override
     {
-        (void)x;  // Slope only in Y direction
-        return -y * slopeRise;  // Descends as Y increases
+        (void)x;               // Slope only in Y direction
+        return -y * slopeRise; // Descends as Y increases
     }
 
     Vector3D getNormal(float x, float y) const override
@@ -37,14 +37,14 @@ public:
         return normal;
     }
 
-    const GroundSurface& getSurfaceProperties(float x, float y) const override
+    const GroundSurface &getSurfaceProperties(float x, float y) const override
     {
         (void)x;
         (void)y;
         return surface;
     }
 
-private:
+  private:
     GroundSurface surface;
     float slopeRise;
     Vector3D normal;
@@ -91,8 +91,8 @@ TEST(TerrainInterfaceTest, FlatTerrainReturnsConstantSurfaceProperties)
 
     FlatTerrain terrain(surface);
 
-    const GroundSurface& props1 = terrain.getSurfaceProperties(0.0F, 0.0F);
-    const GroundSurface& props2 = terrain.getSurfaceProperties(50.0F, 100.0F);
+    const GroundSurface &props1 = terrain.getSurfaceProperties(0.0F, 0.0F);
+    const GroundSurface &props2 = terrain.getSurfaceProperties(50.0F, 100.0F);
 
     EXPECT_NEAR(props1.height, 5.0F, 0.001F);
     EXPECT_NEAR(props1.restitution, 0.6F, 0.001F);
@@ -118,13 +118,13 @@ TEST(TerrainInterfaceTest, FlatTerrainNormalIsUnitLength)
 
 TEST(TerrainInterfaceTest, FlatTerrainWorksWithDefaultGroundSurface)
 {
-    GroundSurface surface;  // Default values
+    GroundSurface surface; // Default values
     FlatTerrain terrain(surface);
 
     EXPECT_NEAR(terrain.getHeight(0.0F, 0.0F), 0.0F, 0.001F);
 
-    const GroundSurface& props = terrain.getSurfaceProperties(0.0F, 0.0F);
-    EXPECT_NEAR(props.restitution, 0.4F, 0.001F);  // Default COR
+    const GroundSurface &props = terrain.getSurfaceProperties(0.0F, 0.0F);
+    EXPECT_NEAR(props.restitution, 0.4F, 0.001F); // Default COR
 }
 
 // Basic sanity checks for sloped terrain integration
@@ -132,7 +132,7 @@ TEST(TerrainInterfaceTest, FlatTerrainWorksWithDefaultGroundSurface)
 TEST(TerrainInterfaceTest, MockSlopedTerrainCalculatesHeightCorrectly)
 {
     GroundSurface surface;
-    MockSlopedTerrain terrain(10.0F, surface);  // 10 degree downward slope
+    MockSlopedTerrain terrain(10.0F, surface); // 10 degree downward slope
 
     // At y=0, height should be 0
     EXPECT_NEAR(terrain.getHeight(0.0F, 0.0F), 0.0F, 0.001F);
@@ -197,7 +197,7 @@ TEST(TerrainInterfaceTest, BallBouncesOnSlopedTerrain)
     bounce.calculateStep(state, 0.01F);
 
     // After bounce on slope, ball should have forward velocity component
-    EXPECT_GT(state.velocity[1], 0.0F);  // Should redirect downslope
+    EXPECT_GT(state.velocity[1], 0.0F); // Should redirect downslope
 }
 
 TEST(TerrainInterfaceTest, BallRollsDownSlope)
@@ -232,7 +232,7 @@ TEST(TerrainInterfaceTest, BallRollsDownSlope)
     // Ball rolling slowly on slope
     BallState state;
     state.position = {0.0F, 10.0F, terrain->getHeight(0.0F, 10.0F)};
-    state.velocity = {0.0F, 2.0F, 0.0F};  // Slow forward velocity
+    state.velocity = {0.0F, 2.0F, 0.0F}; // Slow forward velocity
     state.acceleration = {0.0F, 0.0F, 0.0F};
     state.currentTime = 0.0F;
 

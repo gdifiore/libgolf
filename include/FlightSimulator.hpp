@@ -43,8 +43,8 @@
  */
 class FlightSimulator
 {
-public:
-	/**
+  public:
+    /**
 	 * @brief Constructs a flight simulator with flat, uniform ground.
 	 *
 	 * @param launch Launch monitor data for the shot
@@ -58,17 +58,15 @@ public:
 	 *        applied to the aerial and between-bounce flight integration
 	 * @param integrator Time integrator for the flight phases (nullptr uses DefaultIntegrator)
 	 */
-	FlightSimulator(const LaunchData &launch,
-	                const AtmosphericData &atmos,
-	                const GroundSurface &ground,
-	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
-	                std::shared_ptr<BounceModel> bounceModel = nullptr,
-	                std::shared_ptr<RollModel> rollModel = nullptr,
-	                const BallProperties &ball = {},
-	                float gravity = physics_constants::GRAVITY_FT_PER_S2,
-	                std::shared_ptr<Integrator> integrator = nullptr);
+    FlightSimulator(const LaunchData &launch, const AtmosphericData &atmos,
+                    const GroundSurface &ground,
+                    std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
+                    std::shared_ptr<BounceModel> bounceModel = nullptr,
+                    std::shared_ptr<RollModel> rollModel = nullptr, const BallProperties &ball = {},
+                    float gravity = physics_constants::GRAVITY_FT_PER_S2,
+                    std::shared_ptr<Integrator> integrator = nullptr);
 
-	/**
+    /**
 	 * @brief Constructs a flight simulator with a custom terrain.
 	 *
 	 * Allows full 3D terrain with height, slope, and position-dependent surface
@@ -86,17 +84,15 @@ public:
 	 *        applied to the aerial and between-bounce flight integration
 	 * @param integrator Time integrator for the flight phases (nullptr uses DefaultIntegrator)
 	 */
-	FlightSimulator(const LaunchData &launch,
-	                const AtmosphericData &atmos,
-	                std::shared_ptr<TerrainInterface> terrain,
-	                std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
-	                std::shared_ptr<BounceModel> bounceModel = nullptr,
-	                std::shared_ptr<RollModel> rollModel = nullptr,
-	                const BallProperties &ball = {},
-	                float gravity = physics_constants::GRAVITY_FT_PER_S2,
-	                std::shared_ptr<Integrator> integrator = nullptr);
+    FlightSimulator(const LaunchData &launch, const AtmosphericData &atmos,
+                    std::shared_ptr<TerrainInterface> terrain,
+                    std::shared_ptr<AerodynamicModel> aeroModel = nullptr,
+                    std::shared_ptr<BounceModel> bounceModel = nullptr,
+                    std::shared_ptr<RollModel> rollModel = nullptr, const BallProperties &ball = {},
+                    float gravity = physics_constants::GRAVITY_FT_PER_S2,
+                    std::shared_ptr<Integrator> integrator = nullptr);
 
-	/**
+    /**
 	 * @brief Runs the simulation to completion.
 	 *
 	 * Advances the simulation through all phases until the ball comes to rest.
@@ -104,9 +100,9 @@ public:
 	 *
 	 * @param dt Time step in seconds (default: SIMULATION_TIME_STEP)
 	 */
-	void run(float dt = physics_constants::SIMULATION_TIME_STEP);
+    void run(float dt = physics_constants::SIMULATION_TIME_STEP);
 
-	/**
+    /**
 	 * @brief Runs the simulation and returns the full trajectory.
 	 *
 	 * Equivalent to run() but collects and returns all intermediate states.
@@ -115,27 +111,27 @@ public:
 	 * @param dt Time step in seconds (default: SIMULATION_TIME_STEP)
 	 * @return Vector of BallState snapshots from launch to rest (inclusive)
 	 */
-	std::vector<BallState> runAndGetTrajectory(float dt = physics_constants::SIMULATION_TIME_STEP);
+    std::vector<BallState> runAndGetTrajectory(float dt = physics_constants::SIMULATION_TIME_STEP);
 
-	/**
+    /**
 	 * @brief Gets the current ball state.
 	 *
 	 * Returns the initial state before run(), or the final state after.
 	 *
 	 * @return Reference to the current ball state
 	 */
-	[[nodiscard]] const BallState &getState() const;
+    [[nodiscard]] const BallState &getState() const;
 
-	/**
+    /**
 	 * @brief Computes landing result from the current state.
 	 *
 	 * Should be called after run() for meaningful results.
 	 *
 	 * @return LandingResult with distance, bearing, and time of flight
 	 */
-	[[nodiscard]] LandingResult getLandingResult() const;
+    [[nodiscard]] LandingResult getLandingResult() const;
 
-	/**
+    /**
 	 * @brief Gets the derived physics variables for this shot.
 	 *
 	 * Provides access to computed quantities like air density, Reynolds number,
@@ -143,45 +139,45 @@ public:
 	 *
 	 * @return Reference to the physics variables
 	 */
-	[[nodiscard]] const ShotPhysicsContext &getPhysicsVariables() const;
+    [[nodiscard]] const ShotPhysicsContext &getPhysicsVariables() const;
 
-	/**
+    /**
 	 * @brief Gets the name of the current flight phase.
 	 *
 	 * @return Phase name: "aerial", "bounce", "roll", or "complete"
 	 */
-	[[nodiscard]] const char *getCurrentPhaseName() const;
+    [[nodiscard]] const char *getCurrentPhaseName() const;
 
-private:
-	enum class Phase
-	{
-		Aerial,
-		Bounce,
-		Roll,
-		Complete
-	};
+  private:
+    enum class Phase
+    {
+        Aerial,
+        Bounce,
+        Roll,
+        Complete
+    };
 
-	Phase currentPhase;
-	BallState state;
+    Phase currentPhase;
+    BallState state;
 
-	Vector3D startPosition_{0.0F, 0.0F, 0.0F};
-	float gravity_;
+    Vector3D startPosition_{0.0F, 0.0F, 0.0F};
+    float gravity_;
 
-	// Must be declared before phases since phases hold a reference to it
-	ShotPhysicsContext physicsVars_;
+    // Must be declared before phases since phases hold a reference to it
+    ShotPhysicsContext physicsVars_;
 
-	// Must be declared before phases since phases depend on it
-	std::shared_ptr<TerrainInterface> terrainStorage_;
+    // Must be declared before phases since phases depend on it
+    std::shared_ptr<TerrainInterface> terrainStorage_;
 
-	AerialPhase aerialPhase;
-	BouncePhase bouncePhase;
-	RollPhase rollPhase;
+    AerialPhase aerialPhase;
+    BouncePhase bouncePhase;
+    RollPhase rollPhase;
 
-	void stepOnce(float dt);
-	void checkPhaseTransition();
+    void stepOnce(float dt);
+    void checkPhaseTransition();
 
-	// Shared initialization called by all constructors
-	void initializeFromLaunch(const LaunchData &launch);
+    // Shared initialization called by all constructors
+    void initializeFromLaunch(const LaunchData &launch);
 };
 
 #endif // FLIGHT_SIMULATOR_HPP

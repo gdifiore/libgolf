@@ -20,17 +20,20 @@
  */
 class BallState
 {
-public:
-	/**
+  public:
+    /**
 	 * @brief Constructs a BallState with zero-initialized values.
 	 */
-	BallState() : position{0.0F, 0.0F, 0.0F},
-				  velocity{0.0F, 0.0F, 0.0F},
-				  acceleration{0.0F, 0.0F, 0.0F},
-				  currentTime(0.0F),
-				  spinVector{0.0F, 0.0F, 0.0F} {}
+    BallState()
+        : position{0.0F, 0.0F, 0.0F}
+        , velocity{0.0F, 0.0F, 0.0F}
+        , acceleration{0.0F, 0.0F, 0.0F}
+        , currentTime(0.0F)
+        , spinVector{0.0F, 0.0F, 0.0F}
+    {
+    }
 
-	/**
+    /**
 	 * @brief Constructs a BallState with specified initial values.
 	 *
 	 * @param pos Initial position vector
@@ -39,11 +42,17 @@ public:
 	 * @param time Initial time value
 	 * @param spin Initial spin angular velocity (rad/s; default: zero vector)
 	 */
-	BallState(const Vector3D &pos, const Vector3D &vel, const Vector3D &accel, float time,
-	          Vector3D spin = {0.0F, 0.0F, 0.0F})
-		: position(pos), velocity(vel), acceleration(accel), currentTime(time), spinVector(spin) {}
+    BallState(const Vector3D &pos, const Vector3D &vel, const Vector3D &accel, float time,
+              Vector3D spin = {0.0F, 0.0F, 0.0F})
+        : position(pos)
+        , velocity(vel)
+        , acceleration(accel)
+        , currentTime(time)
+        , spinVector(spin)
+    {
+    }
 
-	/**
+    /**
 	 * @brief Creates a BallState from launch parameters with sensible defaults.
 	 *
 	 * This factory method calculates the initial velocity vector from launch speed,
@@ -58,37 +67,36 @@ public:
 	 * @param initialSpinVector Initial spin angular velocity vector (rad/s; default: zero)
 	 * @return BallState initialized with calculated velocity and default values
 	 */
-	static BallState fromLaunchParameters(
-		float speed_fps,
-		float launch_angle_deg,
-		float direction_deg,
-		const Vector3D &start_pos = Vector3D{0.0F, 0.0F, 0.0F},
-		float gravity = physics_constants::GRAVITY_FT_PER_S2,
-		Vector3D initialSpinVector = {0.0F, 0.0F, 0.0F})
-	{
-		const float theta_rad = launch_angle_deg * physics_constants::DEG_TO_RAD;
-		const float phi_rad = direction_deg * physics_constants::DEG_TO_RAD;
+    static BallState fromLaunchParameters(float speed_fps, float launch_angle_deg,
+                                          float direction_deg,
+                                          const Vector3D &start_pos = Vector3D{0.0F, 0.0F, 0.0F},
+                                          float gravity = physics_constants::GRAVITY_FT_PER_S2,
+                                          Vector3D initialSpinVector = {0.0F, 0.0F, 0.0F})
+    {
+        const float theta_rad = launch_angle_deg * physics_constants::DEG_TO_RAD;
+        const float phi_rad = direction_deg * physics_constants::DEG_TO_RAD;
 
-		// Coordinate system: x=lateral, y=forward, z=height
-		// direction=0 (straight) should give vy=max, vx=0
-		// direction>0 (right) should give vx>0
-		Vector3D velocity{
-			speed_fps * std::cos(theta_rad) * std::sin(phi_rad), // vx: lateral (right)
-			speed_fps * std::cos(theta_rad) * std::cos(phi_rad), // vy: forward (downrange)
-			speed_fps * std::sin(theta_rad)						 // vz: vertical (up)
-		};
+        // Coordinate system: x=lateral, y=forward, z=height
+        // direction=0 (straight) should give vy=max, vx=0
+        // direction>0 (right) should give vx>0
+        Vector3D velocity{
+            speed_fps * std::cos(theta_rad) * std::sin(phi_rad), // vx: lateral (right)
+            speed_fps * std::cos(theta_rad) * std::cos(phi_rad), // vy: forward (downrange)
+            speed_fps * std::sin(theta_rad)                      // vz: vertical (up)
+        };
 
-		Vector3D acceleration{0.0F, 0.0F, -gravity};
+        Vector3D acceleration{0.0F, 0.0F, -gravity};
 
-		return BallState(start_pos, velocity, acceleration, 0.0F, initialSpinVector);
-	}
+        return BallState(start_pos, velocity, acceleration, 0.0F, initialSpinVector);
+    }
 
-	// State variables
-	Vector3D position;	   // Current position (x=lateral, y=forward, z=height) in feet
-	Vector3D velocity;	   // Current velocity (vx, vy, vz) in ft/s
-	Vector3D acceleration; // Current acceleration (ax, ay, az) in ft/s²
-	float currentTime;	   // Current simulation time in seconds
-	Vector3D spinVector;   // Current spin angular velocity (rad/s); direction = spin axis, magnitude decays over time
+    // State variables
+    Vector3D position;     // Current position (x=lateral, y=forward, z=height) in feet
+    Vector3D velocity;     // Current velocity (vx, vy, vz) in ft/s
+    Vector3D acceleration; // Current acceleration (ax, ay, az) in ft/s²
+    float currentTime;     // Current simulation time in seconds
+    Vector3D
+        spinVector; // Current spin angular velocity (rad/s); direction = spin axis, magnitude decays over time
 };
 
 #endif // BALLSTATE_HPP

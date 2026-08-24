@@ -15,348 +15,356 @@
 
 class RollPhaseTest : public ::testing::Test
 {
-protected:
-	void SetUp() override
-	{
-		// Default test ball and atmosphere
-		ball = {100.0, 10.0, 0.0, 2000.0, 0.0};
-		atmos = {70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
+  protected:
+    void SetUp() override
+    {
+        // Default test ball and atmosphere
+        ball = {100.0, 10.0, 0.0, 2000.0, 0.0};
+        atmos = {70.0, 0.0, 0.0, 0.0, 0.0, 50.0, 29.92};
 
-		// Default ground surface (fairway)
-		ground.height = 0.0F;
-		ground.restitution = 0.4F;
-		ground.frictionStatic = 0.5F;
-		ground.firmness = 0.8F;
+        // Default ground surface (fairway)
+        ground.height = 0.0F;
+        ground.restitution = 0.4F;
+        ground.frictionStatic = 0.5F;
+        ground.firmness = 0.8F;
 
-		// Create flat terrain from ground
-		terrain = std::make_shared<FlatTerrain>(ground);
-	}
+        // Create flat terrain from ground
+        terrain = std::make_shared<FlatTerrain>(ground);
+    }
 
-	LaunchData ball;
-	AtmosphericData atmos;
-	GroundSurface ground;
-	std::shared_ptr<TerrainInterface> terrain;
+    LaunchData ball;
+    AtmosphericData atmos;
+    GroundSurface ground;
+    std::shared_ptr<TerrainInterface> terrain;
 };
 
 TEST_F(RollPhaseTest, DeceleratesFromRollingFriction)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	// Ball rolling on ground at 10 ft/s
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {10.0F, 0.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.currentTime = 0.0F;
+    // Ball rolling on ground at 10 ft/s
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {10.0F, 0.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.currentTime = 0.0F;
 
-	float initialSpeed = state.velocity[0];
-	float dt = 0.1F;
+    float initialSpeed = state.velocity[0];
+    float dt = 0.1F;
 
-	roll.calculateStep(state, dt);
+    roll.calculateStep(state, dt);
 
-	// Velocity should have decreased
-	EXPECT_LT(state.velocity[0], initialSpeed);
-	EXPECT_GT(state.velocity[0], 0.0F); // But not stopped yet
+    // Velocity should have decreased
+    EXPECT_LT(state.velocity[0], initialSpeed);
+    EXPECT_GT(state.velocity[0], 0.0F); // But not stopped yet
 }
 
 TEST_F(RollPhaseTest, KeepsBallOnGround)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	BallState state;
-	state.position = {0.0F, 0.0F, 5.0F}; // Start above ground
-	state.velocity = {10.0F, 0.0F, 5.0F}; // Some vertical velocity
-	state.acceleration = {0.0F, 0.0F, -physics_constants::GRAVITY_FT_PER_S2};
-	state.currentTime = 0.0F;
+    BallState state;
+    state.position = {0.0F, 0.0F, 5.0F};  // Start above ground
+    state.velocity = {10.0F, 0.0F, 5.0F}; // Some vertical velocity
+    state.acceleration = {0.0F, 0.0F, -physics_constants::GRAVITY_FT_PER_S2};
+    state.currentTime = 0.0F;
 
-	roll.calculateStep(state, 0.01F);
+    roll.calculateStep(state, 0.01F);
 
-	// Ball should be clamped to ground
-	EXPECT_EQ(state.position[2], ground.height);
-	EXPECT_EQ(state.velocity[2], 0.0F);
+    // Ball should be clamped to ground
+    EXPECT_EQ(state.position[2], ground.height);
+    EXPECT_EQ(state.velocity[2], 0.0F);
 }
 
 TEST_F(RollPhaseTest, UpdatesPositionBasedOnVelocity)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {10.0F, 5.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.currentTime = 0.0F;
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {10.0F, 5.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.currentTime = 0.0F;
 
-	float dt = 0.1F;
-	roll.calculateStep(state, dt);
+    float dt = 0.1F;
+    roll.calculateStep(state, dt);
 
-	// Position should have advanced (accounting for deceleration)
-	EXPECT_GT(state.position[0], 0.0F);
-	EXPECT_GT(state.position[1], 0.0F);
-	EXPECT_NEAR(state.position[0] / state.position[1], 10.0F / 5.0F, 0.1F); // Direction preserved
+    // Position should have advanced (accounting for deceleration)
+    EXPECT_GT(state.position[0], 0.0F);
+    EXPECT_GT(state.position[1], 0.0F);
+    EXPECT_NEAR(state.position[0] / state.position[1], 10.0F / 5.0F, 0.1F); // Direction preserved
 }
 
 TEST_F(RollPhaseTest, PreservesDirectionWhileSlowing)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	// Ball rolling at 45 degrees
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {10.0F, 10.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.currentTime = 0.0F;
+    // Ball rolling at 45 degrees
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {10.0F, 10.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.currentTime = 0.0F;
 
-	float initialAngle = atan2(state.velocity[1], state.velocity[0]);
+    float initialAngle = atan2(state.velocity[1], state.velocity[0]);
 
-	roll.calculateStep(state, 0.1F);
+    roll.calculateStep(state, 0.1F);
 
-	float finalAngle = atan2(state.velocity[1], state.velocity[0]);
+    float finalAngle = atan2(state.velocity[1], state.velocity[0]);
 
-	// Direction should be preserved
-	EXPECT_NEAR(initialAngle, finalAngle, 0.01F);
+    // Direction should be preserved
+    EXPECT_NEAR(initialAngle, finalAngle, 0.01F);
 }
 
 TEST_F(RollPhaseTest, StopsWhenVelocityTooLow)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	// Ball rolling very slowly
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {0.5F, 0.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.currentTime = 0.0F;
+    // Ball rolling very slowly
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {0.5F, 0.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.currentTime = 0.0F;
 
-	// Roll for a while
-	for (int i = 0; i < 100; ++i)
-	{
-		roll.calculateStep(state, 0.01F);
-		if (roll.isPhaseComplete(state))
-		{
-			break;
-		}
-	}
+    // Roll for a while
+    for (int i = 0; i < 100; ++i)
+    {
+        roll.calculateStep(state, 0.01F);
+        if (roll.isPhaseComplete(state))
+        {
+            break;
+        }
+    }
 
-	// Ball should have stopped
-	EXPECT_TRUE(roll.isPhaseComplete(state));
+    // Ball should have stopped
+    EXPECT_TRUE(roll.isPhaseComplete(state));
 
-	// Velocity should be very small
-	float finalSpeed = sqrt(state.velocity[0] * state.velocity[0] +
-	                        state.velocity[1] * state.velocity[1]);
-	EXPECT_LT(finalSpeed, 0.1F);
+    // Velocity should be very small
+    float finalSpeed =
+        sqrt(state.velocity[0] * state.velocity[0] + state.velocity[1] * state.velocity[1]);
+    EXPECT_LT(finalSpeed, 0.1F);
 }
 
 TEST_F(RollPhaseTest, DoesNotReverseDirection)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	// Ball rolling slowly forward
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {0.2F, 0.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.currentTime = 0.0F;
+    // Ball rolling slowly forward
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {0.2F, 0.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.currentTime = 0.0F;
 
-	// Large timestep that would reverse velocity if not clamped
-	roll.calculateStep(state, 1.0F);
+    // Large timestep that would reverse velocity if not clamped
+    roll.calculateStep(state, 1.0F);
 
-	// Velocity should be zero or positive, never negative
-	EXPECT_GE(state.velocity[0], 0.0F);
+    // Velocity should be zero or positive, never negative
+    EXPECT_GE(state.velocity[0], 0.0F);
 }
 
 TEST_F(RollPhaseTest, HigherFrictionSlowsFaster)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
+    ShotPhysicsContext physicsVars(ball, atmos);
 
-	// Low friction surface (fairway)
-	ground.frictionDynamic = 0.15F;
-	auto terrainLow = std::make_shared<FlatTerrain>(ground);
-	RollPhase rollLow(terrainLow);
+    // Low friction surface (fairway)
+    ground.frictionDynamic = 0.15F;
+    auto terrainLow = std::make_shared<FlatTerrain>(ground);
+    RollPhase rollLow(terrainLow);
 
-	// High friction surface (rough)
-	ground.frictionDynamic = 0.5F;
-	auto terrainHigh = std::make_shared<FlatTerrain>(ground);
-	RollPhase rollHigh(terrainHigh);
+    // High friction surface (rough)
+    ground.frictionDynamic = 0.5F;
+    auto terrainHigh = std::make_shared<FlatTerrain>(ground);
+    RollPhase rollHigh(terrainHigh);
 
-	// Same initial state
-	BallState stateLow, stateHigh;
-	stateLow.position = {0.0F, 0.0F, 0.0F};
-	stateLow.velocity = {20.0F, 0.0F, 0.0F};
-	stateLow.acceleration = {0.0F, 0.0F, 0.0F};
-	stateLow.currentTime = 0.0F;
+    // Same initial state
+    BallState stateLow, stateHigh;
+    stateLow.position = {0.0F, 0.0F, 0.0F};
+    stateLow.velocity = {20.0F, 0.0F, 0.0F};
+    stateLow.acceleration = {0.0F, 0.0F, 0.0F};
+    stateLow.currentTime = 0.0F;
 
-	stateHigh = stateLow;
+    stateHigh = stateLow;
 
-	float dt = 0.1F;
-	rollLow.calculateStep(stateLow, dt);
-	rollHigh.calculateStep(stateHigh, dt);
+    float dt = 0.1F;
+    rollLow.calculateStep(stateLow, dt);
+    rollHigh.calculateStep(stateHigh, dt);
 
-	// High friction should decelerate more
-	EXPECT_LT(stateHigh.velocity[0], stateLow.velocity[0]);
+    // High friction should decelerate more
+    EXPECT_LT(stateHigh.velocity[0], stateLow.velocity[0]);
 }
 
 TEST_F(RollPhaseTest, NonZeroGroundHeight)
 {
-	ground.height = 10.0F;
-	terrain = std::make_shared<FlatTerrain>(ground);  // Recreate with updated ground
+    ground.height = 10.0F;
+    terrain = std::make_shared<FlatTerrain>(ground); // Recreate with updated ground
 
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F}; // Start at z=0
-	state.velocity = {10.0F, 0.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.currentTime = 0.0F;
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F}; // Start at z=0
+    state.velocity = {10.0F, 0.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.currentTime = 0.0F;
 
-	roll.calculateStep(state, 0.01F);
+    roll.calculateStep(state, 0.01F);
 
-	// Ball should be at ground height
-	EXPECT_EQ(state.position[2], ground.height);
+    // Ball should be at ground height
+    EXPECT_EQ(state.position[2], ground.height);
 }
 
 TEST_F(RollPhaseTest, EventuallyStops)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {15.0F, 0.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.currentTime = 0.0F;
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {15.0F, 0.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.currentTime = 0.0F;
 
-	bool stopped = false;
-	int maxSteps = 10000;
+    bool stopped = false;
+    int maxSteps = 10000;
 
-	for (int i = 0; i < maxSteps; ++i)
-	{
-		roll.calculateStep(state, 0.01F);
-		if (roll.isPhaseComplete(state))
-		{
-			stopped = true;
-			break;
-		}
-	}
+    for (int i = 0; i < maxSteps; ++i)
+    {
+        roll.calculateStep(state, 0.01F);
+        if (roll.isPhaseComplete(state))
+        {
+            stopped = true;
+            break;
+        }
+    }
 
-	EXPECT_TRUE(stopped);
-	EXPECT_LT(state.currentTime, 100.0F); // Should stop in reasonable time
+    EXPECT_TRUE(stopped);
+    EXPECT_LT(state.currentTime, 100.0F); // Should stop in reasonable time
 }
 
 TEST_F(RollPhaseTest, HandlesNegativeSpinRate)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	// Ball rolling with backspin (negative spin rate)
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {10.0F, 0.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.spinVector = {500.0F, 0.0F, 0.0F};  // Backspin axis
-	state.currentTime = 0.0F;
+    // Ball rolling with backspin (negative spin rate)
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {10.0F, 0.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.spinVector = {500.0F, 0.0F, 0.0F}; // Backspin axis
+    state.currentTime = 0.0F;
 
-	// Roll for several steps
-	for (int i = 0; i < 10; ++i)
-	{
-		roll.calculateStep(state, 0.01F);
-	}
+    // Roll for several steps
+    for (int i = 0; i < 10; ++i)
+    {
+        roll.calculateStep(state, 0.01F);
+    }
 
-	// Spin magnitude should decay but remain non-zero; axis direction preserved
-	EXPECT_GT(math_utils::magnitude(state.spinVector), 0.0F);
-	EXPECT_LT(math_utils::magnitude(state.spinVector), 500.0F);
+    // Spin magnitude should decay but remain non-zero; axis direction preserved
+    EXPECT_GT(math_utils::magnitude(state.spinVector), 0.0F);
+    EXPECT_LT(math_utils::magnitude(state.spinVector), 500.0F);
 }
 
 TEST_F(RollPhaseTest, SpinDecaysToZeroFromNegative)
 {
-	ShotPhysicsContext physicsVars(ball, atmos);
-	RollPhase roll(terrain);
+    ShotPhysicsContext physicsVars(ball, atmos);
+    RollPhase roll(terrain);
 
-	// Ball rolling slowly with small backspin
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {5.0F, 0.0F, 0.0F};
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.spinVector = {5.0F, 0.0F, 0.0F};  // Small backspin axis
-	state.currentTime = 0.0F;
+    // Ball rolling slowly with small backspin
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {5.0F, 0.0F, 0.0F};
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.spinVector = {5.0F, 0.0F, 0.0F}; // Small backspin axis
+    state.currentTime = 0.0F;
 
-	float initialSpinMag = math_utils::magnitude(state.spinVector);
+    float initialSpinMag = math_utils::magnitude(state.spinVector);
 
-	// Roll for several steps
-	for (int i = 0; i < 100; ++i)
-	{
-		roll.calculateStep(state, 0.01F);
-	}
+    // Roll for several steps
+    for (int i = 0; i < 100; ++i)
+    {
+        roll.calculateStep(state, 0.01F);
+    }
 
-	// Spin magnitude should have decreased
-	EXPECT_LT(math_utils::magnitude(state.spinVector), initialSpinMag);
+    // Spin magnitude should have decreased
+    EXPECT_LT(math_utils::magnitude(state.spinVector), initialSpinMag);
 }
 
 TEST_F(RollPhaseTest, BallCanStartRollingFromNearZeroVelocityOnSlope)
 {
-	// Create sloped terrain (10 degree downslope)
-	// tan(10°) exceeds this static-friction coefficient, so the ball should
-	// begin rolling rather than remain held on the slope.
-	ground.frictionStatic = 0.1F;
-	ground.frictionDynamic = 0.15F;
+    // Create sloped terrain (10 degree downslope)
+    // tan(10°) exceeds this static-friction coefficient, so the ball should
+    // begin rolling rather than remain held on the slope.
+    ground.frictionStatic = 0.1F;
+    ground.frictionDynamic = 0.15F;
 
-	// Create a simple sloped terrain for testing
-	class TestSlopedTerrain : public TerrainInterface
-	{
-	private:
-		GroundSurface surface_;
-		Vector3D normal_;
-	public:
-		TestSlopedTerrain(const GroundSurface& surface) : surface_(surface)
-		{
-			float angle = 10.0F * physics_constants::DEG_TO_RAD;
-			normal_ = {0.0F, std::sin(angle), std::cos(angle)};
-		}
+    // Create a simple sloped terrain for testing
+    class TestSlopedTerrain : public TerrainInterface
+    {
+      private:
+        GroundSurface surface_;
+        Vector3D normal_;
 
-		float getHeight(float x, float y) const override {
-			(void)x; (void)y;
-			return 0.0F;
-		}
+      public:
+        TestSlopedTerrain(const GroundSurface &surface)
+            : surface_(surface)
+        {
+            float angle = 10.0F * physics_constants::DEG_TO_RAD;
+            normal_ = {0.0F, std::sin(angle), std::cos(angle)};
+        }
 
-		Vector3D getNormal(float x, float y) const override {
-			(void)x; (void)y;
-			return normal_;
-		}
+        float getHeight(float x, float y) const override
+        {
+            (void)x;
+            (void)y;
+            return 0.0F;
+        }
 
-		const GroundSurface& getSurfaceProperties(float x, float y) const override {
-			(void)x; (void)y;
-			return surface_;
-		}
-	};
+        Vector3D getNormal(float x, float y) const override
+        {
+            (void)x;
+            (void)y;
+            return normal_;
+        }
 
-	auto slopedTerrain = std::make_shared<TestSlopedTerrain>(ground);
+        const GroundSurface &getSurfaceProperties(float x, float y) const override
+        {
+            (void)x;
+            (void)y;
+            return surface_;
+        }
+    };
 
-	RollPhase roll(slopedTerrain);
+    auto slopedTerrain = std::make_shared<TestSlopedTerrain>(ground);
 
-	// Ball starting with very small velocity (just above MIN_SPEED)
-	// This tests that the velocity reversal fix allows the ball to accelerate
-	// from near-zero velocity without getting stuck
-	BallState state;
-	state.position = {0.0F, 0.0F, 0.0F};
-	state.velocity = {0.0F, 0.02F, 0.0F};  // Small velocity above MIN_SPEED
-	state.acceleration = {0.0F, 0.0F, 0.0F};
-	state.currentTime = 0.0F;
+    RollPhase roll(slopedTerrain);
 
-	float initialVelocity = state.velocity[1];
+    // Ball starting with very small velocity (just above MIN_SPEED)
+    // This tests that the velocity reversal fix allows the ball to accelerate
+    // from near-zero velocity without getting stuck
+    BallState state;
+    state.position = {0.0F, 0.0F, 0.0F};
+    state.velocity = {0.0F, 0.02F, 0.0F}; // Small velocity above MIN_SPEED
+    state.acceleration = {0.0F, 0.0F, 0.0F};
+    state.currentTime = 0.0F;
 
-	// Roll for several steps
-	for (int i = 0; i < 20; ++i)
-	{
-		roll.calculateStep(state, 0.01F);
-	}
+    float initialVelocity = state.velocity[1];
 
-	// Ball should accelerate downslope (gravity > friction on 10° slope)
-	// Without the fix, the ball could get stuck at zero if velocity reversed
-	EXPECT_GT(state.velocity[1], initialVelocity);
+    // Roll for several steps
+    for (int i = 0; i < 20; ++i)
+    {
+        roll.calculateStep(state, 0.01F);
+    }
+
+    // Ball should accelerate downslope (gravity > friction on 10° slope)
+    // Without the fix, the ball could get stuck at zero if velocity reversed
+    EXPECT_GT(state.velocity[1], initialVelocity);
 }

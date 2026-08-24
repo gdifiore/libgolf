@@ -36,17 +36,16 @@ using namespace emscripten;
 struct ShotResult
 {
     std::vector<float> trajectory;
-    int carryIndex = 0;          // index of first ground contact (point count, not float count)
-    float carryYards = 0.0F;     // downrange displacement at first ground contact
-    float totalYards = 0.0F;     // downrange distance at rest
-    float apexYards = 0.0F;      // peak height above ground
-    float offlineYards = 0.0F;   // lateral position at rest (right = +)
-    float timeOfFlight = 0.0F;   // total simulation time, seconds
-    float bearingDeg = 0.0F;     // bearing from launch to rest, degrees
+    int carryIndex = 0;        // index of first ground contact (point count, not float count)
+    float carryYards = 0.0F;   // downrange displacement at first ground contact
+    float totalYards = 0.0F;   // downrange distance at rest
+    float apexYards = 0.0F;    // peak height above ground
+    float offlineYards = 0.0F; // lateral position at rest (right = +)
+    float timeOfFlight = 0.0F; // total simulation time, seconds
+    float bearingDeg = 0.0F;   // bearing from launch to rest, degrees
 };
 
-ShotResult runShot(const LaunchData &launch,
-                   const AtmosphericData &atmos,
+ShotResult runShot(const LaunchData &launch, const AtmosphericData &atmos,
                    const GroundSurface &ground)
 {
     FlightSimulator sim(launch, atmos, ground);
@@ -89,10 +88,10 @@ ShotResult runShot(const LaunchData &launch,
     }
 
     out.carryIndex = carryIdx;
-    out.carryYards = trajectory.empty() ? 0.0F :
-        (trajectory[carryIdx].position[1] - launch.startY) / FT_PER_YD;
+    out.carryYards =
+        trajectory.empty() ? 0.0F : (trajectory[carryIdx].position[1] - launch.startY) / FT_PER_YD;
     out.apexYards = std::max(0.0F, apexFt - ground.height) / FT_PER_YD;
-    out.totalYards = landing.yF;       // landing fields already in yards
+    out.totalYards = landing.yF; // landing fields already in yards
     out.offlineYards = landing.xF;
     out.timeOfFlight = landing.timeOfFlight;
     out.bearingDeg = landing.bearing;

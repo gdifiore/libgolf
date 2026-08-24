@@ -60,14 +60,14 @@
  */
 class TerrainInterface
 {
-public:
+  public:
     virtual ~TerrainInterface() = default;
 
-    TerrainInterface(const TerrainInterface&) = delete;
-    TerrainInterface& operator=(const TerrainInterface&) = delete;
+    TerrainInterface(const TerrainInterface &) = delete;
+    TerrainInterface &operator=(const TerrainInterface &) = delete;
 
-    TerrainInterface(TerrainInterface&&) = default;
-    TerrainInterface& operator=(TerrainInterface&&) = default;
+    TerrainInterface(TerrainInterface &&) = default;
+    TerrainInterface &operator=(TerrainInterface &&) = default;
 
     /**
      * Gets the terrain height at the given horizontal position.
@@ -103,9 +103,10 @@ public:
      * @param y The y-coordinate (forward position in feet).
      * @return The ground surface properties (restitution, friction, etc.).
      */
-    [[nodiscard]] virtual auto getSurfaceProperties(float x, float y) const -> const GroundSurface& = 0;
+    [[nodiscard]] virtual auto getSurfaceProperties(float x,
+                                                    float y) const -> const GroundSurface & = 0;
 
-protected:
+  protected:
     TerrainInterface() = default;
 };
 
@@ -118,14 +119,17 @@ protected:
  */
 class FlatTerrain : public TerrainInterface
 {
-public:
+  public:
     /**
      * Constructs a flat terrain with the given surface properties.
      *
      * @param surface The ground surface properties to use everywhere.
      * @note No validation performed. Caller ensures valid inputs.
      */
-    explicit FlatTerrain(const GroundSurface& surface) : surface(surface) {}
+    explicit FlatTerrain(const GroundSurface &surface)
+        : surface(surface)
+    {
+    }
 
     /**
      * Gets the terrain height (constant everywhere).
@@ -134,7 +138,8 @@ public:
      * @param y The y-coordinate (unused for flat terrain).
      * @return The terrain height in feet.
      */
-    [[nodiscard]] auto getHeight([[maybe_unused]] float x, [[maybe_unused]] float y) const noexcept -> float override
+    [[nodiscard]] auto getHeight([[maybe_unused]] float x,
+                                 [[maybe_unused]] float y) const noexcept -> float override
     {
         return surface.height;
     }
@@ -146,7 +151,8 @@ public:
      * @param y The y-coordinate (unused for flat terrain).
      * @return The unit normal vector (0, 0, 1).
      */
-    [[nodiscard]] auto getNormal([[maybe_unused]] float x, [[maybe_unused]] float y) const noexcept -> Vector3D override
+    [[nodiscard]] auto getNormal([[maybe_unused]] float x,
+                                 [[maybe_unused]] float y) const noexcept -> Vector3D override
     {
         return {0.0F, 0.0F, 1.0F};
     }
@@ -158,14 +164,14 @@ public:
      * @param y The y-coordinate (unused for flat terrain).
      * @return The ground surface properties.
      */
-    [[nodiscard]] auto getSurfaceProperties([[maybe_unused]] float x, [[maybe_unused]] float y) const noexcept -> const GroundSurface& override
+    [[nodiscard]] auto getSurfaceProperties([[maybe_unused]] float x, [[maybe_unused]] float y)
+        const noexcept -> const GroundSurface & override
     {
         return surface;
     }
 
-private:
+  private:
     GroundSurface surface;
 };
-
 
 #endif // TERRAIN_INTERFACE_HPP

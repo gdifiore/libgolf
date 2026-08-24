@@ -16,12 +16,7 @@ constexpr float R = physics_constants::STD_BALL_RADIUS_FT;
 // a +Z normal, t̂ × n̂ = +X, so positive scalar = backspin (golf convention).
 BounceState makeState(Vector3D velocity, Vector3D normal, float spinScalarRadPerSec)
 {
-    return BounceState{
-        velocity,
-        normal,
-        Vector3D{spinScalarRadPerSec, 0.0F, 0.0F},
-        R
-    };
+    return BounceState{velocity, normal, Vector3D{spinScalarRadPerSec, 0.0F, 0.0F}, R};
 }
 } // namespace
 
@@ -36,9 +31,8 @@ TEST(DefaultBounceModelTest, BounceOnFlatGroundLowEnergy)
     surface.firmness = 0.8F;
     surface.spinRetention = 0.75F;
 
-    auto result = model.resolveBounce(
-        makeState({0.0F, 10.0F, -5.0F}, {0.0F, 0.0F, 1.0F}, 100.0F),
-        surface);
+    auto result =
+        model.resolveBounce(makeState({0.0F, 10.0F, -5.0F}, {0.0F, 0.0F, 1.0F}, 100.0F), surface);
 
     // Vertical: COR slightly reduced by spin × velScale, but velScale is low
     // (~0.063) and spinRpm ~955 → reduction <2%, so newVz ≈ -(-5)*0.6 ≈ 3.0.
@@ -64,9 +58,8 @@ TEST(DefaultBounceModelTest, HighSpinSteepImpactReversesTangent)
 
     // ~72 ft/s ≈ 22 m/s, above Penner energy gate.
     // Angle from surface = atan(60/40) ≈ 56°, well above 15° crit.
-    auto result = model.resolveBounce(
-        makeState({0.0F, 40.0F, -60.0F}, {0.0F, 0.0F, 1.0F}, 3000.0F),
-        surface);
+    auto result =
+        model.resolveBounce(makeState({0.0F, 40.0F, -60.0F}, {0.0F, 0.0F, 1.0F}, 3000.0F), surface);
 
     EXPECT_LT(result.newVelocity[1], 0.0F);
 }
@@ -87,7 +80,7 @@ TEST(DefaultBounceModelTest, HighSpinReducesTangentVelocityMoreThanLowSpin)
     Vector3D velocity{0.0F, 72.0F, -30.0F};
     Vector3D normal{0.0F, 0.0F, 1.0F};
 
-    auto resultLow  = model.resolveBounce(makeState(velocity, normal, 50.0F),  surface);
+    auto resultLow = model.resolveBounce(makeState(velocity, normal, 50.0F), surface);
     auto resultHigh = model.resolveBounce(makeState(velocity, normal, 300.0F), surface);
 
     EXPECT_LT(resultHigh.newVelocity[1], resultLow.newVelocity[1]);
@@ -107,9 +100,8 @@ TEST(DefaultBounceModelTest, ZeroSpinNoTangentReduction)
     surface.firmness = 1.0F;
     surface.spinRetention = 1.0F;
 
-    auto result = model.resolveBounce(
-        makeState({0.0F, 30.0F, -10.0F}, {0.0F, 0.0F, 1.0F}, 0.0F),
-        surface);
+    auto result =
+        model.resolveBounce(makeState({0.0F, 30.0F, -10.0F}, {0.0F, 0.0F, 1.0F}, 0.0F), surface);
 
     EXPECT_NEAR(result.newVelocity[1], 30.0F, 0.01F);
 }
@@ -125,9 +117,8 @@ TEST(DefaultBounceModelTest, ShallowImpactDoesNotSpinBackEvenAtHighSpin)
     surface.spinRetention = 1.0F;
 
     // 100 ft/s tangent, 18 ft/s normal: angle ≈ 10.2° < 15° crit.
-    auto result = model.resolveBounce(
-        makeState({0.0F, 100.0F, -18.0F}, {0.0F, 0.0F, 1.0F}, 500.0F),
-        surface);
+    auto result =
+        model.resolveBounce(makeState({0.0F, 100.0F, -18.0F}, {0.0F, 0.0F, 1.0F}, 500.0F), surface);
 
     EXPECT_NEAR(result.newVelocity[1], 100.0F, 0.01F);
     EXPECT_GT(result.newVelocity[1], 0.0F);
@@ -144,9 +135,8 @@ TEST(DefaultBounceModelTest, LowEnergyChipDoesNotSpinBackEvenWithHighSpin)
     surface.spinRetention = 1.0F;
 
     // ~14 ft/s ≈ 4.3 m/s, well below 20 m/s Penner energy gate.
-    auto result = model.resolveBounce(
-        makeState({0.0F, 10.0F, -10.0F}, {0.0F, 0.0F, 1.0F}, 600.0F),
-        surface);
+    auto result =
+        model.resolveBounce(makeState({0.0F, 10.0F, -10.0F}, {0.0F, 0.0F, 1.0F}, 600.0F), surface);
 
     EXPECT_GT(result.newVelocity[1], 0.0F);
     EXPECT_NEAR(result.newVelocity[1], 10.0F, 0.01F);
@@ -193,7 +183,7 @@ TEST(DefaultBounceModelTest, FlopShotHighSpinReducesNormalRebound)
     Vector3D normal{0.0F, 0.0F, 1.0F};
 
     auto resultHigh = model.resolveBounce(makeState(velocity, normal, 366.0F), surface);
-    auto resultLow  = model.resolveBounce(makeState(velocity, normal, 50.0F),  surface);
+    auto resultLow = model.resolveBounce(makeState(velocity, normal, 50.0F), surface);
 
     EXPECT_LT(resultHigh.newVelocity[2], resultLow.newVelocity[2]);
     EXPECT_LT(resultHigh.newVelocity[2], 25.0F);
@@ -211,9 +201,8 @@ TEST(DefaultBounceModelTest, LowSpeedHighSpinKeepsCorNearBase)
     surface.firmness = 1.0F;
     surface.spinRetention = 1.0F;
 
-    auto result = model.resolveBounce(
-        makeState({0.0F, 0.0F, -10.0F}, {0.0F, 0.0F, 1.0F}, 400.0F),
-        surface);
+    auto result =
+        model.resolveBounce(makeState({0.0F, 0.0F, -10.0F}, {0.0F, 0.0F, 1.0F}, 400.0F), surface);
 
     EXPECT_GT(result.newVelocity[2], 4.4F);
     EXPECT_LT(result.newVelocity[2], 5.0F);
@@ -231,9 +220,7 @@ TEST(DefaultBounceModelTest, BounceOn45DegreeSlope)
     const float angle = 45.0F * physics_constants::DEG_TO_RAD;
     Vector3D normal{0.0F, std::sin(angle), std::cos(angle)};
 
-    auto result = model.resolveBounce(
-        makeState({0.0F, 0.0F, -10.0F}, normal, 0.0F),
-        surface);
+    auto result = model.resolveBounce(makeState({0.0F, 0.0F, -10.0F}, normal, 0.0F), surface);
 
     EXPECT_GT(result.newVelocity[1], 0.0F);
     EXPECT_GT(math_utils::dot(result.newVelocity, normal), 0.0F);
@@ -248,9 +235,8 @@ TEST(DefaultBounceModelTest, BouncePreservesTangentialDirection)
     surface.firmness = 1.0F;
     surface.spinRetention = 1.0F;
 
-    auto result = model.resolveBounce(
-        makeState({5.0F, 10.0F, -8.0F}, {0.0F, 0.0F, 1.0F}, 0.0F),
-        surface);
+    auto result =
+        model.resolveBounce(makeState({5.0F, 10.0F, -8.0F}, {0.0F, 0.0F, 1.0F}, 0.0F), surface);
 
     EXPECT_NEAR(result.newVelocity[0], 5.0F, 0.001F);
     EXPECT_NEAR(result.newVelocity[1], 10.0F, 0.001F);
@@ -271,9 +257,7 @@ TEST(DefaultBounceModelTest, BounceWorksWithUnitNormal)
     surface.firmness = 1.0F;
     surface.spinRetention = 1.0F;
 
-    auto result = model.resolveBounce(
-        makeState({0.0F, 0.0F, -10.0F}, normal, 0.0F),
-        surface);
+    auto result = model.resolveBounce(makeState({0.0F, 0.0F, -10.0F}, normal, 0.0F), surface);
 
     EXPECT_GT(math_utils::magnitude(result.newVelocity), 0.0F);
 }
@@ -287,13 +271,11 @@ TEST(DefaultBounceModelTest, HighFrictionReducesTangentialVelocity)
     surface.firmness = 0.5F;
     surface.spinRetention = 0.5F;
 
-    auto result = model.resolveBounce(
-        makeState({10.0F, 10.0F, -5.0F}, {0.0F, 0.0F, 1.0F}, 100.0F),
-        surface);
+    auto result =
+        model.resolveBounce(makeState({10.0F, 10.0F, -5.0F}, {0.0F, 0.0F, 1.0F}, 100.0F), surface);
 
-    const float tangent = std::sqrt(
-        result.newVelocity[0] * result.newVelocity[0] +
-        result.newVelocity[1] * result.newVelocity[1]);
+    const float tangent = std::sqrt(result.newVelocity[0] * result.newVelocity[0] +
+                                    result.newVelocity[1] * result.newVelocity[1]);
     const float originalTangent = std::sqrt(10.0F * 10.0F + 10.0F * 10.0F);
 
     EXPECT_LT(tangent, originalTangent * 0.8F);
@@ -349,12 +331,7 @@ TEST(DefaultBounceModelTest, SpinRetentionScalesAllSpinAxes)
     surface.restitution = 0.5F;
     surface.spinRetention = 0.6F;
 
-    BounceState state{
-        {0.0F, 0.0F, -5.0F},
-        {0.0F, 0.0F, 1.0F},
-        {100.0F, -50.0F, 25.0F},
-        R
-    };
+    BounceState state{{0.0F, 0.0F, -5.0F}, {0.0F, 0.0F, 1.0F}, {100.0F, -50.0F, 25.0F}, R};
 
     auto result = model.resolveBounce(state, surface);
 

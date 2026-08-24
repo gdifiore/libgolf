@@ -12,28 +12,27 @@
 
 class FixedCorBounceModel : public BounceModel
 {
-public:
+  public:
     FixedCorBounceModel(float cor, float tangentialRetention)
-        : cor_(cor), tang_(tangentialRetention) {}
+        : cor_(cor)
+        , tang_(tangentialRetention)
+    {
+    }
 
     BounceResult resolveBounce(const BounceState &s,
                                const GroundSurface & /*surface*/) const override
     {
         const Vector3D vn = math_utils::project(s.velocity, s.surfaceNormal);
-        const Vector3D vt{s.velocity[0] - vn[0],
-                          s.velocity[1] - vn[1],
-                          s.velocity[2] - vn[2]};
+        const Vector3D vt{s.velocity[0] - vn[0], s.velocity[1] - vn[1], s.velocity[2] - vn[2]};
 
         const Vector3D vnPost{-cor_ * vn[0], -cor_ * vn[1], -cor_ * vn[2]};
         const Vector3D vtPost{tang_ * vt[0], tang_ * vt[1], tang_ * vt[2]};
 
-        return {{vnPost[0] + vtPost[0],
-                 vnPost[1] + vtPost[1],
-                 vnPost[2] + vtPost[2]},
+        return {{vnPost[0] + vtPost[0], vnPost[1] + vtPost[1], vnPost[2] + vtPost[2]},
                 s.spinVector};
     }
 
-private:
+  private:
     float cor_;
     float tang_;
 };

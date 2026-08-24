@@ -10,31 +10,31 @@
  */
 struct AtmosphericData
 {
-	/**
+    /**
 	 * @brief Air temperature (in degrees Fahrenheit).
 	 *
 	 * Affects air density and ball flight.
 	 * Typical range: 0-120°F (Earth conditions)
 	 */
-	float temp = 59.0F;
+    float temp = 59.0F;
 
-	/**
+    /**
 	 * @brief Elevation above sea level (in feet).
 	 *
 	 * Higher elevations have lower air density.
 	 * Typical range: -500 to 15000 ft (most golf courses 0-8000 ft)
 	 */
-	float elevation = 0.0F;
+    float elevation = 0.0F;
 
-	/**
+    /**
 	 * @brief Wind speed (in mph).
 	 *
 	 * Magnitude of wind velocity.
 	 * Typical range: 0-40 mph
 	 */
-	float vWind = 0.0F;
+    float vWind = 0.0F;
 
-	/**
+    /**
 	 * @brief Wind direction (in degrees).
 	 *
 	 * Angle relative to the Y-axis (target line), measured so that the wind
@@ -50,30 +50,30 @@ struct AtmosphericData
 	 *
 	 * Range: -180 to 180 deg
 	 */
-	float phiWind = 0.0F;
+    float phiWind = 0.0F;
 
-	/**
+    /**
 	 * @brief Height at which wind acts (in feet).
 	 *
 	 * Wind affects ball above this altitude.
 	 */
-	float hWind = 0.0F;
+    float hWind = 0.0F;
 
-	/**
+    /**
 	 * @brief Relative humidity (in percent).
 	 *
 	 * Affects air density slightly.
 	 * Range: 0-100%
 	 */
-	float relHumidity = 0.0F;
+    float relHumidity = 0.0F;
 
-	/**
+    /**
 	 * @brief Barometric pressure (in inches of mercury).
 	 *
 	 * Standard sea level pressure is 29.92 inHg.
 	 * Typical range: 28-31 inHg
 	 */
-	float pressure = 29.92F;
+    float pressure = 29.92F;
 };
 
 #endif // ATMOSPHERIC_DATA_HPP

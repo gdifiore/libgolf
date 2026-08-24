@@ -17,19 +17,18 @@
  */
 class DefaultIntegrator : public Integrator
 {
-public:
-	void step(BallState &state, float dt, const AccelerationField &accel) const override
-	{
-		(void)accel; // start-of-step acceleration is sufficient for this scheme
+  public:
+    void step(BallState &state, float dt, const AccelerationField &accel) const override
+    {
+        (void)accel; // start-of-step acceleration is sufficient for this scheme
 
-		const Vector3D a = state.acceleration;
-		for (int i = 0; i < 3; ++i)
-		{
-			state.position[i] += state.velocity[i] * dt +
-			                     physics_constants::HALF * a[i] * dt * dt;
-			state.velocity[i] += a[i] * dt;
-		}
-	}
+        const Vector3D a = state.acceleration;
+        for (int i = 0; i < 3; ++i)
+        {
+            state.position[i] += state.velocity[i] * dt + physics_constants::HALF * a[i] * dt * dt;
+            state.velocity[i] += a[i] * dt;
+        }
+    }
 };
 
 #endif // DEFAULT_INTEGRATOR_HPP
