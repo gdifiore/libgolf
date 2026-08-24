@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <memory>
 
 #include "AerodynamicModel.hpp"
@@ -262,6 +263,18 @@ TEST(CalibratedAerodynamicModelTest, GarminFitIsExplicitAndPositive)
 	EXPECT_GT(model.calibration().dragScale, 0.0F);
 	EXPECT_GT(model.calibration().liftScale, 0.0F);
 	EXPECT_GT(model.calibration().spinDecayScale, 0.0F);
+}
+
+TEST(CalibratedAerodynamicModelTest, RejectsNonFiniteAndNonPositiveScales)
+{
+	EXPECT_THROW(CalibratedAerodynamicModel({0.0F, 1.0F, 1.0F}), std::invalid_argument);
+	EXPECT_THROW(CalibratedAerodynamicModel({1.0F, -1.0F, 1.0F}), std::invalid_argument);
+	EXPECT_THROW(CalibratedAerodynamicModel(
+	                 {std::numeric_limits<float>::infinity(), 1.0F, 1.0F}),
+	             std::invalid_argument);
+	EXPECT_THROW(CalibratedAerodynamicModel(
+	                 {1.0F, std::numeric_limits<float>::quiet_NaN(), 1.0F}),
+	             std::invalid_argument);
 }
 
 // ============================================================================

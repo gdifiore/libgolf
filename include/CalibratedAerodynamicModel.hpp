@@ -4,6 +4,7 @@
 #include "AerodynamicModel.hpp"
 #include "DefaultAerodynamicModel.hpp"
 
+#include <cmath>
 #include <stdexcept>
 
 /**
@@ -46,11 +47,11 @@ public:
 	explicit CalibratedAerodynamicModel(AerodynamicCalibration calibration = garminR50Fit())
 		: calibration_(calibration)
 	{
-		if (!(calibration_.dragScale > 0.0F) ||
-		    !(calibration_.liftScale > 0.0F) ||
-		    !(calibration_.spinDecayScale > 0.0F))
+		if (!isValidScale(calibration_.dragScale) ||
+		    !isValidScale(calibration_.liftScale) ||
+		    !isValidScale(calibration_.spinDecayScale))
 		{
-			throw std::invalid_argument("Aerodynamic calibration scales must be positive");
+			throw std::invalid_argument("Aerodynamic calibration scales must be finite and positive");
 		}
 	}
 
@@ -68,6 +69,11 @@ public:
 	[[nodiscard]] const AerodynamicCalibration &calibration() const { return calibration_; }
 
 private:
+	[[nodiscard]] static bool isValidScale(float scale)
+	{
+		return std::isfinite(scale) && scale > 0.0F;
+	}
+
 	AerodynamicCalibration calibration_;
 	DefaultAerodynamicModel reference_;
 };

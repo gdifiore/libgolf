@@ -22,12 +22,14 @@
 #include "physics_constants.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -56,6 +58,24 @@ float toFloat(const std::string &s, float fallback = 0.0F)
 		return fallback;
 	}
 }
+
+float parseScale(const char *text)
+{
+	try
+	{
+		size_t parsedCharacters = 0;
+		const float scale = std::stof(text, &parsedCharacters);
+		if (parsedCharacters != std::string(text).size() || !std::isfinite(scale) || scale <= 0.0F)
+		{
+			throw std::invalid_argument("must be finite and positive");
+		}
+		return scale;
+	}
+	catch (const std::exception &)
+	{
+		throw std::invalid_argument("aerodynamic scales must be finite positive numbers");
+	}
+}
 } // namespace
 
 int main(int argc, char **argv)
@@ -68,11 +88,19 @@ int main(int argc, char **argv)
 			std::fprintf(stderr, "usage: fitting_sim_runner [--aero-scales DRAG LIFT SPIN_DECAY]\n");
 			return 2;
 		}
-		aeroModel = std::make_shared<CalibratedAerodynamicModel>(AerodynamicCalibration{
-		    .dragScale = toFloat(argv[2]),
-		    .liftScale = toFloat(argv[3]),
-		    .spinDecayScale = toFloat(argv[4]),
-		});
+		try
+		{
+			aeroModel = std::make_shared<CalibratedAerodynamicModel>(AerodynamicCalibration{
+			    .dragScale = parseScale(argv[2]),
+			    .liftScale = parseScale(argv[3]),
+			    .spinDecayScale = parseScale(argv[4]),
+			});
+		}
+		catch (const std::exception &error)
+		{
+			std::fprintf(stderr, "invalid --aero-scales: %s\n", error.what());
+			return 2;
+		}
 	}
 
 	std::string header;
