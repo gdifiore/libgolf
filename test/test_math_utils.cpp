@@ -59,7 +59,7 @@ TEST(GolfTest, DotProduct)
     Vector3D d{4.0, 5.0, 6.0};
     result = math_utils::dot(c, d);
 
-    EXPECT_NEAR(result, 32.0, 0.001);  // 1*4 + 2*5 + 3*6 = 32
+    EXPECT_NEAR(result, 32.0, 0.001); // 1*4 + 2*5 + 3*6 = 32
 }
 
 TEST(GolfTest, CrossProduct)
@@ -70,15 +70,15 @@ TEST(GolfTest, CrossProduct)
 
     EXPECT_NEAR(result[0], 0.0, 0.001);
     EXPECT_NEAR(result[1], 0.0, 0.001);
-    EXPECT_NEAR(result[2], 1.0, 0.001);  // x × y = z
+    EXPECT_NEAR(result[2], 1.0, 0.001); // x × y = z
 
     Vector3D a{1.0, 2.0, 3.0};
     Vector3D b{4.0, 5.0, 6.0};
     result = math_utils::cross(a, b);
 
-    EXPECT_NEAR(result[0], -3.0, 0.001);   // 2*6 - 3*5 = -3
-    EXPECT_NEAR(result[1], 6.0, 0.001);    // 3*4 - 1*6 = 6
-    EXPECT_NEAR(result[2], -3.0, 0.001);   // 1*5 - 2*4 = -3
+    EXPECT_NEAR(result[0], -3.0, 0.001); // 2*6 - 3*5 = -3
+    EXPECT_NEAR(result[1], 6.0, 0.001);  // 3*4 - 1*6 = 6
+    EXPECT_NEAR(result[2], -3.0, 0.001); // 1*5 - 2*4 = -3
 }
 
 TEST(GolfTest, Magnitude)
@@ -86,12 +86,12 @@ TEST(GolfTest, Magnitude)
     Vector3D v{3.0, 4.0, 0.0};
     float mag = math_utils::magnitude(v);
 
-    EXPECT_NEAR(mag, 5.0, 0.001);  // 3-4-5 triangle
+    EXPECT_NEAR(mag, 5.0, 0.001); // 3-4-5 triangle
 
     Vector3D v2{1.0, 1.0, 1.0};
     mag = math_utils::magnitude(v2);
 
-    EXPECT_NEAR(mag, 1.732, 0.001);  // sqrt(3)
+    EXPECT_NEAR(mag, 1.732, 0.001); // sqrt(3)
 }
 
 TEST(GolfTest, Normalize)
@@ -99,8 +99,8 @@ TEST(GolfTest, Normalize)
     Vector3D v{3.0, 4.0, 0.0};
     Vector3D normalized = math_utils::normalize(v);
 
-    EXPECT_NEAR(normalized[0], 0.6, 0.001);   // 3/5
-    EXPECT_NEAR(normalized[1], 0.8, 0.001);   // 4/5
+    EXPECT_NEAR(normalized[0], 0.6, 0.001); // 3/5
+    EXPECT_NEAR(normalized[1], 0.8, 0.001); // 4/5
     EXPECT_NEAR(normalized[2], 0.0, 0.001);
 
     // Verify unit length

@@ -1,0 +1,11 @@
+# .clang-format
+BasedOnStyle: Microsoft
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4
+PointerAlignment: Right
+ColumnLimit: 100
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers: Never
+ReflowComments: false
+SortIncludes: false

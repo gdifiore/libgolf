@@ -14,7 +14,7 @@
  */
 struct LaunchData
 {
-	/**
+    /**
 	 * @brief Ball speed at launch (mph).
 	 *
 	 * Typical values:
@@ -22,9 +22,9 @@ struct LaunchData
 	 * - Mid iron: ~100-120 mph
 	 * - Wedge: ~70-90 mph
 	 */
-	float ballSpeedMph;
+    float ballSpeedMph;
 
-	/**
+    /**
 	 * @brief Vertical launch angle (degrees).
 	 *
 	 * Angle above horizontal plane.
@@ -39,17 +39,17 @@ struct LaunchData
 	 * leaves the aerial phase immediately, so no trajectory is produced. Putts
 	 * and other ground-level rolls are outside the model's scope.
 	 */
-	float launchAngleDeg;
+    float launchAngleDeg;
 
-	/**
+    /**
 	 * @brief Horizontal launch direction (degrees).
 	 *
 	 * Angle from target line (0 = straight, + = right, - = left).
 	 * Typical range: -45 to +45 deg
 	 */
-	float directionDeg;
+    float directionDeg;
 
-	/**
+    /**
 	 * @brief Backspin rate (rpm).
 	 *
 	 * Positive values indicate backspin.
@@ -58,38 +58,38 @@ struct LaunchData
 	 * - Mid iron: ~5000-7000 rpm
 	 * - Wedge: ~8000-10000 rpm
 	 */
-	float backspinRpm;
+    float backspinRpm;
 
-	/**
+    /**
 	 * @brief Sidespin rate (rpm).
 	 *
 	 * Positive values produce hook spin, negative values produce slice spin.
 	 * Typical range: -3000 to +3000 rpm
 	 */
-	float sidespinRpm;
+    float sidespinRpm;
 
-	/**
+    /**
 	 * @brief Starting lateral position (feet).
 	 *
 	 * Positive values are right of target line. Usually 0.
 	 */
-	float startX = 0.0f;
+    float startX = 0.0f;
 
-	/**
+    /**
 	 * @brief Starting downrange position (feet).
 	 *
 	 * Distance along target line from origin. Usually 0.
 	 */
-	float startY = 0.0f;
+    float startY = 0.0f;
 
-	/**
+    /**
 	 * @brief Starting height above the terrain at (startX, startY) (feet).
 	 *
 	 * Typically 0.0 for ground-level shots. Set to tee height for teed-up shots.
 	 */
-	float startZ = 0.0f;
+    float startZ = 0.0f;
 
-	/**
+    /**
 	 * @note Sensor position is not a library concern. The simulation starts the
 	 * ball at (startX, startY, startZ) and runs physics from there. If your
 	 * sensor is physically offset from the ball, translate to ball coordinates
@@ -106,41 +106,41 @@ struct LaunchData
  */
 struct LandingResult
 {
-	/**
+    /**
 	 * @brief Final lateral position (yards).
 	 *
 	 * Positive values are right of target line.
 	 */
-	float xF;
+    float xF;
 
-	/**
+    /**
 	 * @brief Final downrange position (yards).
 	 */
-	float yF;
+    float yF;
 
-	/**
+    /**
 	 * @brief Final height above the terrain at the resting position (yards).
 	 *
 	 * Typically 0.0 when ball comes to rest on ground.
 	 */
-	float zF;
+    float zF;
 
-	/**
+    /**
 	 * @brief Total simulation time from launch to rest (seconds).
 	 */
-	float timeOfFlight;
+    float timeOfFlight;
 
-	/**
+    /**
 	 * @brief Bearing angle from start to landing position (degrees).
 	 *
 	 * Measured from target line (y-axis). Matches directionDeg convention.
 	 */
-	float bearing;
+    float bearing;
 
-	/**
+    /**
 	 * @brief Straight-line distance from launch to final position (yards).
 	 */
-	float distance;
+    float distance;
 };
 
 #endif // LAUNCH_DATA_HPP

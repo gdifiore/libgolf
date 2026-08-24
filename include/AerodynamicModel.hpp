@@ -38,26 +38,27 @@
  */
 struct AerodynamicState
 {
-	// Kinematic
-	Vector3D velocity;          ///< Ball velocity (ft/s)
-	Vector3D windVelocity;      ///< Effective wind velocity at ball height (ft/s; zero below hWind)
-	Vector3D spinVector;        ///< Current spin vector (rad/s); direction = launch spin axis, magnitude decays
-	Vector3D position;          ///< Ball position (ft; x=lateral, y=forward, z=height)
-	float    currentTime;       ///< Simulation time since launch (s)
+    // Kinematic
+    Vector3D velocity;     ///< Ball velocity (ft/s)
+    Vector3D windVelocity; ///< Effective wind velocity at ball height (ft/s; zero below hWind)
+    Vector3D
+        spinVector; ///< Current spin vector (rad/s); direction = launch spin axis, magnitude decays
+    Vector3D position; ///< Ball position (ft; x=lateral, y=forward, z=height)
+    float currentTime; ///< Simulation time since launch (s)
 
-	// Ball geometry
-	float    ballRadius;        ///< Ball radius (ft)
+    // Ball geometry
+    float ballRadius; ///< Ball radius (ft)
 
-	// Atmosphere (raw)
-	float    airDensityKgPerM3 = 0.0F; ///< Raw air density at launch atmosphere (kg/m³)
-	float    airViscosity      = 0.0F; ///< Sutherland-law dynamic viscosity (Pa·s = kg/(m·s))
-	float    tempKelvin        = 0.0F; ///< Air temperature (K)
-	float    pressureMmHg      = 0.0F; ///< Barometric pressure (mmHg)
-	float    relHumidity       = 0.0F; ///< Relative humidity (0..100)
+    // Atmosphere (raw)
+    float airDensityKgPerM3 = 0.0F; ///< Raw air density at launch atmosphere (kg/m³)
+    float airViscosity = 0.0F;      ///< Sutherland-law dynamic viscosity (Pa·s = kg/(m·s))
+    float tempKelvin = 0.0F;        ///< Air temperature (K)
+    float pressureMmHg = 0.0F;      ///< Barometric pressure (mmHg)
+    float relHumidity = 0.0F;       ///< Relative humidity (0..100)
 
-	// Atmosphere (lumped)
-	float    c0;                ///< Lumped aerodynamic force coefficient (air density × ball cross-section / mass)
-	float    re100;             ///< Lumped Reynolds reference: Re at 100 mph under current atmospherics
+    // Atmosphere (lumped)
+    float c0; ///< Lumped aerodynamic force coefficient (air density × ball cross-section / mass)
+    float re100; ///< Lumped Reynolds reference: Re at 100 mph under current atmospherics
 };
 
 /**
@@ -100,34 +101,34 @@ struct AerodynamicState
  */
 class AerodynamicModel
 {
-public:
-	virtual ~AerodynamicModel() = default;
+  public:
+    virtual ~AerodynamicModel() = default;
 
-	AerodynamicModel(const AerodynamicModel &) = delete;
-	AerodynamicModel &operator=(const AerodynamicModel &) = delete;
-	AerodynamicModel(AerodynamicModel &&) = delete;
-	AerodynamicModel &operator=(AerodynamicModel &&) = delete;
+    AerodynamicModel(const AerodynamicModel &) = delete;
+    AerodynamicModel &operator=(const AerodynamicModel &) = delete;
+    AerodynamicModel(AerodynamicModel &&) = delete;
+    AerodynamicModel &operator=(AerodynamicModel &&) = delete;
 
-	/**
+    /**
 	 * @brief Computes aerodynamic acceleration (drag + Magnus; gravity excluded).
 	 *
 	 * @param state Current physical state of the ball and atmosphere
 	 * @return Acceleration vector in ft/s². Gravity (-32.174 ft/s² in z) is added
 	 *         by AerialPhase; do not include it here.
 	 */
-	[[nodiscard]] virtual Vector3D computeAcceleration(const AerodynamicState &state) const = 0;
+    [[nodiscard]] virtual Vector3D computeAcceleration(const AerodynamicState &state) const = 0;
 
-	/**
+    /**
 	 * @brief Computes the spin decay time constant.
 	 *
 	 * @param state Current physical state (velocity and ballRadius are typically
 	 *              sufficient for aerodynamic damping models)
 	 * @return Time constant tau (seconds). Larger = slower decay.
 	 */
-	[[nodiscard]] virtual float computeSpinDecayTau(const AerodynamicState &state) const = 0;
+    [[nodiscard]] virtual float computeSpinDecayTau(const AerodynamicState &state) const = 0;
 
-protected:
-	AerodynamicModel() = default;
+  protected:
+    AerodynamicModel() = default;
 };
 
 #endif // AERODYNAMIC_MODEL_HPP

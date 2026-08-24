@@ -28,8 +28,7 @@ int main()
     sim.run();
 
     LandingResult result = sim.getLandingResult();
-    printf("Landing spot: %.1f %.1f %.1f yards\n",
-           result.xF, result.yF, result.zF);
+    printf("Landing spot: %.1f %.1f %.1f yards\n", result.xF, result.yF, result.zF);
 
     return 0;
 }

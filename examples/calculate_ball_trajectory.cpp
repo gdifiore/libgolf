@@ -31,12 +31,10 @@ int main()
 
     printf("Entire ball trajectory:\n");
 
-    for (const auto& state : trajectory)
+    for (const auto &state : trajectory)
     {
-        printf("%.1f %.1f %.1f\n",
-               state.position[0] / physics_constants::YARDS_TO_FEET,
-               state.position[1] / physics_constants::YARDS_TO_FEET,
-               state.position[2]);
+        printf("%.1f %.1f %.1f\n", state.position[0] / physics_constants::YARDS_TO_FEET,
+               state.position[1] / physics_constants::YARDS_TO_FEET, state.position[2]);
     }
 
     return 0;

@@ -37,186 +37,182 @@ namespace
 {
 std::vector<std::string> splitCsv(const std::string &line)
 {
-	std::vector<std::string> out;
-	std::stringstream ss(line);
-	std::string cell;
-	while (std::getline(ss, cell, ','))
-	{
-		out.push_back(cell);
-	}
-	return out;
+    std::vector<std::string> out;
+    std::stringstream ss(line);
+    std::string cell;
+    while (std::getline(ss, cell, ','))
+    {
+        out.push_back(cell);
+    }
+    return out;
 }
 
 float toFloat(const std::string &s, float fallback = 0.0F)
 {
-	try
-	{
-		return std::stof(s);
-	}
-	catch (...)
-	{
-		return fallback;
-	}
+    try
+    {
+        return std::stof(s);
+    }
+    catch (...)
+    {
+        return fallback;
+    }
 }
 
 float parseScale(const char *text)
 {
-	try
-	{
-		size_t parsedCharacters = 0;
-		const float scale = std::stof(text, &parsedCharacters);
-		if (parsedCharacters != std::string(text).size() || !std::isfinite(scale) || scale <= 0.0F)
-		{
-			throw std::invalid_argument("must be finite and positive");
-		}
-		return scale;
-	}
-	catch (const std::exception &)
-	{
-		throw std::invalid_argument("aerodynamic scales must be finite positive numbers");
-	}
+    try
+    {
+        size_t parsedCharacters = 0;
+        const float scale = std::stof(text, &parsedCharacters);
+        if (parsedCharacters != std::string(text).size() || !std::isfinite(scale) || scale <= 0.0F)
+        {
+            throw std::invalid_argument("must be finite and positive");
+        }
+        return scale;
+    }
+    catch (const std::exception &)
+    {
+        throw std::invalid_argument("aerodynamic scales must be finite positive numbers");
+    }
 }
 } // namespace
 
 int main(int argc, char **argv)
 {
-	std::shared_ptr<AerodynamicModel> aeroModel;
-	if (argc != 1)
-	{
-		if (argc != 5 || std::string(argv[1]) != "--aero-scales")
-		{
-			std::fprintf(stderr, "usage: fitting_sim_runner [--aero-scales DRAG LIFT SPIN_DECAY]\n");
-			return 2;
-		}
-		try
-		{
-			aeroModel = std::make_shared<CalibratedAerodynamicModel>(AerodynamicCalibration{
-			    .dragScale = parseScale(argv[2]),
-			    .liftScale = parseScale(argv[3]),
-			    .spinDecayScale = parseScale(argv[4]),
-			});
-		}
-		catch (const std::exception &error)
-		{
-			std::fprintf(stderr, "invalid --aero-scales: %s\n", error.what());
-			return 2;
-		}
-	}
+    std::shared_ptr<AerodynamicModel> aeroModel;
+    if (argc != 1)
+    {
+        if (argc != 5 || std::string(argv[1]) != "--aero-scales")
+        {
+            std::fprintf(stderr,
+                         "usage: fitting_sim_runner [--aero-scales DRAG LIFT SPIN_DECAY]\n");
+            return 2;
+        }
+        try
+        {
+            aeroModel = std::make_shared<CalibratedAerodynamicModel>(AerodynamicCalibration{
+                .dragScale = parseScale(argv[2]),
+                .liftScale = parseScale(argv[3]),
+                .spinDecayScale = parseScale(argv[4]),
+            });
+        }
+        catch (const std::exception &error)
+        {
+            std::fprintf(stderr, "invalid --aero-scales: %s\n", error.what());
+            return 2;
+        }
+    }
 
-	std::string header;
-	if (!std::getline(std::cin, header))
-	{
-		std::fprintf(stderr, "sim_runner: empty input\n");
-		return 1;
-	}
+    std::string header;
+    if (!std::getline(std::cin, header))
+    {
+        std::fprintf(stderr, "sim_runner: empty input\n");
+        return 1;
+    }
 
-	const auto cols = splitCsv(header);
-	std::map<std::string, size_t> idx;
-	for (size_t i = 0; i < cols.size(); ++i)
-	{
-		idx[cols[i]] = i;
-	}
+    const auto cols = splitCsv(header);
+    std::map<std::string, size_t> idx;
+    for (size_t i = 0; i < cols.size(); ++i)
+    {
+        idx[cols[i]] = i;
+    }
 
-	auto col = [&](const std::vector<std::string> &row, const std::string &name, float fallback = 0.0F) {
-		auto it = idx.find(name);
-		if (it == idx.end() || it->second >= row.size())
-		{
-			return fallback;
-		}
-		return toFloat(row[it->second], fallback);
-	};
-	auto sCol = [&](const std::vector<std::string> &row, const std::string &name) -> std::string {
-		auto it = idx.find(name);
-		if (it == idx.end() || it->second >= row.size())
-		{
-			return "";
-		}
-		return row[it->second];
-	};
+    auto col = [&](const std::vector<std::string> &row, const std::string &name,
+                   float fallback = 0.0F) {
+        auto it = idx.find(name);
+        if (it == idx.end() || it->second >= row.size())
+        {
+            return fallback;
+        }
+        return toFloat(row[it->second], fallback);
+    };
+    auto sCol = [&](const std::vector<std::string> &row, const std::string &name) -> std::string {
+        auto it = idx.find(name);
+        if (it == idx.end() || it->second >= row.size())
+        {
+            return "";
+        }
+        return row[it->second];
+    };
 
-	std::printf("shot_id,carry_yd,total_yd,apex_yd,side_yd,bearing_deg,time_s\n");
+    std::printf("shot_id,carry_yd,total_yd,apex_yd,side_yd,bearing_deg,time_s\n");
 
-	std::string line;
-	while (std::getline(std::cin, line))
-	{
-		if (line.empty())
-		{
-			continue;
-		}
-		const auto row = splitCsv(line);
+    std::string line;
+    while (std::getline(std::cin, line))
+    {
+        if (line.empty())
+        {
+            continue;
+        }
+        const auto row = splitCsv(line);
 
-		const LaunchData launch{
-			.ballSpeedMph   = col(row, "ball_speed_mph"),
-			.launchAngleDeg = col(row, "launch_angle_deg"),
-			.directionDeg   = col(row, "direction_deg"),
-			.backspinRpm    = col(row, "backspin_rpm"),
-			.sidespinRpm    = col(row, "sidespin_rpm"),
-		};
-		const AtmosphericData atmos{
-			.temp        = col(row, "temp_f", 70.0F),
-			.elevation   = col(row, "elevation_ft", 0.0F),
-			.vWind       = col(row, "wind_mph", 0.0F),
-			.phiWind     = col(row, "wind_dir_deg", 0.0F),
-			.hWind       = 0.0F,
-			.relHumidity = col(row, "humidity_pct", 50.0F),
-			.pressure    = col(row, "pressure_inhg", 29.92F),
-		};
-		const GroundSurface ground;
+        const LaunchData launch{
+            .ballSpeedMph = col(row, "ball_speed_mph"),
+            .launchAngleDeg = col(row, "launch_angle_deg"),
+            .directionDeg = col(row, "direction_deg"),
+            .backspinRpm = col(row, "backspin_rpm"),
+            .sidespinRpm = col(row, "sidespin_rpm"),
+        };
+        const AtmosphericData atmos{
+            .temp = col(row, "temp_f", 70.0F),
+            .elevation = col(row, "elevation_ft", 0.0F),
+            .vWind = col(row, "wind_mph", 0.0F),
+            .phiWind = col(row, "wind_dir_deg", 0.0F),
+            .hWind = 0.0F,
+            .relHumidity = col(row, "humidity_pct", 50.0F),
+            .pressure = col(row, "pressure_inhg", 29.92F),
+        };
+        const GroundSurface ground;
 
-		FlightSimulator sim(launch, atmos, ground, aeroModel);
-		auto traj = sim.runAndGetTrajectory();
+        FlightSimulator sim(launch, atmos, ground, aeroModel);
+        auto traj = sim.runAndGetTrajectory();
 
-		const float ydPerFt = 1.0F / physics_constants::YARDS_TO_FEET;
-		float apexFt = 0.0F;
-		size_t carryIdx = 0;
-		bool airborneSeen = false;
+        const float ydPerFt = 1.0F / physics_constants::YARDS_TO_FEET;
+        float apexFt = 0.0F;
+        size_t carryIdx = 0;
+        bool airborneSeen = false;
 
-		// Carry detection: hysteresis on z. AIRBORNE_FT must be high enough to
-		// ignore the initial step's tee height; CARRY_GROUND_FT is the threshold
-		// below which we call the ball "down" again. Tune these if your launch
-		// data has unusual tee heights or your custom model bounces high.
-		constexpr float AIRBORNE_FT     = 0.5F;
-		constexpr float CARRY_GROUND_FT = 0.5F;
-		for (size_t i = 0; i < traj.size(); ++i)
-		{
-			const float z = traj[i].position[2];
-			apexFt = std::max(apexFt, z);
-			if (z > AIRBORNE_FT)
-			{
-				airborneSeen = true;
-			}
-			else if (airborneSeen && carryIdx == 0 && z <= CARRY_GROUND_FT)
-			{
-				carryIdx = i; // first ground touch after going up
-			}
-		}
-		if (carryIdx == 0 && !traj.empty())
-		{
-			carryIdx = traj.size() - 1;
-		}
+        // Carry detection: hysteresis on z. AIRBORNE_FT must be high enough to
+        // ignore the initial step's tee height; CARRY_GROUND_FT is the threshold
+        // below which we call the ball "down" again. Tune these if your launch
+        // data has unusual tee heights or your custom model bounces high.
+        constexpr float AIRBORNE_FT = 0.5F;
+        constexpr float CARRY_GROUND_FT = 0.5F;
+        for (size_t i = 0; i < traj.size(); ++i)
+        {
+            const float z = traj[i].position[2];
+            apexFt = std::max(apexFt, z);
+            if (z > AIRBORNE_FT)
+            {
+                airborneSeen = true;
+            }
+            else if (airborneSeen && carryIdx == 0 && z <= CARRY_GROUND_FT)
+            {
+                carryIdx = i; // first ground touch after going up
+            }
+        }
+        if (carryIdx == 0 && !traj.empty())
+        {
+            carryIdx = traj.size() - 1;
+        }
 
-		const auto &carryState = traj[carryIdx];
-		const float carryYd = std::sqrt(carryState.position[0] * carryState.position[0] +
-		                                carryState.position[1] * carryState.position[1]) *
-		                      ydPerFt;
+        const auto &carryState = traj[carryIdx];
+        const float carryYd = std::sqrt(carryState.position[0] * carryState.position[0] +
+                                        carryState.position[1] * carryState.position[1]) *
+                              ydPerFt;
 
-		// side_yd is the lateral deflection at carry (first ground touch), not after
-		// roll. Aerodynamic tuners care about wind / spin-axis effects in the air;
-		// post-roll lateral is dominated by bounce + slope. Use lr.xF (final landing
-		// x in yards) if you need the post-roll quantity.
-		const float carrySideYd = carryState.position[0] * ydPerFt;
+        // side_yd is the lateral deflection at carry (first ground touch), not after
+        // roll. Aerodynamic tuners care about wind / spin-axis effects in the air;
+        // post-roll lateral is dominated by bounce + slope. Use lr.xF (final landing
+        // x in yards) if you need the post-roll quantity.
+        const float carrySideYd = carryState.position[0] * ydPerFt;
 
-		const LandingResult lr = sim.getLandingResult();
-		const float totalYd = std::sqrt(lr.xF * lr.xF + lr.yF * lr.yF);
+        const LandingResult lr = sim.getLandingResult();
+        const float totalYd = std::sqrt(lr.xF * lr.xF + lr.yF * lr.yF);
 
-		std::printf("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.3f\n",
-		            sCol(row, "shot_id").c_str(),
-		            carryYd,
-		            totalYd,
-		            apexFt * ydPerFt,
-		            carrySideYd,
-		            lr.bearing,
-		            lr.timeOfFlight);
-	}
-	return 0;
+        std::printf("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.3f\n", sCol(row, "shot_id").c_str(), carryYd,
+                    totalYd, apexFt * ydPerFt, carrySideYd, lr.bearing, lr.timeOfFlight);
+    }
+    return 0;
 }

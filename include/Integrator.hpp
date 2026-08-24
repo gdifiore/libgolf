@@ -14,9 +14,9 @@
  */
 struct IntegratorState
 {
-	Vector3D position; ///< Trial position (ft)
-	Vector3D velocity; ///< Trial velocity (ft/s)
-	float    time;     ///< Trial simulation time (s)
+    Vector3D position; ///< Trial position (ft)
+    Vector3D velocity; ///< Trial velocity (ft/s)
+    float time;        ///< Trial simulation time (s)
 };
 
 /**
@@ -57,25 +57,25 @@ using AccelerationField = std::function<Vector3D(const IntegratorState &)>;
  */
 class Integrator
 {
-public:
-	virtual ~Integrator() = default;
+  public:
+    virtual ~Integrator() = default;
 
-	Integrator(const Integrator &) = delete;
-	Integrator &operator=(const Integrator &) = delete;
-	Integrator(Integrator &&) = delete;
-	Integrator &operator=(Integrator &&) = delete;
+    Integrator(const Integrator &) = delete;
+    Integrator &operator=(const Integrator &) = delete;
+    Integrator(Integrator &&) = delete;
+    Integrator &operator=(Integrator &&) = delete;
 
-	/**
+    /**
 	 * @brief Advances position and velocity by one step of size dt.
 	 *
 	 * @param state Ball state to update; `state.acceleration` is the start-of-step value
 	 * @param dt Time step (s)
 	 * @param accel Acceleration field sampleable at trial states
 	 */
-	virtual void step(BallState &state, float dt, const AccelerationField &accel) const = 0;
+    virtual void step(BallState &state, float dt, const AccelerationField &accel) const = 0;
 
-protected:
-	Integrator() = default;
+  protected:
+    Integrator() = default;
 };
 
 #endif // INTEGRATOR_HPP

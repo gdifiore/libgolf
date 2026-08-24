@@ -24,58 +24,61 @@
  */
 struct AerodynamicCalibration
 {
-	float dragScale = 1.0F;
-	float liftScale = 1.0F;
-	float spinDecayScale = 1.0F;
+    float dragScale = 1.0F;
+    float liftScale = 1.0F;
+    float spinDecayScale = 1.0F;
 };
 
 class CalibratedAerodynamicModel final : public AerodynamicModel
 {
-public:
-	/**
+  public:
+    /**
 	 * @brief Garmin-R50 fit from `tools/fitting/fit_aero.py`.
 	 *
 	 * This is a robust 90%/10% train/validation fit to 800 aerial-eligible
 	 * rows of the public dataset. It remains a model selection, not a
 	 * device-calibration claim.
 	 */
-	[[nodiscard]] static constexpr AerodynamicCalibration garminR50Fit()
-	{
-		return {.dragScale = 0.88275F, .liftScale = 0.99205F, .spinDecayScale = 1.59676F};
-	}
+    [[nodiscard]] static constexpr AerodynamicCalibration garminR50Fit()
+    {
+        return {.dragScale = 0.88275F, .liftScale = 0.99205F, .spinDecayScale = 1.59676F};
+    }
 
-	explicit CalibratedAerodynamicModel(AerodynamicCalibration calibration = garminR50Fit())
-		: calibration_(calibration)
-	{
-		if (!isValidScale(calibration_.dragScale) ||
-		    !isValidScale(calibration_.liftScale) ||
-		    !isValidScale(calibration_.spinDecayScale))
-		{
-			throw std::invalid_argument("Aerodynamic calibration scales must be finite and positive");
-		}
-	}
+    explicit CalibratedAerodynamicModel(AerodynamicCalibration calibration = garminR50Fit())
+        : calibration_(calibration)
+    {
+        if (!isValidScale(calibration_.dragScale) || !isValidScale(calibration_.liftScale) ||
+            !isValidScale(calibration_.spinDecayScale))
+        {
+            throw std::invalid_argument(
+                "Aerodynamic calibration scales must be finite and positive");
+        }
+    }
 
-	[[nodiscard]] Vector3D computeAcceleration(const AerodynamicState &state) const override
-	{
-		return reference_.computeAccelerationScaled(
-			state, calibration_.dragScale, calibration_.liftScale);
-	}
+    [[nodiscard]] Vector3D computeAcceleration(const AerodynamicState &state) const override
+    {
+        return reference_.computeAccelerationScaled(state, calibration_.dragScale,
+                                                    calibration_.liftScale);
+    }
 
-	[[nodiscard]] float computeSpinDecayTau(const AerodynamicState &state) const override
-	{
-		return reference_.computeSpinDecayTauScaled(state, calibration_.spinDecayScale);
-	}
+    [[nodiscard]] float computeSpinDecayTau(const AerodynamicState &state) const override
+    {
+        return reference_.computeSpinDecayTauScaled(state, calibration_.spinDecayScale);
+    }
 
-	[[nodiscard]] const AerodynamicCalibration &calibration() const { return calibration_; }
+    [[nodiscard]] const AerodynamicCalibration &calibration() const
+    {
+        return calibration_;
+    }
 
-private:
-	[[nodiscard]] static bool isValidScale(float scale)
-	{
-		return std::isfinite(scale) && scale > 0.0F;
-	}
+  private:
+    [[nodiscard]] static bool isValidScale(float scale)
+    {
+        return std::isfinite(scale) && scale > 0.0F;
+    }
 
-	AerodynamicCalibration calibration_;
-	DefaultAerodynamicModel reference_;
+    AerodynamicCalibration calibration_;
+    DefaultAerodynamicModel reference_;
 };
 
 #endif // CALIBRATED_AERODYNAMIC_MODEL_HPP

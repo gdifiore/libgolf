@@ -33,8 +33,11 @@
  *       physically reasonable ranges. Passing invalid or out-of-range data may lead to
  *       unexpected behavior or incorrect calculations.
  */
-ShotPhysicsContext::ShotPhysicsContext(const LaunchData &launch, const AtmosphericData &atmos, const BallProperties &ball)
-    : launch(launch), atmos(atmos), ball(ball)
+ShotPhysicsContext::ShotPhysicsContext(const LaunchData &launch, const AtmosphericData &atmos,
+                                       const BallProperties &ball)
+    : launch(launch)
+    , atmos(atmos)
+    , ball(ball)
 {
     tempC = math_utils::convertFahrenheitToCelsius(atmos.temp);
     elevationM = math_utils::convertFeetToMeters(atmos.elevation);
@@ -65,8 +68,12 @@ float ShotPhysicsContext::getTempKelvin() const
 
 void ShotPhysicsContext::calculateRhoMetric()
 {
-    rhoMetric = physics_constants::STD_AIR_DENSITY_KG_PER_M3 * ((physics_constants::KELVIN_OFFSET / (math_utils::convertCelsiusToKelvin(tempC)) *
-                                                                 ((barometricPressure * std::exp(-physics_constants::BETA_PRESSURE_DECAY * elevationM) - physics_constants::WATER_VAPOR_COEFF * atmos.relHumidity * (SVP / 100.0F)) / physics_constants::STD_PRESSURE_MMHG)));
+    rhoMetric =
+        physics_constants::STD_AIR_DENSITY_KG_PER_M3 *
+        ((physics_constants::KELVIN_OFFSET / (math_utils::convertCelsiusToKelvin(tempC)) *
+          ((barometricPressure * std::exp(-physics_constants::BETA_PRESSURE_DECAY * elevationM) -
+            physics_constants::WATER_VAPOR_COEFF * atmos.relHumidity * (SVP / 100.0F)) /
+           physics_constants::STD_PRESSURE_MMHG)));
 }
 
 void ShotPhysicsContext::calculateRhoImperial()
@@ -76,51 +83,66 @@ void ShotPhysicsContext::calculateRhoImperial()
 
 void ShotPhysicsContext::calculateC0()
 {
-    c0 = physics_constants::DRAG_FORCE_CONST * rhoImperial * (physics_constants::REF_BALL_MASS_OZ / ball.massOz) *
+    c0 = physics_constants::DRAG_FORCE_CONST * rhoImperial *
+         (physics_constants::REF_BALL_MASS_OZ / ball.massOz) *
          std::pow(ball.circumferenceIn / physics_constants::REF_BALL_CIRC_IN, 2);
 }
 
 void ShotPhysicsContext::calculateV0()
 {
     v0_magnitude = launch.ballSpeedMph * physics_constants::MPH_TO_FT_PER_S;
-    float v0x = v0_magnitude * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD);
-    float v0y = v0_magnitude * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD);
+    float v0x = v0_magnitude * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) *
+                std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD);
+    float v0y = v0_magnitude * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) *
+                std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD);
     float v0z = v0_magnitude * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD);
     v0 = Vector3D{v0x, v0y, v0z};
 }
 
 void ShotPhysicsContext::calculateW()
 {
-    float wx = (launch.backspinRpm * std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD) -
-                launch.sidespinRpm * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD)) *
-               physics_constants::RPM_TO_RAD_PER_S;
-    float wy = (-launch.backspinRpm * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD) -
-                launch.sidespinRpm * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) * std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD)) *
-               physics_constants::RPM_TO_RAD_PER_S;
-    float wz = (launch.sidespinRpm * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD)) * physics_constants::RPM_TO_RAD_PER_S;
+    float wx =
+        (launch.backspinRpm * std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD) -
+         launch.sidespinRpm * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) *
+             std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD)) *
+        physics_constants::RPM_TO_RAD_PER_S;
+    float wy =
+        (-launch.backspinRpm * std::sin(launch.directionDeg * physics_constants::DEG_TO_RAD) -
+         launch.sidespinRpm * std::sin(launch.launchAngleDeg * physics_constants::DEG_TO_RAD) *
+             std::cos(launch.directionDeg * physics_constants::DEG_TO_RAD)) *
+        physics_constants::RPM_TO_RAD_PER_S;
+    float wz =
+        (launch.sidespinRpm * std::cos(launch.launchAngleDeg * physics_constants::DEG_TO_RAD)) *
+        physics_constants::RPM_TO_RAD_PER_S;
     w = Vector3D{wx, wy, wz};
 }
 
 void ShotPhysicsContext::calculateOmega()
 {
-    omega = std::sqrt(std::pow(launch.backspinRpm, 2) + std::pow(launch.sidespinRpm, 2)) * physics_constants::RPM_TO_RAD_PER_S;
+    omega = std::sqrt(std::pow(launch.backspinRpm, 2) + std::pow(launch.sidespinRpm, 2)) *
+            physics_constants::RPM_TO_RAD_PER_S;
 }
 
 void ShotPhysicsContext::calculateROmega()
 {
-    rOmega = (ball.circumferenceIn / (2 * physics_constants::PI)) * (omega / physics_constants::INCHES_PER_FOOT);
+    rOmega = (ball.circumferenceIn / (2 * physics_constants::PI)) *
+             (omega / physics_constants::INCHES_PER_FOOT);
 }
 
 void ShotPhysicsContext::calculateVw()
 {
-    float vxw = atmos.vWind * physics_constants::MPH_TO_FT_PER_S * std::sin(atmos.phiWind * physics_constants::DEG_TO_RAD);
-    float vyw = atmos.vWind * physics_constants::MPH_TO_FT_PER_S * std::cos(atmos.phiWind * physics_constants::DEG_TO_RAD);
+    float vxw = atmos.vWind * physics_constants::MPH_TO_FT_PER_S *
+                std::sin(atmos.phiWind * physics_constants::DEG_TO_RAD);
+    float vyw = atmos.vWind * physics_constants::MPH_TO_FT_PER_S *
+                std::cos(atmos.phiWind * physics_constants::DEG_TO_RAD);
     vw = Vector3D{vxw, vyw, 0.0f};
 }
 
 void ShotPhysicsContext::calculateSVP()
 {
-    SVP = physics_constants::SVP_COEFF_A * std::exp((physics_constants::SVP_COEFF_B - tempC / physics_constants::SVP_COEFF_C) * tempC / (physics_constants::SVP_COEFF_D + tempC));
+    SVP = physics_constants::SVP_COEFF_A *
+          std::exp((physics_constants::SVP_COEFF_B - tempC / physics_constants::SVP_COEFF_C) *
+                   tempC / (physics_constants::SVP_COEFF_D + tempC));
 }
 
 void ShotPhysicsContext::calculateBarometricPressure()
@@ -139,7 +161,7 @@ void ShotPhysicsContext::calculateAirViscosity()
 void ShotPhysicsContext::calculateRe100()
 {
     // Re = ρ · v · D / μ, evaluated at v = RE100_VELOCITY_M_PER_S.
-    const float diameterM = ball.circumferenceIn /
-                            (physics_constants::PI * physics_constants::INCHES_PER_METER);
+    const float diameterM =
+        ball.circumferenceIn / (physics_constants::PI * physics_constants::INCHES_PER_METER);
     Re100 = rhoMetric * physics_constants::RE100_VELOCITY_M_PER_S * diameterM / airViscosity;
 }

@@ -22,18 +22,18 @@
  */
 struct BallProperties
 {
-	/// Ball mass (ounces).
-	float massOz = physics_constants::STD_BALL_MASS_OZ;
+    /// Ball mass (ounces).
+    float massOz = physics_constants::STD_BALL_MASS_OZ;
 
-	/// Ball circumference (inches).
-	float circumferenceIn = physics_constants::STD_BALL_CIRCUMFERENCE_IN;
+    /// Ball circumference (inches).
+    float circumferenceIn = physics_constants::STD_BALL_CIRCUMFERENCE_IN;
 
-	/// Ball radius (feet), derived from circumference.
-	[[nodiscard]] float radiusFt() const
-	{
-		return circumferenceIn / (2.0F * physics_constants::PI) /
-		       physics_constants::INCHES_PER_FOOT;
-	}
+    /// Ball radius (feet), derived from circumference.
+    [[nodiscard]] float radiusFt() const
+    {
+        return circumferenceIn / (2.0F * physics_constants::PI) /
+               physics_constants::INCHES_PER_FOOT;
+    }
 };
 
 #endif // BALL_PROPERTIES_HPP

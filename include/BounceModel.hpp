@@ -19,10 +19,11 @@
  */
 struct BounceState
 {
-	Vector3D velocity;       ///< Pre-bounce velocity (ft/s)
-	Vector3D surfaceNormal;  ///< Unit normal of the surface at the impact point (points away from ground)
-	Vector3D spinVector;     ///< Pre-bounce spin vector (rad/s)
-	float    ballRadius;     ///< Ball radius (ft)
+    Vector3D velocity; ///< Pre-bounce velocity (ft/s)
+    Vector3D
+        surfaceNormal; ///< Unit normal of the surface at the impact point (points away from ground)
+    Vector3D spinVector; ///< Pre-bounce spin vector (rad/s)
+    float ballRadius;    ///< Ball radius (ft)
 };
 
 /**
@@ -33,8 +34,8 @@ struct BounceState
  */
 struct BounceResult
 {
-	Vector3D newVelocity;    ///< Post-bounce velocity (ft/s)
-	Vector3D newSpinVector;  ///< Post-bounce spin vector (rad/s)
+    Vector3D newVelocity;   ///< Post-bounce velocity (ft/s)
+    Vector3D newSpinVector; ///< Post-bounce spin vector (rad/s)
 };
 
 /**
@@ -61,26 +62,26 @@ struct BounceResult
  */
 class BounceModel
 {
-public:
-	virtual ~BounceModel() = default;
+  public:
+    virtual ~BounceModel() = default;
 
-	BounceModel(const BounceModel &) = delete;
-	BounceModel &operator=(const BounceModel &) = delete;
-	BounceModel(BounceModel &&) = delete;
-	BounceModel &operator=(BounceModel &&) = delete;
+    BounceModel(const BounceModel &) = delete;
+    BounceModel &operator=(const BounceModel &) = delete;
+    BounceModel(BounceModel &&) = delete;
+    BounceModel &operator=(BounceModel &&) = delete;
 
-	/**
+    /**
 	 * @brief Computes post-bounce velocity and spin.
 	 *
 	 * @param state   Pre-bounce kinematic snapshot
 	 * @param surface Surface properties at the impact point
 	 * @return        Post-bounce velocity and spin vectors
 	 */
-	[[nodiscard]] virtual BounceResult resolveBounce(const BounceState &state,
-	                                                 const GroundSurface &surface) const = 0;
+    [[nodiscard]] virtual BounceResult resolveBounce(const BounceState &state,
+                                                     const GroundSurface &surface) const = 0;
 
-protected:
-	BounceModel() = default;
+  protected:
+    BounceModel() = default;
 };
 
 #endif // BOUNCE_MODEL_HPP

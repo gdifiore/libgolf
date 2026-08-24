@@ -20,14 +20,14 @@ class TerrainInterface;
  */
 struct RollState
 {
-	Vector3D position;       ///< Pre-step position (ft)
-	Vector3D velocity;       ///< Pre-step velocity (ft/s)
-	Vector3D spinVector;     ///< Pre-step spin vector (rad/s)
-	Vector3D surfaceNormal;  ///< Unit normal of the surface at the ball position
-	float    ballRadius;     ///< Ball radius (ft)
-	float    dt;             ///< Time step duration (s)
+    Vector3D position;      ///< Pre-step position (ft)
+    Vector3D velocity;      ///< Pre-step velocity (ft/s)
+    Vector3D spinVector;    ///< Pre-step spin vector (rad/s)
+    Vector3D surfaceNormal; ///< Unit normal of the surface at the ball position
+    float ballRadius;       ///< Ball radius (ft)
+    float dt;               ///< Time step duration (s)
 
-	/**
+    /**
 	 * @brief Optional terrain handle for sub-step re-sampling.
 	 *
 	 * `surfaceNormal` is a single snapshot at the pre-step position. A
@@ -37,7 +37,7 @@ struct RollState
 	 * simulator (tests, isolated benchmarks). The default model ignores
 	 * it.
 	 */
-	const TerrainInterface* terrain = nullptr;
+    const TerrainInterface *terrain = nullptr;
 };
 
 /**
@@ -49,10 +49,10 @@ struct RollState
  */
 struct RollResult
 {
-	Vector3D newPosition;    ///< Post-step position (ft)
-	Vector3D newVelocity;    ///< Post-step velocity (ft/s)
-	Vector3D newSpinVector;  ///< Post-step spin vector (rad/s)
-	bool     atRest;         ///< True if the ball has come to rest
+    Vector3D newPosition;   ///< Post-step position (ft)
+    Vector3D newVelocity;   ///< Post-step velocity (ft/s)
+    Vector3D newSpinVector; ///< Post-step spin vector (rad/s)
+    bool atRest;            ///< True if the ball has come to rest
 };
 
 /**
@@ -78,26 +78,26 @@ struct RollResult
  */
 class RollModel
 {
-public:
-	virtual ~RollModel() = default;
+  public:
+    virtual ~RollModel() = default;
 
-	RollModel(const RollModel &) = delete;
-	RollModel &operator=(const RollModel &) = delete;
-	RollModel(RollModel &&) = delete;
-	RollModel &operator=(RollModel &&) = delete;
+    RollModel(const RollModel &) = delete;
+    RollModel &operator=(const RollModel &) = delete;
+    RollModel(RollModel &&) = delete;
+    RollModel &operator=(RollModel &&) = delete;
 
-	/**
+    /**
 	 * @brief Advances rolling state by one timestep.
 	 *
 	 * @param state   Pre-step kinematic snapshot (includes dt)
 	 * @param surface Surface properties at the ball position
 	 * @return        Post-step position, velocity, spin, and atRest flag
 	 */
-	[[nodiscard]] virtual RollResult step(const RollState &state,
-	                                      const GroundSurface &surface) const = 0;
+    [[nodiscard]] virtual RollResult step(const RollState &state,
+                                          const GroundSurface &surface) const = 0;
 
-protected:
-	RollModel() = default;
+  protected:
+    RollModel() = default;
 };
 
 #endif // ROLL_MODEL_HPP

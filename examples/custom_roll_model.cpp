@@ -13,12 +13,11 @@
 
 class LinearDecelRollModel : public RollModel
 {
-public:
+  public:
     static constexpr float STOP_VELOCITY = 0.1F; // ft/s
     static constexpr float DECEL = 6.0F;         // ft/s^2
 
-    RollResult step(const RollState &s,
-                    const GroundSurface & /*surface*/) const override
+    RollResult step(const RollState &s, const GroundSurface & /*surface*/) const override
     {
         const float speed = math_utils::magnitude(s.velocity);
         if (speed < STOP_VELOCITY)
@@ -28,11 +27,8 @@ public:
 
         const float dv = DECEL * s.dt;
         const float scale = (dv >= speed) ? 0.0F : (speed - dv) / speed;
-        const Vector3D vNew{s.velocity[0] * scale,
-                            s.velocity[1] * scale,
-                            s.velocity[2] * scale};
-        const Vector3D pNew{s.position[0] + vNew[0] * s.dt,
-                            s.position[1] + vNew[1] * s.dt,
+        const Vector3D vNew{s.velocity[0] * scale, s.velocity[1] * scale, s.velocity[2] * scale};
+        const Vector3D pNew{s.position[0] + vNew[0] * s.dt, s.position[1] + vNew[1] * s.dt,
                             s.position[2] + vNew[2] * s.dt};
 
         const bool atRest = math_utils::magnitude(vNew) < STOP_VELOCITY;

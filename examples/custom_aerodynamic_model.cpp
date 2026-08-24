@@ -11,15 +11,19 @@
 
 class ConstantCdModel : public AerodynamicModel
 {
-public:
-    explicit ConstantCdModel(float cd) : cd_(cd) {}
+  public:
+    explicit ConstantCdModel(float cd)
+        : cd_(cd)
+    {
+    }
 
     Vector3D computeAcceleration(const AerodynamicState &s) const override
     {
         const Vector3D vRel = s.velocity - s.windVelocity;
         const float vw = math_utils::magnitude(vRel);
 
-        if (vw < 0.01F) return {0.0F, 0.0F, 0.0F};
+        if (vw < 0.01F)
+            return {0.0F, 0.0F, 0.0F};
 
         // F = -c0 * Cd * vw * vRel  (ignores Magnus / spin)
         return vRel * (-s.c0 * cd_ * vw);
@@ -30,7 +34,7 @@ public:
         return 1.0e6F; // effectively no decay
     }
 
-private:
+  private:
     float cd_;
 };
 

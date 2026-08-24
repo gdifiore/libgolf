@@ -20,7 +20,7 @@
 
 namespace GroundPhysics
 {
-    /**
+/**
      * Determines if the ball should transition from bouncing to rolling.
      *
      * The ball transitions to rolling when it's close to the ground and
@@ -31,11 +31,8 @@ namespace GroundPhysics
      * @param heightAboveGround The height above the terrain surface (ft).
      * @return True if the ball should transition to rolling, false otherwise.
      */
-    [[nodiscard]] auto shouldTransitionToRoll(
-        const Vector3D& velocity,
-        const Vector3D& surfaceNormal,
-        float heightAboveGround
-    ) -> bool;
+[[nodiscard]] auto shouldTransitionToRoll(const Vector3D &velocity, const Vector3D &surfaceNormal,
+                                          float heightAboveGround) -> bool;
 
 } // namespace GroundPhysics
 
